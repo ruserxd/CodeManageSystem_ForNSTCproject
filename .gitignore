@@ -33,6 +33,5 @@ build/
 .vscode/
 
 ### cloneFile ###
-/src/cloneCode/*
-!/src/cloneCode/
+cloneCode/*
 
