@@ -22,15 +22,16 @@ public class GitCloner {
     private static final Logger logger = LoggerFactory.getLogger(GitCloner.class);
     private static final String DEFAULT_BRANCH = "main";
 
+    // 可能丟出 GitAPIException(Git操作錯誤) 和 IOException(檔案操作錯誤)
     public String cloneRepository(String repoUrl) throws GitAPIException, IOException {
         String repoName = getRepoNameFromUrl(repoUrl);
-        String localPath = "src/cloneCode/" + repoName; // 複製到一個臨時目錄
-
+        String localPath = "src/cloneCode/" + repoName;
+        // 先嘗試複製儲存庫至臨時的資料夾 -> 取得commit的時間 -> 移動資料夾至最終路徑 -> 回傳最終路徑
         try (Git git = Git.cloneRepository()
                 .setURI(repoUrl)
                 .setDirectory(new File(localPath))
                 .call()) {
-
+            // 取得最新提交的時間戳
             String timestamp = getCommitTimestamp(localPath);
             String finalPath = "src/cloneCode/" + repoName + "_" + timestamp;
 
@@ -41,6 +42,7 @@ public class GitCloner {
             logger.info("Repository cloned to: {}", finalPath);
             return finalPath;
         } finally {
+            // 最後刪除臨時的資料夾
             deleteDirectory(new File(localPath));
         }
     }
