@@ -46,8 +46,11 @@ public class GitCloner {
     }
 
     private String getRepoNameFromUrl(String repoUrl) {
+        // 將網址透過"/"分開
         String[] parts = repoUrl.split("/");
+        // 抓取最後面的專案名稱
         String repoNameWithExtension = parts[parts.length - 1];
+        // .git的部分換成 ""
         return repoNameWithExtension.replace(".git", "");
     }
 
