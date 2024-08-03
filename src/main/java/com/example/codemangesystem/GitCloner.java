@@ -79,11 +79,17 @@ public class GitCloner {
 
     private void deleteDirectory(File directoryToBeDeleted) {
         File[] allContents = directoryToBeDeleted.listFiles();
+        //刪除目錄內的所有檔案
         if (allContents != null) {
             for (File file : allContents) {
                 deleteDirectory(file);
             }
         }
-        directoryToBeDeleted.delete();
+        //刪除目錄
+        boolean judge = directoryToBeDeleted.delete();
+        if (!judge) {
+            // 刪除失敗，進行錯誤處理
+            logger.warn("Failed to delete directory: {}", directoryToBeDeleted.getAbsolutePath());
+        }
     }
 }
