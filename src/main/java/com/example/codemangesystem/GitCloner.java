@@ -6,6 +6,7 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,12 @@ public class GitCloner {
             // 取得最新提交的時間戳
             String timestamp = getCommitTimestamp(localPath);
             String finalPath = "src/cloneCode/" + repoName + "_" + timestamp;
+
+            // 如果本地資料夾已經存在，直接回傳路徑
+            if (isRepositoryClonedLocally(finalPath)) {
+                logger.info("Repository already exists at: {}", finalPath);
+                return finalPath;
+            }
 
             Path sourcePath = Paths.get(localPath);
             Path targetPath = Paths.get(finalPath);
@@ -91,6 +98,21 @@ public class GitCloner {
         if (!judge) {
             // 刪除失敗，進行錯誤處理
             logger.warn("Failed to delete directory: {}", directoryToBeDeleted.getAbsolutePath());
+        }
+    }
+
+    // 檢查指定路徑是否為已存在 Git 儲存庫
+    private boolean isRepositoryClonedLocally(String path) {
+        FileRepositoryBuilder builder = new FileRepositoryBuilder();
+        // try-with-resources 結束時，自動關閉 Repository
+        try (Repository repository = builder
+                .setGitDir(new File(path, ".git"))
+                .readEnvironment()
+                .findGitDir()
+                .build()) {
+            return repository != null && repository.getDirectory().exists();
+        } catch (IOException e) {
+            return false;
         }
     }
 }
