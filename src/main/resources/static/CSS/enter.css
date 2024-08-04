@@ -5,6 +5,11 @@ body {
     align-items: center; /* 垂直置中 */
     min-height: 100vh; /* 讓 body 至少佔滿螢幕高度 */
     background-color: #f4f4f4; /* 背景顏色 */
+
+    /*圖片背景*/
+    background-image: url('../images/bck.jpg');
+    background-repeat: no-repeat;
+
     margin: 0; /* 去除預設邊距 */
 }
 
