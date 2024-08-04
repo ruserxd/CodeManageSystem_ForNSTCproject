@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 @Controller
 public class UrlController {
@@ -28,8 +29,9 @@ public class UrlController {
         try {
             String clonePath = gitCloner.cloneRepository(url);
 
+            // 取得原始程式碼
             StringBuilder code = new StringBuilder();
-            Files.walk(Paths.get(clonePath))  // 使用 clonePath，其中包含了正確的資料夾名稱
+            Files.walk(Paths.get(clonePath))
                     .filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))
                     .forEach(file -> {
@@ -42,7 +44,15 @@ public class UrlController {
                     });
 
             model.addAttribute("code", code.toString());
-        } catch (GitAPIException | IOException e) { // 捕捉 GitAPIException 和 IOException
+
+            // 取得 commit 差異資訊
+            List<CommitDiffInfo> commitDiffs = gitCloner.getCommitDiffs(clonePath);
+            model.addAttribute("diffs", commitDiffs);
+
+            // 檢查 diffs 是否為空
+            logger.info("diffs is empty: {}", commitDiffs.isEmpty());
+
+        } catch (GitAPIException | IOException e) {
             logger.error("Error cloning or accessing repository: ", e);
             model.addAttribute("errorMessage", "複製或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
         }
