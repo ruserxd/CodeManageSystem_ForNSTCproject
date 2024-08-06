@@ -3,6 +3,9 @@
     <head>
         <title>Repository Information</title>
         <link rel="stylesheet" th:href="@{/css/result.css}">
+        <!--引入 highlight.js 的 CSS 檔案-->
+        <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     </head>
     <body>
         <h2>Java 程式碼</h2>
@@ -14,10 +17,13 @@
             <p>File: <span th:text="*{filename}"></span></p>
             <p>Time: <span th:text="*{#dates.format(timestamp * 1000, 'yyyy-MM-dd HH:mm:ss')}"></span></p>
             <h4>原始程式碼:</h4>
-            <pre th:text="*{originalCode}"></pre>
+            <pre><code class="java" th:text="*{originalCode}"></code></pre>
             <h4>修改後的程式碼:</h4>
-            <pre class="diff"
-                 th:text="*{diff}"></pre>
+            <pre><code class="diff" th:text="*{diff}"></code></pre>
+
         </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+        <script th:src="@{/js/resultScript.js}"></script>
     </body>
 </html>
