@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Enter URL</title>
-    <link rel="stylesheet" th:href="@{/css/enter.css}">
-</head>
-<body>
+<html lang="zh-TW" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Enter URL</title>
+        <link rel="stylesheet" th:href="@{/css/enter.css}">
+    </head>
+    <body>
 
-<form method="post" action="/enter-url">
-    <label for="url">URL:</label>
-    <input type="text" id="url" name="url" required>
-    <button type="submit">Submit</button>
-</form>
+        <form method="post" action="/enter-url">
+            <label for="url">URL:</label>
+            <input type="text" id="url" name="url" required>
+            <button type="submit">Submit</button>
+        </form>
 
-</body>
+    </body>
 </html>

@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Repository Information</title>
-    <link rel="stylesheet" th:href="@{/css/result.css}">
-</head>
-<body>
-<h2>Java 程式碼</h2>
-<pre th:text="${code}"></pre>
+<html lang="zh-TW" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Repository Information</title>
+        <link rel="stylesheet" th:href="@{/css/result.css}">
+    </head>
+    <body>
+        <h2>Java 程式碼</h2>
+        <pre th:text="${code}"></pre>
 
-<h2>Commit 差異</h2>
-<div th:each="diff : ${diffs}">
-    <p>Author: <span th:text="${diff.author}"></span></p>
-    <p>File: <span th:text="${diff.filename}"></span></p>
-    <p>Time: <span th:text="${#dates.format(diff.timestamp * 1000, 'yyyy-MM-dd HH:mm:ss')}"></span></p>
-    <h4>原始程式碼:</h4>
-    <pre th:text="${diff.originalCode}"></pre>
-    <h4>修改後的程式碼:</h4>
-    <pre class="diff"
-         th:text="${diff.diff}"></pre>
-</div>
-</body>
+        <h2>Commit 差異</h2>
+        <div th:each="diff : ${diffs}">
+            <p>Author: <span th:text="${diff.author}"></span></p>
+            <p>File: <span th:text="${diff.filename}"></span></p>
+            <p>Time: <span th:text="${#dates.format(diff.timestamp * 1000, 'yyyy-MM-dd HH:mm:ss')}"></span></p>
+            <h4>原始程式碼:</h4>
+            <pre th:text="${diff.originalCode}"></pre>
+            <h4>修改後的程式碼:</h4>
+            <pre class="diff"
+                 th:text="${diff.diff}"></pre>
+        </div>
+    </body>
 </html>
