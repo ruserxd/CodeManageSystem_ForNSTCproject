@@ -63,9 +63,6 @@ public class UrlController {
             List<CommitDiffInfo> commitDiffs = gitCloner.getCommitDiffs(clonePath);
             model.addAttribute("diffs", commitDiffs);
 
-            // 檢查 diffs 是否為空
-            logger.info("diffs is empty: {}", commitDiffs.isEmpty());
-
         } catch (GitAPIException | IOException e) {
             logger.error("Error cloning or accessing repository: ", e);
             model.addAttribute("errorMessage", "複製或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");

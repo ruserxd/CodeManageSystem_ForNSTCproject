@@ -10,6 +10,7 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,8 @@ public class GitCloner {
         String repoName = getRepoNameFromUrl(repoUrl);
         String localPath = "src/cloneCode/" + repoName;
         // 先嘗試複製儲存庫至臨時的資料夾 -> 取得 commit 的時間 -> 移動資料夾至最終路徑 -> 回傳最終路徑
-        try (Git git = Git.cloneRepository()
+        // 將 Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
+        try (Git ignored = Git.cloneRepository()
                 .setURI(repoUrl)
                 .setDirectory(new File(localPath))
                 .call()) {
@@ -130,79 +132,105 @@ public class GitCloner {
 
     // TODO: 這裡的程式碼需要進行重構，以便更好地分離關注點
     // TODO: 這行以下皆需補上註解
-    // 獲取提交的差異資訊
     public List<CommitDiffInfo> getCommitDiffs(String repoPath) throws IOException, GitAPIException {
+        logger.info("Opening repository: {}", repoPath);
         List<CommitDiffInfo> diffList = new ArrayList<>();
 
-        try (Git git = Git.open(new File(repoPath))) {
-            Repository repository = git.getRepository();
-            try (RevWalk revWalk = new RevWalk(repository)) {
-                ObjectId head = repository.resolve(DEFAULT_BRANCH);
-                RevCommit commit = revWalk.parseCommit(head);
+        try (Git git = Git.open(new File(repoPath));
+             RevWalk revWalk = new RevWalk(git.getRepository())) {
 
-                while (commit != null) {
-                    RevCommit parent = commit.getParentCount() > 0 ? revWalk.parseCommit(commit.getParent(0)) : null;
-                    if (parent != null) {
-                        List<DiffEntry> diffs = git.diff()
-                                .setOldTree(prepareTreeParser(repository, parent.getTree()))
-                                .setNewTree(prepareTreeParser(repository, commit.getTree()))
-                                .call();
+            ObjectId head = git.getRepository().resolve(DEFAULT_BRANCH);
+            RevCommit commit = revWalk.parseCommit(head);
 
-                        for (DiffEntry entry : diffs) {
-                            if (entry.getNewPath().endsWith(".java")) {
-                                // 獲取原始程式碼
-                                String originalCode = "";
-                                if (entry.getChangeType() != DiffEntry.ChangeType.ADD) {
-                                    try (ObjectReader reader = repository.newObjectReader()) {
-                                        originalCode = new String(reader.open(entry.getOldId().toObjectId()).getBytes(), StandardCharsets.UTF_8);
-                                    }
-                                }
+            while (commit != null) {
+                RevCommit parent = commit.getParentCount() > 0 ? revWalk.parseCommit(commit.getParent(0)) : null;
 
-                                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                                try (DiffFormatter diffFormatter = new DiffFormatter(outputStream)) {
-                                    diffFormatter.setRepository(repository);
-                                    diffFormatter.setContext(0);
-                                    diffFormatter.format(entry);
-                                    String diffOutput = outputStream.toString(StandardCharsets.UTF_8);
-
-                                    // 添加日誌輸出
-//                                    logger.info("New path: {}", entry.getNewPath());
-//                                    logger.info("Author: {}", commit.getAuthorIdent().getName());
-//                                    logger.info("Commit time: {}", commit.getCommitTime());
-//                                    logger.info("Original code: {}", originalCode);
-//                                    logger.info("Diff output: {}", diffOutput);
-
-                                    diffList.add(new CommitDiffInfo(
-                                            entry.getNewPath(),
-                                            commit.getAuthorIdent().getName(),
-                                            commit.getCommitTime(),
-                                            originalCode,
-                                            diffOutput
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    commit = parent;
+                if (parent != null) {
+                    handleNonInitialCommit(git, git.getRepository(), revWalk, commit, parent, diffList);
+                } else {
+                    handleInitialCommit(git.getRepository(), commit, diffList);
                 }
+
+                commit = parent;
             }
         }
 
         return diffList;
     }
 
-    // Helper method to prepare tree parser
-    private AbstractTreeIterator prepareTreeParser(Repository repository, ObjectId treeId) throws IOException {
-        // 在這裡使用 try-with-resources 創建 RevWalk
-        try (RevWalk walk = new RevWalk(repository)) {
-            RevTree tree = walk.parseTree(treeId);
-            CanonicalTreeParser treeParser = new CanonicalTreeParser();
-            try (ObjectReader reader = repository.newObjectReader()) {
-                treeParser.reset(reader, tree.getId());
+    private void handleNonInitialCommit(Git git, Repository repository, RevWalk revWalk, RevCommit commit,
+                                        RevCommit parent, List<CommitDiffInfo> diffList) throws IOException, GitAPIException {
+
+        git.diff()
+                .setOldTree(prepareTreeParser(repository, parent.getTree(), revWalk))
+                .setNewTree(prepareTreeParser(repository, commit.getTree(), revWalk))
+                .call()
+                .stream()
+                .filter(entry -> entry.getNewPath().endsWith(".java"))
+                .forEach(entry -> {
+                    String originalCode;
+                    try {
+                        originalCode = entry.getChangeType() != DiffEntry.ChangeType.ADD
+                                ? new String(repository.open(entry.getOldId().toObjectId()).getBytes(), StandardCharsets.UTF_8)
+                                : "";
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                         DiffFormatter diffFormatter = new DiffFormatter(outputStream)) {
+
+                        diffFormatter.setRepository(repository);
+                        diffFormatter.setContext(0);
+                        diffFormatter.format(entry);
+                        String diffOutput = outputStream.toString(StandardCharsets.UTF_8);
+
+                        diffList.add(new CommitDiffInfo(
+                                entry.getNewPath(),
+                                commit.getAuthorIdent().getName(),
+                                commit.getCommitTime(),
+                                originalCode,
+                                diffOutput,
+                                commit.getName()
+                        ));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+    private void handleInitialCommit(Repository repository, RevCommit commit, List<CommitDiffInfo> diffList) throws IOException {
+
+        try (TreeWalk treeWalk = new TreeWalk(repository)) {
+            treeWalk.addTree(commit.getTree());
+            treeWalk.setRecursive(true);
+
+            while (treeWalk.next()) {
+                if (treeWalk.getPathString().endsWith(".java")) {
+                    String content = new String(repository.open(treeWalk.getObjectId(0)).getBytes(), StandardCharsets.UTF_8);
+
+                    diffList.add(new CommitDiffInfo(
+                            treeWalk.getPathString(),
+                            commit.getAuthorIdent().getName(),
+                            commit.getCommitTime(),
+                            "",
+                            content,
+                            commit.getName()
+                    ));
+                }
             }
-            walk.dispose();
-            return treeParser;
         }
+    }
+
+    private AbstractTreeIterator prepareTreeParser(Repository repository, ObjectId treeId, RevWalk revWalk) throws IOException {
+        RevTree tree = revWalk.parseTree(treeId);
+        CanonicalTreeParser treeParser = new CanonicalTreeParser();
+
+        try (ObjectReader reader = repository.newObjectReader()) {
+            treeParser.reset(reader, tree.getId());
+        }
+
+        return treeParser;
     }
 
 }
