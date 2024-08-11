@@ -30,7 +30,9 @@ import java.util.List;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.springframework.stereotype.Service;
 
+@Service
 public class GitCloner {
     private static final Logger logger = LoggerFactory.getLogger(GitCloner.class);
     private static final String DEFAULT_BRANCH = "main";
@@ -160,7 +162,6 @@ public class GitCloner {
 
     private void handleNonInitialCommit(Git git, Repository repository, RevWalk revWalk, RevCommit commit,
                                         RevCommit parent, List<CommitDiffInfo> diffList) throws IOException, GitAPIException {
-
         git.diff()
                 .setOldTree(prepareTreeParser(repository, parent.getTree(), revWalk))
                 .setNewTree(prepareTreeParser(repository, commit.getTree(), revWalk))
