@@ -1,8 +1,6 @@
-// src/components/Result.js
-
-import React, { useEffect } from 'react'; // 确保导入 useEffect
-import '../styles/result.css'; // 你自己的样式文件
-import HighlightedCode from './HighlightedCode'; // 引入刚刚创建的组件
+import React, { useEffect } from 'react';
+import '../styles/result.css';
+import HighlightedCode from './HighlightedCode';
 
 function Result({ code, diffs }) {
     useEffect(() => {

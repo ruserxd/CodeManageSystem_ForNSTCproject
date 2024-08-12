@@ -1,5 +1,3 @@
-// src/components/EnterUrl.js
-
 import React, { useState } from 'react';
 import '../styles/enter.css';
 

@@ -1,8 +1,6 @@
-// src/components/HighlightedCode.js
-
 import React from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // 使用 Prism 风格系列
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism'; // 选择一个可用的高对比度主题
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const HighlightedCode = ({ language, codeString }) => (
     <SyntaxHighlighter language={language} style={vs}>
