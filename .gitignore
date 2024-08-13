@@ -33,5 +33,5 @@ build/
 .vscode/
 
 ### cloneFile ###
-/src/cloneCode/*
-!/src/cloneCode/.gitkeep
+/backend/cloneCode/*
+!/backend/cloneCode/.gitkeep
