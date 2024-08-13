@@ -41,7 +41,7 @@ public class GitCloner {
     // 可能丟出 GitAPIException(Git操作錯誤) 和 IOException(檔案操作錯誤)
     public String cloneRepository(String repoUrl) throws GitAPIException, IOException {
         String repoName = getRepoNameFromUrl(repoUrl);
-        String localPath = "src/cloneCode/" + repoName;
+        String localPath = "backend/cloneCode/" + repoName;
         // 先嘗試複製儲存庫至臨時的資料夾 -> 取得 commit 的時間 -> 移動資料夾至最終路徑 -> 回傳最終路徑
         // 將 Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
         try (Git ignored = Git.cloneRepository()
@@ -50,7 +50,7 @@ public class GitCloner {
                 .call()) {
             // 取得最新提交的時間戳
             String timestamp = getCommitTimestamp(localPath);
-            String finalPath = "src/cloneCode/" + repoName + "_" + timestamp;
+            String finalPath = "backend/cloneCode/" + repoName + "_" + timestamp;
 
             // 如果本地資料夾已經存在，直接回傳路徑
             if (isRepositoryClonedLocally(finalPath)) {

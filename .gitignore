@@ -35,3 +35,6 @@ build/
 ### cloneFile ###
 /backend/cloneCode/*
 !/backend/cloneCode/.gitkeep
+
+### React ###
+/frontend/node_modules
