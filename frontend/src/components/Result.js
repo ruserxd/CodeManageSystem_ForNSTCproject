@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types'; // Import PropTypes
 import '../styles/result.css';
 import HighlightedCode from './HighlightedCode';
 
@@ -21,12 +22,31 @@ function Result({ code, diffs }) {
                     <p>Time: {new Date(diff.timestamp * 1000).toLocaleString()}</p>
                     <h4>原始程式碼:</h4>
                     <HighlightedCode language="java" codeString={diff.originalCode} />
-                    <h4>修改後的程式碼:</h4>
+                    <h4>新增的程式碼:</h4>
+                    <HighlightedCode language="java" codeString={diff.addedLines} />
+                    <h4>刪減的程式碼:</h4>
+                    <HighlightedCode language="java" codeString={diff.removedLines} />
+                    <h4>原本的diff</h4>
                     <HighlightedCode language="diff" codeString={diff.diff} />
                 </div>
             ))}
         </div>
     );
 }
+
+// 使用 PropTypes 進行型別檢查
+Result.propTypes = {
+    code: PropTypes.string.isRequired,
+    diffs: PropTypes.arrayOf(PropTypes.shape({
+        author: PropTypes.string.isRequired,
+        filename: PropTypes.string.isRequired,
+        commitId: PropTypes.string.isRequired,
+        timestamp: PropTypes.number.isRequired,
+        originalCode: PropTypes.string.isRequired,
+        addedLines: PropTypes.string.isRequired,
+        removedLines: PropTypes.string.isRequired,
+        diff: PropTypes.string.isRequired,
+    })).isRequired,
+};
 
 export default Result;

@@ -186,14 +186,16 @@ public class GitCloner {
                         diffFormatter.format(entry);
                         String diffOutput = outputStream.toString(StandardCharsets.UTF_8);
 
-                        diffList.add(new CommitDiffInfo(
+                        CommitDiffInfo commitDiffInfo = new CommitDiffInfo(
                                 entry.getNewPath(),
                                 commit.getAuthorIdent().getName(),
                                 commit.getCommitTime(),
                                 originalCode,
                                 diffOutput,
                                 commit.getName()
-                        ));
+                        );
+
+                        diffList.add(commitDiffInfo);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -201,7 +203,6 @@ public class GitCloner {
     }
 
     private void handleInitialCommit(Repository repository, RevCommit commit, List<CommitDiffInfo> diffList) throws IOException {
-
         try (TreeWalk treeWalk = new TreeWalk(repository)) {
             treeWalk.addTree(commit.getTree());
             treeWalk.setRecursive(true);
@@ -210,14 +211,19 @@ public class GitCloner {
                 if (treeWalk.getPathString().endsWith(".java")) {
                     String content = new String(repository.open(treeWalk.getObjectId(0)).getBytes(), StandardCharsets.UTF_8);
 
-                    diffList.add(new CommitDiffInfo(
+                    CommitDiffInfo commitDiffInfo = new CommitDiffInfo(
                             treeWalk.getPathString(),
                             commit.getAuthorIdent().getName(),
                             commit.getCommitTime(),
                             "",
                             content,
                             commit.getName()
-                    ));
+                    );
+
+                    commitDiffInfo.setAddedLines(content);
+                    commitDiffInfo.setRemovedLines("");
+
+                    diffList.add(commitDiffInfo);
                 }
             }
         }
