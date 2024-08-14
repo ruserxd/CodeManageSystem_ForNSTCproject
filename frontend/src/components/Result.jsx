@@ -3,7 +3,9 @@ import PropTypes from 'prop-types'; // Import PropTypes
 import '../styles/result.css';
 import HighlightedCode from './HighlightedCode';
 
+// 也可以用 props 代替 {code, diffs}
 function Result({code, diffs}) {
+    // 畫面渲染後印出 diffs
     useEffect(() => {
         console.log('Diffs:', diffs);
     }, [diffs]);
