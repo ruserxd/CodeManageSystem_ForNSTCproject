@@ -7,7 +7,7 @@ function EnterUrl({onSubmit}) {
     const handleSubmit = (event) => {
         event.preventDefault();
         if (url.trim()) {
-            console.log('Submitting URL:', url); // Debugging log
+            console.log('Submitting URL:', url); 
             onSubmit(url);
         } else {
             console.warn('URL is empty');
