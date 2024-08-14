@@ -28,9 +28,11 @@ function App() {
         setDiffs(data.diffs);
         setCurrentPage('result');
       } else {
+        alert('Error fetching data. Please check the URL and try again.');
         console.error('Error fetching data:', response.statusText);
       }
     } catch (error) {
+      alert('Error during fetch. Please check the console for more information.');
       console.error('Error during fetch:', error);
     }
   };
