@@ -72,6 +72,7 @@ public class CommitDiffInfo {
     public String getRemovedLines() {
         return removedLines;
     }
+
     public void setAddedLines(String addedLines) {
         this.addedLines = addedLines;
     }

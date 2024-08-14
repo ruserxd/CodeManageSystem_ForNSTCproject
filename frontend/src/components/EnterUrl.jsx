@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import '../styles/enter.css';
 
-function EnterUrl({ onSubmit }) {
+function EnterUrl({onSubmit}) {
     const [url, setUrl] = useState('');
 
     const handleSubmit = (event) => {

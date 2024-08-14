@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, {useEffect} from 'react';
 import PropTypes from 'prop-types'; // Import PropTypes
 import '../styles/result.css';
 import HighlightedCode from './HighlightedCode';
 
-function Result({ code, diffs }) {
+function Result({code, diffs}) {
     useEffect(() => {
         console.log('Diffs:', diffs);
     }, [diffs]);
@@ -11,7 +11,7 @@ function Result({ code, diffs }) {
     return (
         <div>
             <h2>Java 程式碼</h2>
-            <HighlightedCode language="java" codeString={code} />
+            <HighlightedCode language="java" codeString={code}/>
 
             <h2>Commit 差異</h2>
             {diffs.map((diff, index) => (
@@ -21,13 +21,13 @@ function Result({ code, diffs }) {
                     <p>CommitID: {diff.commitId}</p>
                     <p>Time: {new Date(diff.timestamp * 1000).toLocaleString()}</p>
                     <h4>原始程式碼:</h4>
-                    <HighlightedCode language="java" codeString={diff.originalCode} />
+                    <HighlightedCode language="java" codeString={diff.originalCode}/>
                     <h4>新增的程式碼:</h4>
-                    <HighlightedCode language="java" codeString={diff.addedLines} />
+                    <HighlightedCode language="java" codeString={diff.addedLines}/>
                     <h4>刪減的程式碼:</h4>
-                    <HighlightedCode language="java" codeString={diff.removedLines} />
+                    <HighlightedCode language="java" codeString={diff.removedLines}/>
                     <h4>原本的diff</h4>
-                    <HighlightedCode language="diff" codeString={diff.diff} />
+                    <HighlightedCode language="diff" codeString={diff.diff}/>
                 </div>
             ))}
         </div>
