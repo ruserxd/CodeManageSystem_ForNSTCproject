@@ -64,9 +64,6 @@ public class GitCloner {
 
             logger.info("Repository cloned to: {}", finalPath);
             return finalPath;
-        } finally {
-            // 最後刪除臨時的資料夾
-            deleteDirectory(new File(localPath));
         }
     }
 
@@ -96,23 +93,6 @@ public class GitCloner {
                 // 將 Instant 轉換成 Zone 系統預設時區的時間，並格式化成 yyyyMMdd_HHmmss 字串
                 return commitTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             }
-        }
-    }
-
-    // 刪除指定的資料夾
-    private void deleteDirectory(File directoryToBeDeleted) {
-        File[] allContents = directoryToBeDeleted.listFiles();
-        // 刪除目錄內的所有檔案
-        if (allContents != null) {
-            for (File file : allContents) {
-                deleteDirectory(file);
-            }
-        }
-        // 刪除目錄
-        boolean judge = directoryToBeDeleted.delete();
-        if (!judge) {
-            // 刪除失敗，進行錯誤處理
-            logger.warn("Failed to delete directory: {}", directoryToBeDeleted.getAbsolutePath());
         }
     }
 
