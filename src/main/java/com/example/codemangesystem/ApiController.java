@@ -8,9 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +21,23 @@ public class ApiController {
     private static final Logger logger = LoggerFactory.getLogger(ApiController.class);
 
     private final GitCloner gitCloner;
-
+    private final FileProcessor fileProcessor;
     @Autowired
-    public ApiController(GitCloner gitCloner) {
+    public ApiController(GitCloner gitCloner, FileProcessor fileProcessor) {
         this.gitCloner = gitCloner;
+        this.fileProcessor = fileProcessor;
     }
 
+    //TODO: 負責將程式碼，做分類，並回傳給前端
+    @PostMapping("/fetch-repo/categorize")
+    public String categorizeCode(@RequestParam("Path") String Path) {
+        logger.info("Try to get data from {}", Path);
+        fileProcessor.ProcessFiles(Path);
+        return "Success";
+    }
+
+
+    //TODO: 改成只負責將 URL 的程式碼 clone
     @PostMapping("/fetch-repo")
     public ResponseEntity<?> fetchRepo(@RequestParam("url") String url) {
         try {

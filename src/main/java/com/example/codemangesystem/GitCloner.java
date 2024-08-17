@@ -79,7 +79,7 @@ public class GitCloner {
     // pull 更新本地端資料
     private void renewRepositoryLocally(String repoPath) {
         try (Git git = Git.open(new File(repoPath))) {
-            logger.info("Try to pull {}", repoPath);
+            logger.info("Try to pull {} ...", repoPath);
             PullResult result = git.pull()
                     .setRemote("origin")
                     .setRemoteBranchName(DEFAULT_BRANCH)
