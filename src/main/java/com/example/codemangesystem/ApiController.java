@@ -4,11 +4,14 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,7 @@ public class ApiController {
 
     private final GitCloner gitCloner;
     private final FileProcessor fileProcessor;
+
     @Autowired
     public ApiController(GitCloner gitCloner, FileProcessor fileProcessor) {
         this.gitCloner = gitCloner;
@@ -30,10 +34,9 @@ public class ApiController {
 
     //TODO: 負責將程式碼，做分類，並回傳給前端
     @PostMapping("/fetch-repo/categorize")
-    public String categorizeCode(@RequestParam("Path") String Path) {
+    public ResponseEntity<List<Code>> categorizeCode(@RequestParam("Path") String Path) {
         logger.info("Try to get data from {}", Path);
-        fileProcessor.ProcessFiles(Path);
-        return "Success";
+        return new ResponseEntity<List<Code>>(fileProcessor.ProcessFiles(Path), HttpStatus.OK);
     }
 
 

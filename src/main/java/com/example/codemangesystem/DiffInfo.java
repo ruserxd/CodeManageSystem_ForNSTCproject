@@ -1,0 +1,18 @@
+package com.example.codemangesystem;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+@Setter
+@Getter
+@Builder
+public class DiffInfo {
+    private final String author;
+    private final String commit;
+    private final long timestamp;
+    private List<String> annotations;
+    private String diffCode;
+}
