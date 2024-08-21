@@ -13,5 +13,6 @@ import java.util.Map;
 @Setter
 public class Code {
     private final String fileName;
+    // key : functionName
     private Map<String, List<DiffInfo>> functions;
 }
