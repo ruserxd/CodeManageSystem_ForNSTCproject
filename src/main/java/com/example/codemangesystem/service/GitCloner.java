@@ -1,4 +1,4 @@
-package com.example.codemangesystem;
+package com.example.codemangesystem.service;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;

@@ -1,4 +1,4 @@
-package com.example.codemangesystem;
+package com.example.codemangesystem.service;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+// 這目前還處於測試階段
 public class GitDiffAnalyzer {
     private final File repoDir;
 

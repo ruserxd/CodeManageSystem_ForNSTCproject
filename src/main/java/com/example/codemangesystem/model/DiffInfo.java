@@ -1,4 +1,4 @@
-package com.example.codemangesystem;
+package com.example.codemangesystem.model;
 
 import lombok.Builder;
 import lombok.Getter;

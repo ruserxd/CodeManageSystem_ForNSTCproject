@@ -1,5 +1,8 @@
 package com.example.codemangesystem;
 
+import com.example.codemangesystem.model.Code;
+import com.example.codemangesystem.service.FileProcessor;
+import com.example.codemangesystem.service.GitCloner;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
