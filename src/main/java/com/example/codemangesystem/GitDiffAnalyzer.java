@@ -6,6 +6,7 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -34,11 +35,14 @@ public class GitDiffAnalyzer {
             Iterable<RevCommit> commits = git.log().call();
 
             for (RevCommit commit : commits) {
+                PersonIdent committerIdent = commit.getCommitterIdent();
+
                 System.out.println("Commit: " + commit.getName());
-                System.out.println("Timestamp: " + commit.getCommitTime());
-                System.out.println("Diff:");
+                System.out.println("CommitterIdent: " + committerIdent);
 
                 ObjectId commitId = commit.getId();
+                System.out.println("CommitId: " + commitId);
+                System.out.println("Diff:");
                 try (RevWalk revWalk = new RevWalk(repository)) {
                     RevCommit parent = commit.getParentCount() > 0 ? revWalk.parseCommit(commit.getParent(0)) : null;
                     AbstractTreeIterator newTree = prepareTreeParser(repository, commitId);
@@ -50,9 +54,11 @@ public class GitDiffAnalyzer {
                         List<DiffEntry> diffs = formatter.scan(oldTree, newTree);
 
                         for (DiffEntry entry : diffs) {
-                            formatter.format(entry);
-                            System.out.println(out.toString(StandardCharsets.UTF_8));
-                            out.reset();
+                            if (entry.getNewPath().endsWith(".java")) {
+                                formatter.format(entry);
+                                System.out.println(out.toString(StandardCharsets.UTF_8));
+                                out.reset();
+                            }
                         }
                     }
                 }
@@ -75,7 +81,7 @@ public class GitDiffAnalyzer {
     }
 
     public static void main(String[] args) {
-        Path repoPath = Paths.get("src/cloneCode/JavaSpringBootLearning");
+        Path repoPath = Paths.get("src/cloneCode/LearingJavaAndGiveMyProjectTest");
         File repoDir = repoPath.toFile();
 
         if (!repoDir.exists() || !repoDir.isDirectory()) {
