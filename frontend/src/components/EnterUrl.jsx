@@ -1,21 +1,34 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
+import api from '../api/axiosConfig';
 import '../styles/enter.css';
 
-function EnterUrl({onSubmit}) {
+function EnterUrl() {
     const [url, setUrl] = useState('');
 
-    const handleSubmit = (event) => {
+    const handleFetchData = async (url) => {
+        try {
+            // 接受到的是 URL
+            console.log('Submitting URL:', url);
+            await api.post('/api/fetch-repo', new URLSearchParams({ url }));
+            alert('Data fetched successfully');
+        } catch (error) {
+            alert('Error during fetch. Please check the console for more information.');
+            console.error('Error during fetch:', error);
+        }
+    };
+
+    const handleClick = (event) => {
         event.preventDefault();
         if (url.trim()) {
-            console.log('Submitting URL:', url); 
-            onSubmit(url);
+            console.log('Submitting URL:', url);
+            handleFetchData(url);
         } else {
             console.warn('URL is empty');
         }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <div>
             <label htmlFor="url">URL:</label>
             <input
                 type="text"
@@ -25,8 +38,8 @@ function EnterUrl({onSubmit}) {
                 onChange={(e) => setUrl(e.target.value)}
                 required
             />
-            <button type="submit">Submit</button>
-        </form>
+            <button onClick={handleClick}>Fetch Repo</button> 
+        </div>
     );
 }
 
