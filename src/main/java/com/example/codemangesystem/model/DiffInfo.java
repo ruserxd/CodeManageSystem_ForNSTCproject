@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 public class DiffInfo {
     private final String author;
+    private final String authorEmail;
     private final String commit;
     private final long timestamp;
     private List<String> annotations;
