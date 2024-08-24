@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import api from '../api/axiosConfig';
-import '../styles/enter.css';
 
-function EnterUrl() {
+function CloneGit() {
     const [url, setUrl] = useState('');
 
     const handleFetchData = async (url) => {
@@ -43,4 +42,4 @@ function EnterUrl() {
     );
 }
 
-export default EnterUrl;
+export default CloneGit;

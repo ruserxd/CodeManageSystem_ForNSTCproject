@@ -21,6 +21,8 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -30,7 +32,7 @@ import java.util.*;
 
 @Service
 public class GitDiffAnalyzer {
-
+    private static final Logger logger = LoggerFactory.getLogger(GitDiffAnalyzer.class);
     // 讀取每段 commit diff 的資訊並解析成以方法名稱
     public List<Files> analyzeCommits(String url) {
         try {
@@ -92,6 +94,7 @@ public class GitDiffAnalyzer {
                     }
                 }
             }
+            logger.info("Successful get all project diff");
             return new ArrayList<>(project.values());
         } catch (IOException | GitAPIException e) {
             throw new RuntimeException(e);

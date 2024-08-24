@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react';
 import PropTypes from 'prop-types'; // Import PropTypes
-import '../styles/result.css';
 import HighlightedCode from './HighlightedCode';
 
 // 也可以用 props 代替 {code, diffs}

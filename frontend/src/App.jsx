@@ -1,14 +1,14 @@
-import EnterUrl from './components/EnterUrl';
-// import Result from './components/Result';
+import MainPage from './components/MainPage';
 import { Route , Routes} from 'react-router-dom';
+import ShowMethodDiff from './components/ShowMethodDiff';
 
 function App() {
 
-    // API
+    // Routes
     return (
         <Routes>
-            <Route path="/" element={<EnterUrl/>}/>
-            {/* <Route path="/result" element={<Result code={code} diffs={diffs}/>}/> */}
+            <Route path="/" element={<MainPage />} />
+            <Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
         </Routes>
     );
 }
