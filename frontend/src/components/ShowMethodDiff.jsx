@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/axiosConfig";
+import HighlightedCode from './HighlightedCode';
 
 function ShowMethodDiff() {
   const { "*": urlParam } = useParams();
@@ -34,7 +35,7 @@ function ShowMethodDiff() {
   /*src/cloneCode/JavaSpringBootLearning*/
   return (
     <div>
-      <h1>{urlParam.substring(urlParam.lastIndexOf("/") + 1)} 差異資訊: </h1>
+      <h1>{urlParam.substring(urlParam.lastIndexOf("/") + 1)}  的方法差異資訊 </h1>
       {data &&
         data.map((item) => (
           <div key={item.filePath}>
@@ -45,21 +46,17 @@ function ShowMethodDiff() {
               {/*把物件轉成創立成一個新的陣列*/}
               {Object.entries(item.methods).map(([methodName, diffs], methodIndex) => (
                   <div key={methodIndex}>
-                    <h4>方法名稱: {methodName}</h4>
+                    <h3>方法名稱: {methodName}</h3>
                     {diffs.map((diff, diffIndex) => (
                       <div key={diffIndex}>
-                        <h4>作者: {diff.author}</h4>
-                        <h4>Email: {diff.authorEmail}</h4>
-                        <h4>commit訊息: {diff.commitMessage}</h4>
-                        <h4>
-                          timestamp:{" "}
-                          {new Date(diff.timestamp * 1000).toLocaleString()}
-                        </h4>
                         <h4>
                           commitTime:{" "}
                           {new Date(diff.commitTime).toLocaleString()}
                         </h4>
-                        <pre>diff資訊: {diff.diffCode}</pre>
+                        <h4>commit訊息: {diff.commitMessage}</h4>
+                        <h4>作者: {diff.author}</h4>
+                        <h4>Email: {diff.authorEmail}</h4>
+                        <HighlightedCode language="diff" codeString={diff.diffCode}/>
                       </div>
                     ))}
                   </div>
