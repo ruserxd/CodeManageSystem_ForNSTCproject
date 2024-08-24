@@ -1,18 +1,16 @@
 package com.example.codemangesystem.service;
 
-import com.example.codemangesystem.model.Code;
+import com.example.codemangesystem.model.Files;
 import com.example.codemangesystem.model.DiffInfo;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.AnnotationExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -24,18 +22,18 @@ public class FileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(FileProcessor.class);
 
     // 遍歷每個資料夾的 .java 檔案，並回傳處理過的 List<Code>
-    public List<Code> ProcessFiles(String repositoryPath) {
-        List<Code> codeList = new ArrayList<>();
+    public List<Files> ProcessFiles(String repositoryPath) {
+        List<Files> codeList = new ArrayList<>();
         Path path = Paths.get(repositoryPath);
         logger.info(path.toString());
 
-        try (Stream<Path> paths = Files.walk(path)) {
-            paths.filter(Files::isRegularFile)
+        try (Stream<Path> paths = java.nio.file.Files.walk(path)) {
+            paths.filter(java.nio.file.Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".java"))
                     .forEach(p -> {
                         String fileName = p.getFileName().toString();
                         System.out.println(fileName);
-                        Code code = categorizeCode(p.toString());
+                        Files code = categorizeCode(p.toString());
                         if (code != null) {
                             codeList.add(code);
                         }
@@ -48,10 +46,10 @@ public class FileProcessor {
     }
 
     // 將資料夾內的程式碼做分類並回傳 Code
-    public Code categorizeCode(String filePath) {
-        return Code.builder()
+    public Files categorizeCode(String filePath) {
+        return Files.builder()
                 .fileName(Paths.get(filePath).getFileName().toString())
-                .functions(findMethods(filePath))
+                .methods(findMethods(filePath))
                 .build();
     }
 
@@ -75,17 +73,9 @@ public class FileProcessor {
                 // 將 Optional<Statement> 轉換為 Optional<String>，如果有值則轉換為其 toString() 結果
                 String methodBody = method.getBody().map(Objects::toString).orElse(null);
 
-                // 對於註解的處理
-                List<AnnotationExpr> annotations = method.getAnnotations();
-                List<String> annotationStrings = new ArrayList<>();
-                for (AnnotationExpr annotation : annotations) {
-                    annotationStrings.add(annotation.toString());
-                }
-
                 // 創立 DiffInfo 物件
                 DiffInfo diffCode = DiffInfo.builder()
                         .diffCode(methodBody)
-                        .annotations(annotationStrings)
                         .build();
 
                 // 將 DiffInfo 放置於對應的 key(methodName) 內，若沒有對應的 key 會創立一個 [key, newList] 進去 map 內

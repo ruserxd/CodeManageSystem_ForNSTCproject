@@ -1,8 +1,8 @@
 package com.example.codemangesystem;
 
-import com.example.codemangesystem.model.Code;
-import com.example.codemangesystem.service.FileProcessor;
+import com.example.codemangesystem.model.Files;
 import com.example.codemangesystem.service.GitCloner;
+import com.example.codemangesystem.service.GitDiffAnalyzer;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,19 +21,19 @@ public class ApiController {
     private static final Logger logger = LoggerFactory.getLogger(ApiController.class);
 
     private final GitCloner gitCloner;
-    private final FileProcessor fileProcessor;
+    private final GitDiffAnalyzer gitDiffAnalyzer;
 
     @Autowired
-    public ApiController(GitCloner gitCloner, FileProcessor fileProcessor) {
+    public ApiController(GitCloner gitCloner,GitDiffAnalyzer gitDiffAnalyzer) {
         this.gitCloner = gitCloner;
-        this.fileProcessor = fileProcessor;
+        this.gitDiffAnalyzer = gitDiffAnalyzer;
     }
 
     // 負責分類存儲庫的 api
     @PostMapping("/fetch-repo/categorize")
-    public ResponseEntity<List<Code>> categorizeCode(@RequestParam("Path") String Path) {
+    public ResponseEntity<List<Files>> categorizeCode(@RequestParam("Path") String Path) {
         logger.info("Try to get data from {}", Path);
-        return new ResponseEntity<List<Code>>(fileProcessor.ProcessFiles(Path), HttpStatus.OK);
+        return new ResponseEntity<List<Files>>(gitDiffAnalyzer.analyzeCommits(Path), HttpStatus.OK);
     }
 
     // 負責 clone 存儲庫的 api

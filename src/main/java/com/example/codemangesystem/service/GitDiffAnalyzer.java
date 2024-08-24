@@ -1,5 +1,7 @@
 package com.example.codemangesystem.service;
 
+import com.example.codemangesystem.model.DiffInfo;
+import com.example.codemangesystem.model.Files;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -7,6 +9,7 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -18,40 +21,32 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
+@Service
 public class GitDiffAnalyzer {
-    private final File repoDir;
 
-    public GitDiffAnalyzer(File repoDir) {
-        this.repoDir = repoDir;
-    }
-
-    // 讀取每段 diff 的資訊並解析方法名稱
-    public void analyzeCommits() {
+    // 讀取每段 commit diff 的資訊並解析成以方法名稱
+    public List<Files> analyzeCommits(String url) {
         try {
+            File repoDir = new File(url);
+            HashMap<String, Files> project = new HashMap<>();
             // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
             Repository repository = new RepositoryBuilder()
-                    .setGitDir(new File(repoDir, ".git"))
+                    .setGitDir(new java.io.File(repoDir, ".git"))
                     .build();
 
             try (Git git = new Git(repository)) {
+
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
-
-                int commitCounter = 1;
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
-                    System.out.println("CommitTime: " + commitCounter++ + "\n\n");
-                    // 獲取這段 commit 的相關資訊
-                    takeCommitINFO(commit);
-
                     List<DiffEntry> diffs;
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
@@ -66,28 +61,38 @@ public class GitDiffAnalyzer {
                             .setNewTree(newTree)
                             .call();
 
-                    // 執行此次 commit 對比出的每個檔案的 diff
+                    // 完整執行此次 commit 檔案有 diff 的
                     for (DiffEntry diff : diffs) {
-                        // 如果你想進一步處理 Java 文件
-                        if (diff.getNewPath().endsWith(".java")) {
-                            System.out.println("---------------------");
+                        // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
+                        String filePath = diff.getNewPath();
+                        String fileName = new java.io.File(diff.getNewPath()).getName();
 
-                            System.out.println("File: " + diff.getNewPath() + "\nFileName: " + new File(diff.getNewPath()).getName());
-                            // diff列出 檔案x 有差異，在 commit 的 檔案x，以 String 抓出(新舊版)內容
+                        // 專注處理 java 檔案
+                        if (diff.getNewPath().endsWith(".java")) {
+
+                            // 以 String 抓出此次 commit 版與前一次的內容
                             String newContent = getFileContent(git, diff.getNewPath(), commit);
                             String oldContent = previousCommit != null
                                     ? getFileContent(git, diff.getNewPath(), previousCommit)
                                     : "";
+
+                            // 獲取本次 commit 的方法差異
                             List<Pair<String, String>> result = compareTwoContent(newContent, oldContent);
+
+                            // <方法名稱, 方法差異>
                             for (Pair<String, String> methodDiff : result) {
-                                System.out.println("Diff: " + methodDiff.getKey());
+                                // 有 diff 我們在去做存取
+                                if (!Objects.equals(methodDiff.getValue(), "")) {
+                                    DiffInfo diffInfo = takeCommitINFO(commit);
+                                    diffInfo.setDiffCode(methodDiff.getValue());
+                                    addDiffInfoInToProject(filePath, fileName, methodDiff.getKey(), diffInfo, project);
+                                }
                             }
                         }
                     }
-
-                    System.out.println("---------------------");
                 }
             }
+            return new ArrayList<>(project.values());
         } catch (IOException | GitAPIException e) {
             throw new RuntimeException(e);
         }
@@ -107,30 +112,63 @@ public class GitDiffAnalyzer {
     }
 
     // 獲取修改程式碼的作者、email、時間、commit
-    public static void takeCommitINFO(RevCommit commit) {
+    public static DiffInfo takeCommitINFO(RevCommit commit) {
         PersonIdent author = commit.getAuthorIdent();
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
-        System.out.println("Author: " + author.getName());
-        System.out.println("AuthorEmail: " + author.getEmailAddress());
-        System.out.println("CommitTime: " + commitTime);
-        System.out.println("Commit: \n" + commitMessage);
+        return DiffInfo.builder()
+                .author(author.getName())
+                .authorEmail(author.getEmailAddress())
+                .commitMessage(commitMessage)
+                .timestamp(commit.getCommitTime())
+                .commitTime(commitTime)
+                .build();
     }
 
-    // 獲取整個 File 內的文件
+    // 獲取整個檔案內的文件
     public static String getFileContent(Git git, String path, RevCommit commit) throws IOException {
         try (TreeWalk treeWalk = TreeWalk.forPath(git.getRepository(), path, commit.getTree())) {
             if (treeWalk != null) {
                 ObjectLoader objectLoader = git.getRepository().open(treeWalk.getObjectId(0));
                 byte[] bytes = objectLoader.getBytes();
                 return new String(bytes, StandardCharsets.UTF_8);
-            } else {
-                return "";
             }
+            return "";
         }
     }
 
-    // 獲取這個文件內的 List<方法,方法的內容>
+    // 比較兩個文件所有函式的差異性 List<Pair<方法, 方法差異>>
+    public List<Pair<String, String>> compareTwoContent(String newContent, String oldContent) {
+        List<Pair<String, String>> differences = new ArrayList<>();
+
+        HashMap<String, String> newMethods = getContentMethod(newContent);
+        HashMap<String, String> oldMethods = getContentMethod(oldContent);
+
+        // 新版本與舊版本的對照
+        for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
+            String newMethodName = newMethod.getKey();
+
+            String newMethodBody = newMethod.getValue();
+
+            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(newMethodName), "");
+
+            differences.add(Pair.of(newMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+        }
+
+        // 例外: 會出現舊版本有，但新版沒有，代表被刪減
+        for (Map.Entry<String, String> oldMethod : oldMethods.entrySet()) {
+            String oldMethodName = oldMethod.getKey();
+            if (!newMethods.containsKey(oldMethodName)) {
+                String newMethodBody = "";
+                String oldMethodBody = oldMethod.getValue();
+                differences.add(Pair.of(oldMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+            }
+        }
+
+        return differences;
+    }
+
+    // 獲取這個文件內的 List<方法, 方法內容>
     public HashMap<String, String> getContentMethod(String Content) {
         CompilationUnit cu = StaticJavaParser.parse(Content);
         List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
@@ -145,42 +183,8 @@ public class GitDiffAnalyzer {
             methodContent.append(method.getDeclarationAsString(true, true, true));
             method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
             ContentMethods.put(method.getNameAsString(), methodContent.toString());
-
-            System.out.println(methodContent);
         }
         return ContentMethods;
-    }
-
-    // 比較兩個文件，各有函式的差異性
-    public List<Pair<String, String>> compareTwoContent(String newContent, String oldContent) {
-        List<Pair<String, String>> differences = new ArrayList<>();
-
-        System.out.println("NewMethods: ");
-        HashMap<String, String> newMethods = getContentMethod(newContent);
-        System.out.println("OldMethods: ");
-        HashMap<String, String> oldMethods = getContentMethod(oldContent);
-
-        for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
-            String newMethodName = newMethod.getKey();
-
-            String newMethodBody = newMethod.getValue();
-
-            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(newMethodName), "");
-
-            differences.add(Pair.of(newMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
-
-        }
-
-        for (Map.Entry<String, String> oldMethod : oldMethods.entrySet()) {
-            String oldMethodName = oldMethod.getKey();
-            if (!newMethods.containsKey(oldMethodName)) {
-                String newMethodBody = "";
-                String oldMethodBody = oldMethod.getValue();
-                differences.add(Pair.of(oldMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
-            }
-        }
-
-        return differences;
     }
 
     private static String generateLikeGitDiff(String oldMethod, String newMethod) {
@@ -200,23 +204,43 @@ public class GitDiffAnalyzer {
         if (unifiedDiff.size() > 2)
             unifiedDiff.subList(0, 2).clear();
 
-
-        String diffString = String.join("\n", unifiedDiff);
-        System.out.println(diffString);
-        return diffString;
+        // 把 list 透過 \n 拆成一個 String
+        return String.join("\n", unifiedDiff);
     }
 
+    public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, HashMap<String, Files> project) {
+        // 檢查在 project 中 filePath 是否有對應的 Code，否的話創立一個 Code
+        // 取出 Code 資料，將 diffInfo 存入 methods[methodName].add(diffInfo)
+        Files file = project.get(filePath) != null
+                ? project.get(filePath)
+                : Files.builder()
+                    .fileName(fileName)
+                    .filePath(filePath)
+                    .methods(new HashMap<>())
+                    .build();
+        project.put(filePath, file);
+
+        Map<String, List<DiffInfo>> methods = file.getMethods();
+
+        List<DiffInfo> diffInfos = methods.computeIfAbsent(methodName, k -> new ArrayList<>());
+
+        diffInfos.add(diffInfo);
+    }
+
+    public static void outProject(List<Files> project) {
+        for (Files files: project) {
+            System.out.println(files.getFilePath() + " " +  files.getFileName());
+            for (List<DiffInfo> diffInfoList: files.getMethods().values()) {
+                for (DiffInfo diffInfo: diffInfoList) {
+                    System.out.println(ReflectionToStringBuilder.toString(diffInfo));
+                }
+            }
+        }
+    }
     // 主程式，用來測試這個類別的可行性
     public static void main(String[] args) {
-        Path repoPath = Paths.get("src/cloneCode/JavaSpringBootLearning");
-        File repoDir = repoPath.toFile();
-
-        if (!repoDir.exists() || !repoDir.isDirectory()) {
-            System.err.println("Path does not exist or is not a directory: " + repoDir.getAbsolutePath());
-            return;
-        }
-
-        GitDiffAnalyzer analyzer = new GitDiffAnalyzer(repoDir);
-        analyzer.analyzeCommits();
+        GitDiffAnalyzer analyzer = new GitDiffAnalyzer();
+        List<Files> tmp = analyzer.analyzeCommits("src/cloneCode/JavaSpringBootLearning");
+        outProject(tmp);
     }
 }

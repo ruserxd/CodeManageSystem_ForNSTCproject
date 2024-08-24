@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Date;
 
 @Setter
 @Getter
@@ -12,8 +12,8 @@ import java.util.List;
 public class DiffInfo {
     private final String author;
     private final String authorEmail;
-    private final String commit;
+    private final String commitMessage;
     private final long timestamp;
-    private List<String> annotations;
+    private final Date commitTime;
     private String diffCode;
 }

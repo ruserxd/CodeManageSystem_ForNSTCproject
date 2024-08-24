@@ -11,8 +11,9 @@ import java.util.Map;
 @Builder
 @Getter
 @Setter
-public class Code {
+public class Files {
     private final String fileName;
+    private final String filePath;
     // key : functionName
-    private Map<String, List<DiffInfo>> functions;
+    private Map<String, List<DiffInfo>> methods;
 }
