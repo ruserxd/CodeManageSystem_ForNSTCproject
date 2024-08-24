@@ -6,7 +6,7 @@ function CloneGit() {
 
     const handleFetchData = async (url) => {
         try {
-            // 接受到的是 URL
+            /*接受到的是 URL*/
             console.log('Submitting URL:', url);
             await api.post('/api/fetch-repo', new URLSearchParams({ url }));
             alert('Data fetched successfully');

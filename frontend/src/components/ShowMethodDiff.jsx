@@ -30,7 +30,8 @@ function ShowMethodDiff() {
   if (error) {
     return <div>Error: {error.message}</div>;
   }
-  //src/cloneCode/JavaSpringBootLearning
+  
+  /*src/cloneCode/JavaSpringBootLearning*/
   return (
     <div>
       <h1>{urlParam.substring(urlParam.lastIndexOf("/") + 1)} 差異資訊: </h1>
