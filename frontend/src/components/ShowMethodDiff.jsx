@@ -1,29 +1,31 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/axiosConfig";
-import HighlightedCode from './HighlightedCode';
+import HighlightedCode from "./HighlightedCode";
 
 function ShowMethodDiff() {
   const { "*": urlParam } = useParams();
 
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [projectName, setProjectName] = useState(null);
 
   useEffect(() => {
     const getTheMethodDiff = async () => {
       try {
-        const response = await api.post(
+        const result = await api.post(
           `/api/fetch-repo/categorize`,
           new URLSearchParams({ Path: urlParam })
         );
-        setData(response.data);
-        console.log("response.data", response.data);
+        setData(result.data);
+        console.log("response.data\n", result.data);
       } catch (error) {
         setError(error);
-        console.error("Error during fetch:", error);
+        console.error("Error during fetch: ", error);
       }
     };
     if (urlParam) {
+      setProjectName(urlParam.substring(urlParam.lastIndexOf("/") + 1));
       getTheMethodDiff();
     }
   }, [urlParam]);
@@ -31,11 +33,10 @@ function ShowMethodDiff() {
   if (error) {
     return <div>Error: {error.message}</div>;
   }
-  
-  /*src/cloneCode/JavaSpringBootLearning*/
+
   return (
     <div>
-      <h1>{urlParam.substring(urlParam.lastIndexOf("/") + 1)}  的方法差異資訊 </h1>
+      <h1>{projectName} 的方法差異資訊 </h1>
       {data &&
         data.map((item) => (
           <div key={item.filePath}>
@@ -44,7 +45,8 @@ function ShowMethodDiff() {
             <h2>方法:</h2>
             <div className="method">
               {/*把物件轉成創立成一個新的陣列*/}
-              {Object.entries(item.methods).map(([methodName, diffs], methodIndex) => (
+              {Object.entries(item.methods).map(
+                ([methodName, diffs], methodIndex) => (
                   <div key={methodIndex}>
                     <h3>方法名稱: {methodName}</h3>
                     {diffs.map((diff, diffIndex) => (
@@ -56,7 +58,10 @@ function ShowMethodDiff() {
                         <h4>commit訊息: {diff.commitMessage}</h4>
                         <h4>作者: {diff.author}</h4>
                         <h4>Email: {diff.authorEmail}</h4>
-                        <HighlightedCode language="diff" codeString={diff.diffCode}/>
+                        <HighlightedCode
+                          language="diff"
+                          codeString={diff.diffCode}
+                        />
                       </div>
                     ))}
                   </div>

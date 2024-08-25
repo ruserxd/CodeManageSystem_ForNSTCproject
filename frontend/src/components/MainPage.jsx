@@ -1,4 +1,3 @@
-import React from "react";
 import CloneGit from "./CloneGit";
 
 function MainPage() {

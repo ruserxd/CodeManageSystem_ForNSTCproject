@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import api from "../api/axiosConfig";
 
 function CloneGit() {
@@ -11,9 +11,7 @@ function CloneGit() {
       await api.post("/api/fetch-repo", new URLSearchParams({ url }));
       alert("Data fetched successfully");
     } catch (error) {
-      alert(
-        "Error during fetch. Please check the console for more information."
-      );
+      alert("Error during fetch. Please check the console for more information.");
       console.error("Error during fetch:", error);
     }
   };
