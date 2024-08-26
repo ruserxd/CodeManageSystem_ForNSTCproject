@@ -3,6 +3,7 @@ package com.example.codemangesystem.service;
 import com.example.codemangesystem.model.DiffInfo;
 import com.example.codemangesystem.model.Files;
 import com.example.codemangesystem.model.Method;
+import com.example.codemangesystem.model.Project;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -37,13 +38,31 @@ public class GitDiffAnalyzer {
     public List<Files> analyzeCommits(String url) {
         try {
             File repoDir = new File(url);
-            HashMap<String, Files> project = new HashMap<>();
+            File gitDir = new File(repoDir, ".git");
+
+            // 確保本地端有這個專案
+            if (!gitDir.exists() || !gitDir.isDirectory()) {
+                logger.error("The specified path does not contain a valid Git repository: " + url);
+                return Collections.emptyList();
+            }
+
+            Project project = Project.builder()
+                            .ProjectName(url.substring(url.lastIndexOf('/')+1))
+                            .files(new ArrayList<>())
+                            .build();
+
             // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
             Repository repository = new RepositoryBuilder()
                     .setGitDir(new java.io.File(repoDir, ".git"))
                     .build();
 
             try (Git git = new Git(repository)) {
+
+                // 確保至少有一次 commit 紀錄
+                if (repository.resolve("HEAD") == null) {
+                    logger.error("Repository has no commits (No HEAD). Please make an initial commit.");
+                    return Collections.emptyList();
+                }
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
@@ -95,7 +114,7 @@ public class GitDiffAnalyzer {
                 }
             }
             logger.info("Successful get all project diff");
-            return new ArrayList<>(project.values());
+            return project.getFiles();
         } catch (IOException | GitAPIException e) {
             throw new RuntimeException(e);
         }
@@ -213,15 +232,21 @@ public class GitDiffAnalyzer {
     }
 
     // 將資料放入 Project 中
-    public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, HashMap<String, Files> project) {
-        Files file = project.get(filePath) != null
-                ? project.get(filePath)
-                : Files.builder()
+    public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, Project project) {
+        Files file = null;
+        for (Files projectFile:project.getFiles()) {
+            if (projectFile.getFilePath().equals(filePath)) {
+                file = projectFile;
+                break;
+            }
+        }
+        if (file == null) {
+            file = Files.builder()
                     .fileName(fileName)
                     .filePath(filePath)
-                    .methods(new ArrayList<>())
-                    .build();
-        project.put(filePath, file);
+                    .methods(new ArrayList<>()).build();
+            project.getFiles().add(file);
+        }
 
         List<Method> methods = file.getMethods();
 
