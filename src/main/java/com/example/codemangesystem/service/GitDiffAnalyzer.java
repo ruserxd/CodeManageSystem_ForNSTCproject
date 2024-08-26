@@ -41,6 +41,7 @@ public class GitDiffAnalyzer {
             File gitDir = new File(repoDir, ".git");
 
             // 確保本地端有這個專案
+            // TODO: 讓前端知道這段 error 做相對應處理
             if (!gitDir.exists() || !gitDir.isDirectory()) {
                 logger.error("The specified path does not contain a valid Git repository: " + url);
                 return Collections.emptyList();
@@ -59,6 +60,7 @@ public class GitDiffAnalyzer {
             try (Git git = new Git(repository)) {
 
                 // 確保至少有一次 commit 紀錄
+                // TODO: 讓前端知道這段 error 做相對應處理
                 if (repository.resolve("HEAD") == null) {
                     logger.error("Repository has no commits (No HEAD). Please make an initial commit.");
                     return Collections.emptyList();
@@ -171,13 +173,14 @@ public class GitDiffAnalyzer {
             //兩段的方法名稱為相同
             String MethodName = newMethod.getKey();
 
+            // 獲取方法的程式碼，舊版本可能為空，因此要避免
             String newMethodBody = newMethod.getValue();
             String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(MethodName), "");
 
             differences.add(Pair.of(MethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
         }
 
-        // 例外: 會出現舊版本有，但新版沒有，這代表這個方法被刪減
+        // 例外: 會出現舊版本有，但新版沒有，代表這個方法被刪減
         for (Map.Entry<String, String> oldMethod : oldMethods.entrySet()) {
             String oldMethodName = oldMethod.getKey();
             if (!newMethods.containsKey(oldMethodName)) {
@@ -231,8 +234,9 @@ public class GitDiffAnalyzer {
         return String.join("\n", unifiedDiff);
     }
 
-    // 將資料放入 Project 中
+    // 將資料放入 Project
     public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, Project project) {
+        // 找尋 project 內相對應的 file
         Files file = null;
         for (Files projectFile:project.getFiles()) {
             if (projectFile.getFilePath().equals(filePath)) {
@@ -240,6 +244,7 @@ public class GitDiffAnalyzer {
                 break;
             }
         }
+        // 未找到創立一個新的 file 並放入 project 內
         if (file == null) {
             file = Files.builder()
                     .fileName(fileName)
@@ -258,7 +263,7 @@ public class GitDiffAnalyzer {
             }
         }
 
-        // 未找到先創立一個新的 Method 接著存放 diffInfo
+        // 未找到先創立一個新的 method，接著存放 diffInfo，最後將 method 放入 methods 內
         Method newMethod = Method.builder()
                 .methodName(methodName)
                 .diffInfoList(new ArrayList<>()).build();
