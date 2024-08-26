@@ -128,7 +128,7 @@ public class GitDiffAnalyzer {
                 .build();
     }
 
-    // 獲取整個檔案內的文件
+    // 獲取某段 commit 的整個檔案內的資料(程式碼)
     public static String getFileContent(Git git, String path, RevCommit commit) throws IOException {
         try (TreeWalk treeWalk = TreeWalk.forPath(git.getRepository(), path, commit.getTree())) {
             if (treeWalk != null) {
@@ -140,7 +140,7 @@ public class GitDiffAnalyzer {
         }
     }
 
-    // 比較兩個文件所有函式的差異性 List<Pair<方法, 方法差異>>
+    // 比較新、舊文件所有函式的差異性 List<Pair<方法, 方法差異>>
     public List<Pair<String, String>> compareTwoContent(String newContent, String oldContent) {
         List<Pair<String, String>> differences = new ArrayList<>();
 
@@ -149,13 +149,13 @@ public class GitDiffAnalyzer {
 
         // 新版本與舊版本的對照
         for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
-            String newMethodName = newMethod.getKey();
+            //兩段的方法名稱為相同
+            String MethodName = newMethod.getKey();
 
             String newMethodBody = newMethod.getValue();
+            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(MethodName), "");
 
-            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(newMethodName), "");
-
-            differences.add(Pair.of(newMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+            differences.add(Pair.of(MethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
         }
 
         // 例外: 會出現舊版本有，但新版沒有，這代表這個方法被刪減
@@ -171,7 +171,7 @@ public class GitDiffAnalyzer {
         return differences;
     }
 
-    // 獲取這個文件內的 List<方法, 方法內容>
+    // 獲取這個文件內的 HashMap<方法, 方法內容>
     public HashMap<String, String> getContentMethod(String Content) {
         CompilationUnit cu = StaticJavaParser.parse(Content);
         List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
@@ -212,6 +212,7 @@ public class GitDiffAnalyzer {
         return String.join("\n", unifiedDiff);
     }
 
+    // 將資料放入 Project 中
     public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, HashMap<String, Files> project) {
         Files file = project.get(filePath) != null
                 ? project.get(filePath)
@@ -223,6 +224,8 @@ public class GitDiffAnalyzer {
         project.put(filePath, file);
 
         List<Method> methods = file.getMethods();
+
+        // 當有找到對應的方法時，加入 diffInfo
         for (Method method:methods) {
             if (method.getMethodName().equals(methodName)) {
                 method.getDiffInfoList().add(diffInfo);
@@ -230,9 +233,10 @@ public class GitDiffAnalyzer {
             }
         }
 
+        // 未找到先創立一個新的 Method 接著存放 diffInfo
         Method newMethod = Method.builder()
                 .methodName(methodName)
-                .diffInfoList(new ArrayList<DiffInfo>()).build();
+                .diffInfoList(new ArrayList<>()).build();
         newMethod.getDiffInfoList().add(diffInfo);
         methods.add(newMethod);
     }

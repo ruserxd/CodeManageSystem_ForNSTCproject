@@ -13,6 +13,5 @@ import java.util.List;
 public class Files {
     private final String fileName;
     private final String filePath;
-    // key : functionName
     private List<Method> methods;
 }
