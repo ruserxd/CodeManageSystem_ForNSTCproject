@@ -44,31 +44,23 @@ function ShowMethodDiff() {
             <h2>檔案名稱: {item.fileName}</h2>
             <h2>檔案路徑: {item.filePath}</h2>
             <h2>方法:</h2>
-            <div className="method">
-              {/*把物件轉成創立成一個新的陣列*/}
-              {Object.entries(item.methods).map(
-                ([methodName, diffs], methodIndex) => (
-                  <div key={methodIndex}>
-                    <h3>方法名稱: {methodName}</h3>
-                    {diffs.map((diff, diffIndex) => (
-                      <div key={diffIndex}>
-                        <h4>
-                          commitTime:{" "}
-                          {new Date(diff.commitTime).toLocaleString()}
-                        </h4>
-                        <h4>commit訊息: {diff.commitMessage}</h4>
-                        <h4>作者: {diff.author}</h4>
-                        <h4>Email: {diff.authorEmail}</h4>
-                        <HighlightedCode
-                          language="diff"
-                          codeString={diff.diffCode}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
+            {item.methods &&
+              item.methods.map((method, Index) => (
+                <div key={Index}>
+                  <h3>方法 {method.methodName}</h3>
+                  {method.diffInfoList && method.diffInfoList.map((diff, Index) => (
+                    <div key={Index}>
+                      <h4>Number: {Index}</h4>
+                      <h4>Author: {diff.author}</h4>
+                      <h4>AuthorEmail: {diff.authorEmail}</h4>
+                      <h4>CommitMessage: {diff.commitMessage}</h4>
+                      <h4>AuthorEmail: {diff.authorEmail}</h4>
+                      <h4>AuthorEmail: {diff.commitTime}</h4>
+                      <HighlightedCode language="diff" codeString={diff.diffCode} />
+                    </div>
+                  ))}
+                </div>
+              ))}
           </div>
         ))}
     </div>

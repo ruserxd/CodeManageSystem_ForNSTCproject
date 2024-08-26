@@ -2,6 +2,7 @@ package com.example.codemangesystem.service;
 
 import com.example.codemangesystem.model.DiffInfo;
 import com.example.codemangesystem.model.Files;
+import com.example.codemangesystem.model.Method;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -9,7 +10,6 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -158,7 +158,7 @@ public class GitDiffAnalyzer {
             differences.add(Pair.of(newMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
         }
 
-        // 例外: 會出現舊版本有，但新版沒有，代表被刪減
+        // 例外: 會出現舊版本有，但新版沒有，這代表這個方法被刪減
         for (Map.Entry<String, String> oldMethod : oldMethods.entrySet()) {
             String oldMethodName = oldMethod.getKey();
             if (!newMethods.containsKey(oldMethodName)) {
@@ -190,6 +190,7 @@ public class GitDiffAnalyzer {
         return ContentMethods;
     }
 
+    // 對比兩個方法，透過 java-diff-utils 去完成
     private static String generateLikeGitDiff(String oldMethod, String newMethod) {
         List<String> oldLines = List.of(oldMethod.split("\n"));
         List<String> newLines = List.of(newMethod.split("\n"));
@@ -212,38 +213,27 @@ public class GitDiffAnalyzer {
     }
 
     public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, HashMap<String, Files> project) {
-        // 檢查在 project 中 filePath 是否有對應的 Code，否的話創立一個 Code
-        // 取出 Code 資料，將 diffInfo 存入 methods[methodName].add(diffInfo)
         Files file = project.get(filePath) != null
                 ? project.get(filePath)
                 : Files.builder()
                     .fileName(fileName)
                     .filePath(filePath)
-                    .methods(new HashMap<>())
+                    .methods(new ArrayList<>())
                     .build();
         project.put(filePath, file);
 
-        Map<String, List<DiffInfo>> methods = file.getMethods();
-
-        List<DiffInfo> diffInfos = methods.computeIfAbsent(methodName, k -> new ArrayList<>());
-
-        diffInfos.add(diffInfo);
-    }
-
-    public static void outProject(List<Files> project) {
-        for (Files files: project) {
-            System.out.println(files.getFilePath() + " " +  files.getFileName());
-            for (List<DiffInfo> diffInfoList: files.getMethods().values()) {
-                for (DiffInfo diffInfo: diffInfoList) {
-                    System.out.println(ReflectionToStringBuilder.toString(diffInfo));
-                }
+        List<Method> methods = file.getMethods();
+        for (Method method:methods) {
+            if (method.getMethodName().equals(methodName)) {
+                method.getDiffInfoList().add(diffInfo);
+                return;
             }
         }
-    }
-    // 主程式，用來測試這個類別的可行性
-    public static void main(String[] args) {
-        GitDiffAnalyzer analyzer = new GitDiffAnalyzer();
-        List<Files> tmp = analyzer.analyzeCommits("src/cloneCode/JavaSpringBootLearning");
-        outProject(tmp);
+
+        Method newMethod = Method.builder()
+                .methodName(methodName)
+                .diffInfoList(new ArrayList<DiffInfo>()).build();
+        newMethod.getDiffInfoList().add(diffInfo);
+        methods.add(newMethod);
     }
 }
