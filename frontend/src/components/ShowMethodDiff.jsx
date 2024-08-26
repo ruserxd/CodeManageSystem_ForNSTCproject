@@ -13,6 +13,7 @@ function ShowMethodDiff() {
   useEffect(() => {
     const getTheMethodDiff = async () => {
       try {
+        // 等待 post 成立後，再執行下一行
         const result = await api.post(
           `/api/fetch-repo/categorize`,
           new URLSearchParams({ Path: urlParam })

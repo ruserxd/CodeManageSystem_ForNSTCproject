@@ -1,4 +1,5 @@
 import CloneGit from "./CloneGit";
+import '../styles/style.css'
 
 function MainPage() {
   return (
