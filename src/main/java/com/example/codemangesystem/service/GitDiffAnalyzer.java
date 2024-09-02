@@ -4,6 +4,7 @@ import com.example.codemangesystem.model.DiffInfo;
 import com.example.codemangesystem.model.Files;
 import com.example.codemangesystem.model.Method;
 import com.example.codemangesystem.model.Project;
+import com.example.codemangesystem.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -24,6 +25,7 @@ import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -33,6 +35,12 @@ import java.util.*;
 
 @Service
 public class GitDiffAnalyzer {
+    private final ProjectRepository projectRepository;
+    @Autowired
+    public GitDiffAnalyzer(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(GitDiffAnalyzer.class);
     // 讀取每段 commit diff 的資訊並解析成以方法名稱
     public List<Files> analyzeCommits(String url) {
@@ -116,6 +124,8 @@ public class GitDiffAnalyzer {
                 }
             }
             logger.info("Successful get all project diff");
+
+            projectRepository.save(project);
             return project.getFiles();
         } catch (IOException | GitAPIException e) {
             throw new RuntimeException(e);
@@ -135,7 +145,7 @@ public class GitDiffAnalyzer {
         }
     }
 
-    // 獲取修改程式碼的作者、email、時間、commit
+    // 創立 DiffInfo 並存入修改程式碼的作者、email、時間、commit
     public static DiffInfo takeCommitINFO(RevCommit commit) {
         PersonIdent author = commit.getAuthorIdent();
         Date commitTime = author.getWhen();
@@ -249,7 +259,9 @@ public class GitDiffAnalyzer {
             file = Files.builder()
                     .fileName(fileName)
                     .filePath(filePath)
-                    .methods(new ArrayList<>()).build();
+                    .methods(new ArrayList<>())
+                    .project(project)
+                    .build();
             project.getFiles().add(file);
         }
 
@@ -266,6 +278,7 @@ public class GitDiffAnalyzer {
         // 未找到先創立一個新的 method，接著存放 diffInfo，最後將 method 放入 methods 內
         Method newMethod = Method.builder()
                 .methodName(methodName)
+                .files(file)
                 .diffInfoList(new ArrayList<>()).build();
         newMethod.getDiffInfoList().add(diffInfo);
         methods.add(newMethod);

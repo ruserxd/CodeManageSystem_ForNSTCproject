@@ -1,19 +1,34 @@
 package com.example.codemangesystem.model;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.util.Date;
 
-@Setter
-@Getter
+@Data
 @Builder
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "diff_info")
 public class DiffInfo {
-    private final String author;
-    private final String authorEmail;
-    private final String commitMessage;
-    private final long timestamp;
-    private final Date commitTime;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "diff_info_id")
+    private Long diffInfo_id;
+
+    private String author;
+    private String authorEmail;
+    private String commitMessage;
+    private long timestamp;
+    private Date commitTime;
+
+    @Column(name = "diff_code", columnDefinition = "TEXT")   // 將列類型為 TEXT
     private String diffCode;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "method_id", referencedColumnName = "method_id")
+    private Method method;
 }
