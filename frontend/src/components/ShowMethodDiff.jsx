@@ -15,8 +15,8 @@ function ShowMethodDiff() {
       try {
         // 等待 post 成立後，再執行下一行
         const result = await api.post(
-          `/api/fetch-repo/categorize`,
-          new URLSearchParams({ Path: urlParam })
+          `/api/getData`,
+          new URLSearchParams({ ProjectName: urlParam })
         );
         setData(result.data);
         console.log("response.data\n", result.data);

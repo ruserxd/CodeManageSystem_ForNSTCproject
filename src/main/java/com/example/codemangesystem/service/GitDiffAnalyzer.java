@@ -56,17 +56,16 @@ public class GitDiffAnalyzer {
             }
 
             Project project = Project.builder()
-                            .ProjectName(url.substring(url.lastIndexOf('/')+1))
-                            .files(new ArrayList<>())
+                            .projectName(url.substring(url.lastIndexOf('/')+1))
+                            .files(new LinkedList<>())
                             .build();
 
             // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
             Repository repository = new RepositoryBuilder()
-                    .setGitDir(new java.io.File(repoDir, ".git"))
+                    .setGitDir(new File(repoDir, ".git"))
                     .build();
 
             try (Git git = new Git(repository)) {
-
                 // 確保至少有一次 commit 紀錄
                 // TODO: 讓前端知道這段 error 做相對應處理
                 if (repository.resolve("HEAD") == null) {
@@ -96,7 +95,7 @@ public class GitDiffAnalyzer {
                     for (DiffEntry diff : diffs) {
                         // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
                         String filePath = diff.getNewPath();
-                        String fileName = new java.io.File(diff.getNewPath()).getName();
+                        String fileName = new File(diff.getNewPath()).getName();
 
                         // 專注處理 java 檔案
                         if (diff.getNewPath().endsWith(".java")) {
@@ -147,9 +146,11 @@ public class GitDiffAnalyzer {
 
     // 創立 DiffInfo 並存入修改程式碼的作者、email、時間、commit
     public static DiffInfo takeCommitINFO(RevCommit commit) {
+        //從 commit 獲取資訊
         PersonIdent author = commit.getAuthorIdent();
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
+
         return DiffInfo.builder()
                 .author(author.getName())
                 .authorEmail(author.getEmailAddress())
@@ -246,6 +247,7 @@ public class GitDiffAnalyzer {
 
     // 將資料放入 Project
     public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, Project project) {
+
         // 找尋 project 內相對應的 file
         Files file = null;
         for (Files projectFile:project.getFiles()) {
@@ -259,7 +261,7 @@ public class GitDiffAnalyzer {
             file = Files.builder()
                     .fileName(fileName)
                     .filePath(filePath)
-                    .methods(new ArrayList<>())
+                    .methods(new LinkedList<>())
                     .project(project)
                     .build();
             project.getFiles().add(file);
@@ -270,6 +272,7 @@ public class GitDiffAnalyzer {
         // 當有找到對應的方法時，加入 diffInfo
         for (Method method:methods) {
             if (method.getMethodName().equals(methodName)) {
+                diffInfo.setMethod(method);
                 method.getDiffInfoList().add(diffInfo);
                 return;
             }
@@ -279,7 +282,10 @@ public class GitDiffAnalyzer {
         Method newMethod = Method.builder()
                 .methodName(methodName)
                 .files(file)
-                .diffInfoList(new ArrayList<>()).build();
+                .diffInfoList(new LinkedList<>())
+                .build();
+        diffInfo.setMethod(newMethod);
+
         newMethod.getDiffInfoList().add(diffInfo);
         methods.add(newMethod);
     }

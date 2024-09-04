@@ -1,7 +1,10 @@
 package com.example.codemangesystem.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -17,8 +20,13 @@ public class Project {
     @Column(name = "project_id")
     private Long project_id;
 
-    private String ProjectName;
+    @Column(name = "project_name")
+    private String projectName;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(
+            mappedBy = "project",
+            cascade = CascadeType.PERSIST,
+            fetch = FetchType.EAGER
+    )
     private List<Files> files;
 }

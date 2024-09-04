@@ -1,8 +1,12 @@
 package com.example.codemangesystem.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
@@ -18,17 +22,30 @@ public class DiffInfo {
     @Column(name = "diff_info_id")
     private Long diffInfo_id;
 
+    @Column(name = "author")
     private String author;
+
+    @Column(name = "author_email")
     private String authorEmail;
+
+    @Column(name = "commit_message")
     private String commitMessage;
+
+    @Column(name = "timestamp")
     private long timestamp;
+
+    @Column(name = "commit_time")
     private Date commitTime;
 
     @Column(name = "diff_code", columnDefinition = "TEXT")   // 將列類型為 TEXT
     private String diffCode;
 
     @JsonIgnore
-    @ManyToOne
-    @JoinColumn(name = "method_id", referencedColumnName = "method_id")
+    @JsonBackReference
+    @ManyToOne(
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    )
+    @JoinColumn(name = "method_id")
     private Method method;
 }

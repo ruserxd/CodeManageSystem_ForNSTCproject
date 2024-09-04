@@ -1,8 +1,12 @@
 package com.example.codemangesystem.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -19,14 +23,25 @@ public class Files {
     @Column(name = "files_id")
     private Long files_id;
 
+    @Column(name = "file_name")
     private String fileName;
+
+    @Column(name = "file_path")
     private String filePath;
 
     @JsonIgnore
-    @ManyToOne
-    @JoinColumn(name = "project_id")
+    @JsonBackReference
+    @ManyToOne(
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    )
+    @JoinColumn(name = "project_id", referencedColumnName = "project_id")
     private Project project;
 
-    @OneToMany(mappedBy = "files", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(
+            mappedBy = "files",
+            cascade = CascadeType.PERSIST,
+            fetch = FetchType.EAGER
+    )
     private List<Method> methods;
 }
