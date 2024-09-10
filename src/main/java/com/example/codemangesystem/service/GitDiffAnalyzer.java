@@ -1,9 +1,9 @@
 package com.example.codemangesystem.service;
 
-import com.example.codemangesystem.model.DiffInfo;
-import com.example.codemangesystem.model.Files;
-import com.example.codemangesystem.model.Method;
-import com.example.codemangesystem.model.Project;
+import com.example.codemangesystem.model_Data.DiffInfo;
+import com.example.codemangesystem.model_Data.Files;
+import com.example.codemangesystem.model_Data.Method;
+import com.example.codemangesystem.model_Data.Project;
 import com.example.codemangesystem.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
@@ -49,7 +49,6 @@ public class GitDiffAnalyzer {
             File gitDir = new File(repoDir, ".git");
 
             // 確保本地端有這個專案
-            // TODO: 讓前端知道這段 error 做相對應處理
             if (!gitDir.exists() || !gitDir.isDirectory()) {
                 logger.error("The specified path does not contain a valid Git repository: " + url);
                 return Collections.emptyList();
@@ -67,7 +66,6 @@ public class GitDiffAnalyzer {
 
             try (Git git = new Git(repository)) {
                 // 確保至少有一次 commit 紀錄
-                // TODO: 讓前端知道這段 error 做相對應處理
                 if (repository.resolve("HEAD") == null) {
                     logger.error("Repository has no commits (No HEAD). Please make an initial commit.");
                     return Collections.emptyList();

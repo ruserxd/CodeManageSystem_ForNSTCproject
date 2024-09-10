@@ -6,12 +6,27 @@ function CloneGit() {
 
   const handleFetchData = async (url) => {
     try {
-      /*接受到的是 URL*/
-      console.log("Submitting URL:", url);
-      await api.post("/api/fetch-repo", new URLSearchParams({ url }));
-      alert("Data fetched successfully");
+      const response = await api.post(
+        "/api/fetch-repo",
+        new URLSearchParams({ url })
+      );
+
+      const { status, path} = response.data;
+
+      if (status === "CLONE_SUCCESS" || status === "PULL_SUCCESS") {
+        alert(`Repository processed successfully: ${path}`);
+      } else if (status === "ANALYSIS_FAILED") {
+        alert(`Repository cloned but no files were analyzed`);
+      } else if (status === "PULL_FAILED" || status === "CLONE_FAILED") {
+        alert(`Failed to process repository`);
+      } else {
+        alert(`Unexpected status: ${status}`);
+      }
+
     } catch (error) {
-      alert("Error during fetch. Please check the console for more information.");
+      alert(
+        "Error during fetch. Please check the console for more information."
+      );
       console.error("Error during fetch:", error);
     }
   };
@@ -22,7 +37,7 @@ function CloneGit() {
       console.log("Submitting URL:", url);
       handleFetchData(url);
     } else {
-      console.warn("URL is empty");
+      alert("URL is empty");
     }
   };
 
@@ -35,6 +50,7 @@ function CloneGit() {
         name="url"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
+        placeholder="GitHub Repo Url"
         required
       />
       <button onClick={handleClick}>Fetch Repo</button>

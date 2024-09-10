@@ -1,5 +1,41 @@
-body {
-  background-image: url("../images/bck.jpg");
-  background-size: cover;
-  background-repeat: no-repeat;
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.5em;
+  padding: 10px 20px;
+  background-color: #5AE2DA;
+}
+
+.mainTitle {
+  margin: 0;
+}
+
+.navigation ul {
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navigation ul li {
+  cursor: pointer;
+  font-size: 1em;
+}
+
+/* 移入時新增一個底線 */
+.navigation ul li:hover {
+  text-decoration: underline;
+}
+
+/* 確保等距離 */
+.navigation {
+  display: flex;
+  justify-content: flex-end;
+  flex-grow: 1;
+}
+
+.navigation ul {
+  justify-content: space-between;
+  width: 50%; /* 調整距離寬度 */
 }

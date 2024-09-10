@@ -1,6 +1,6 @@
 package com.example.codemangesystem;
 
-import com.example.codemangesystem.model.Files;
+import com.example.codemangesystem.model_Data.Files;
 import com.example.codemangesystem.service.GetDataBse;
 import com.example.codemangesystem.service.GitCloner;
 import com.example.codemangesystem.service.GitDiffAnalyzer;
@@ -32,22 +32,21 @@ public class ApiController {
         this.getDataBse = getDataBse;
     }
 
-    // 負責分類存儲庫的 api
+    // (前端未使用) 負責分類存儲庫的 api
     @PostMapping("/fetch-repo/categorize")
     public ResponseEntity<List<Files>> categorizeCode(@RequestParam("Path") String Path) {
-        logger.info("Try to get data from {}", Path);
+        logger.info("嘗試分類 Data by " + Path);
         return new ResponseEntity<>(gitDiffAnalyzer.analyzeCommits(Path), HttpStatus.OK);
     }
 
-    // 負責 clone 存儲庫的 api
+    // 負責 clone 存儲庫的 api ，並將資料做分類存入資料庫
     @PostMapping("/fetch-repo")
     public ResponseEntity<?> fetchRepo(@RequestParam("url") String url) {
         try {
-            String clonePath = gitCloner.cloneRepository(url);
-            return ResponseEntity.ok(clonePath);
+            return ResponseEntity.ok(gitCloner.cloneRepository(url));
         } catch (GitAPIException | IOException e) {
             logger.error("Error cloning or accessing repository: ", e);
-            return ResponseEntity.status(500).body("複製或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
+            return ResponseEntity.status(500).body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
         }
     }
 
@@ -56,17 +55,22 @@ public class ApiController {
     public ResponseEntity<?> getProjectIdInDataBase() {
         try {
             List<String> listNames = getDataBse.getAllProjectNames();
+
+            logger.info("目前有");
+            for (String listName:listNames) {
+                logger.info("Name: " + listName);
+            }
+
             return new ResponseEntity<>(listNames, HttpStatus.OK);
         } finally {
-            logger.info("結束輸出 SQl projectNames");
+            logger.info("結束輸出 projectNames");
         }
     }
 
     // 透過 ProjectName 獲取 Files 資料
     @PostMapping("/getData")
     public ResponseEntity<List<Files>> getData(@RequestParam("ProjectName") String ProjectName) {
-        logger.info("Try to get data from {}", ProjectName);
-
+        logger.info("嘗試抓取 Data by " + ProjectName);
         return new ResponseEntity<>(getDataBse.getFilesByProjectName(ProjectName), HttpStatus.OK);
     }
 }

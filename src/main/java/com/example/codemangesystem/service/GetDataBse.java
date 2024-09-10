@@ -1,7 +1,9 @@
 package com.example.codemangesystem.service;
 
-import com.example.codemangesystem.model.Files;
+import com.example.codemangesystem.model_Data.Files;
 import com.example.codemangesystem.repository.ProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import java.util.List;
 public class GetDataBse {
     private final ProjectRepository projectRepository;
 
+    private static final Logger logger = LoggerFactory.getLogger(GetDataBse.class);
     @Autowired
     private GetDataBse(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
@@ -21,6 +24,10 @@ public class GetDataBse {
     }
 
     public List<Files> getFilesByProjectName(String ProjectName) {
-        return projectRepository.findByProjectName(ProjectName).getFiles();
+        try {
+            return projectRepository.findByProjectName(ProjectName).getFiles();
+        } finally {
+            logger.info("完成獲得 " + ProjectName + " Data");
+        }
     }
 }

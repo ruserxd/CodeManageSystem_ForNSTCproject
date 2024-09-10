@@ -1,4 +1,4 @@
-package com.example.codemangesystem.model;
+package com.example.codemangesystem.model_Data;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

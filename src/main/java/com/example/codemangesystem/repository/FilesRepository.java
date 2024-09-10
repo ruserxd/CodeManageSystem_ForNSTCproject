@@ -1,6 +1,6 @@
 package com.example.codemangesystem.repository;
 
-import com.example.codemangesystem.model.Files;
+import com.example.codemangesystem.model_Data.Files;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

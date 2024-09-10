@@ -47,10 +47,9 @@ function ShowMethodDiff() {
             {item.methods &&
               item.methods.map((method, Index) => (
                 <div key={Index}>
-                  <h3>方法 {method.methodName}</h3>
+                  <h2>方法 {method.methodName}</h2>
                   {method.diffInfoList && method.diffInfoList.map((diff, Index) => (
                     <div key={Index}>
-                      <h4>Number: {Index}</h4>
                       <h4>Author: {diff.author}</h4>
                       <h4>AuthorEmail: {diff.authorEmail}</h4>
                       <h4>CommitMessage: {diff.commitMessage}</h4>
