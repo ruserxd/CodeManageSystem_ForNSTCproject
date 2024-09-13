@@ -1,10 +1,26 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #C1C8E4;
+}
+
+.header {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .topBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 1.5em;
-  padding: 10px 20px;
-  background-color: #5AE2DA;
+  padding: 15px 20px;
+  background-color: #5680E9;
 }
 
 .mainTitle {
@@ -38,4 +54,14 @@
 .navigation ul {
   justify-content: space-between;
   width: 50%; /* 調整距離寬度 */
+}
+
+footer {
+  background-color: #8860D0;
+  font-size: 0.8em;
+  padding: 5px;
+  width: 100%;
+  text-align: center;
+  position: absolute;
+  bottom: 0;
 }

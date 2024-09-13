@@ -73,4 +73,10 @@ public class ApiController {
         logger.info("嘗試抓取 Data by " + ProjectName);
         return new ResponseEntity<>(getDataBse.getFilesByProjectName(ProjectName), HttpStatus.OK);
     }
+
+    // 登入 api
+    @GetMapping("/login")
+    public boolean login() {
+        return true;
+    }
 }

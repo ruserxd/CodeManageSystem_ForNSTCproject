@@ -15,6 +15,7 @@ function CloneGit() {
 
       if (status === "CLONE_SUCCESS" || status === "PULL_SUCCESS") {
         alert(`Repository processed successfully: ${path}`);
+        window.location.reload();
       } else if (status === "ANALYSIS_FAILED") {
         alert(`Repository cloned but no files were analyzed`);
       } else if (status === "PULL_FAILED" || status === "CLONE_FAILED") {
@@ -22,7 +23,7 @@ function CloneGit() {
       } else {
         alert(`Unexpected status: ${status}`);
       }
-
+      
     } catch (error) {
       alert(
         "Error during fetch. Please check the console for more information."
