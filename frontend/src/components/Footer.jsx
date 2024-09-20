@@ -1,12 +1,12 @@
-import '../styles/style.css'
-
 const Footer = () => {
   return (
     <footer>
-      <p>2024保留所有權利。</p>
+      <p>©2024 作者保留所有權利</p>
       <nav>
-        <a href="/privacy">隱私政策</a> | 
-        <a href="/terms">使用條款</a>
+        <ul>
+          <li><a href="/">隱私政策</a></li>
+          <li><a href="/">使用條款</a></li>
+        </ul>
       </nav>
     </footer>
   );

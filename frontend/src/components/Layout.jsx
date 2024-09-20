@@ -10,8 +10,8 @@ function Layout() {
           <nav className="navigation">
             <ul>
               <li><Link to="/">首頁</Link></li>
-              <li><Link to="/">關於我們</Link></li>
-              <li><Link to="/">聯絡我們</Link></li>
+              <li><Link to="/About">關於我們</Link></li>
+              <li><Link to="/Contact">聯絡我們</Link></li>
               <li><Link to="/Login">登入</Link></li>
             </ul>
           </nav>

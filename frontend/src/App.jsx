@@ -4,6 +4,8 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import MainPage from "./components/MainPage";
 import Layout from "./components/Layout";
+import Contact from "./components/Contact";
+import About from "./components/About";
 import './styles/style.css'
 
 function App() {
@@ -13,6 +15,8 @@ function App() {
           <Route index element={<MainPage />} />
           <Route path="/Login" element={<Login />} />
           <Route path="/Signup" element={<Signup />} />
+          <Route path="/About" element={<About />} />
+          <Route path="/Contact" element={<Contact />} />
           <Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
       </Route>
     </Routes>
