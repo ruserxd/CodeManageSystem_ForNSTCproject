@@ -21,7 +21,7 @@ function Login() {
               ></input>
               <div className="tab"></div>
               <input
-                type="text"
+                type="password"
                 id="user_password"
                 placeholder="密碼"
                 required
@@ -32,7 +32,7 @@ function Login() {
               </button>
             </form>
             <p>
-              沒有帳號嗎?<Link to="/Signup">註冊帳號</Link>
+              沒有帳號嗎?<Link to="/Register">註冊帳號</Link>
             </p>
           </div>
         </div>

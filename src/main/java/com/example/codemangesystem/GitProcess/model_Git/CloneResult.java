@@ -1,4 +1,4 @@
-package com.example.codemangesystem.model_Git;
+package com.example.codemangesystem.GitProcess.model_Git;
 
 import lombok.Builder;
 import lombok.Data;

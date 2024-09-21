@@ -1,8 +1,8 @@
-package com.example.codemangesystem.service;
+package com.example.codemangesystem.GitProcess.service;
 
-import com.example.codemangesystem.model_Git.CloneResult;
-import com.example.codemangesystem.model_Git.CloneStatus;
-import com.example.codemangesystem.model_Data.Files;
+import com.example.codemangesystem.GitProcess.model_Git.CloneResult;
+import com.example.codemangesystem.GitProcess.model_Git.CloneStatus;
+import com.example.codemangesystem.GitProcess.model_Data.Files;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;

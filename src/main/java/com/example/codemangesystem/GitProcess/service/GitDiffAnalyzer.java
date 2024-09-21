@@ -1,10 +1,10 @@
-package com.example.codemangesystem.service;
+package com.example.codemangesystem.GitProcess.service;
 
-import com.example.codemangesystem.model_Data.DiffInfo;
-import com.example.codemangesystem.model_Data.Files;
-import com.example.codemangesystem.model_Data.Method;
-import com.example.codemangesystem.model_Data.Project;
-import com.example.codemangesystem.repository.ProjectRepository;
+import com.example.codemangesystem.GitProcess.model_Data.DiffInfo;
+import com.example.codemangesystem.GitProcess.model_Data.Files;
+import com.example.codemangesystem.GitProcess.model_Data.Method;
+import com.example.codemangesystem.GitProcess.model_Data.Project;
+import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;

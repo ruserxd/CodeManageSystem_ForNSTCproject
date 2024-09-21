@@ -1,6 +1,6 @@
-package com.example.codemangesystem.repository;
+package com.example.codemangesystem.GitProcess.repository;
 
-import com.example.codemangesystem.model_Data.Files;
+import com.example.codemangesystem.GitProcess.model_Data.Files;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

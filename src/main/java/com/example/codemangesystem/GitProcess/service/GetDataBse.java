@@ -1,7 +1,7 @@
-package com.example.codemangesystem.service;
+package com.example.codemangesystem.GitProcess.service;
 
-import com.example.codemangesystem.model_Data.Files;
-import com.example.codemangesystem.repository.ProjectRepository;
+import com.example.codemangesystem.GitProcess.model_Data.Files;
+import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

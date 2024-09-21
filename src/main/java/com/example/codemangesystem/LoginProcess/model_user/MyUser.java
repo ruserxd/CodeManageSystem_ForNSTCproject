@@ -1,6 +1,5 @@
-package com.example.codemangesystem.model_Data;
+package com.example.codemangesystem.LoginProcess.model_user;
 
-import com.example.codemangesystem.model_login.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user")
-public class User {
+public class MyUser {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
@@ -25,18 +24,11 @@ public class User {
     @Column(name = "user_email")
     private String userEmail;
 
+    @Column(name = "user_account")
+    private String userAccount;
+
     @Column(name = "user_password")
     private String userPassword;
-
-    @Column(name = "user_role")
-    private Role userRole;
-
-    public User(String userName, String userEmail,String userPassword, Role userRole) {
-        this.userName = userName;
-        this.userEmail = userEmail;
-        this.userPassword = userPassword;
-        this.userRole = userRole;
-    }
 }
 
 //TODO: 更改的 key 存入

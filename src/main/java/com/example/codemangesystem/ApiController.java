@@ -1,9 +1,12 @@
 package com.example.codemangesystem;
 
-import com.example.codemangesystem.model_Data.Files;
-import com.example.codemangesystem.service.GetDataBse;
-import com.example.codemangesystem.service.GitCloner;
-import com.example.codemangesystem.service.GitDiffAnalyzer;
+import com.example.codemangesystem.GitProcess.model_Data.Files;
+import com.example.codemangesystem.GitProcess.service.GetDataBse;
+import com.example.codemangesystem.GitProcess.service.GitCloner;
+import com.example.codemangesystem.GitProcess.service.GitDiffAnalyzer;
+import com.example.codemangesystem.LoginProcess.model_user.MyUser;
+import com.example.codemangesystem.LoginProcess.model_user.RegisterResponse;
+import com.example.codemangesystem.LoginProcess.services.MyUserService;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,14 +27,17 @@ public class ApiController {
     private final GitCloner gitCloner;
     private final GitDiffAnalyzer gitDiffAnalyzer;
     private final GetDataBse getDataBse;
-
+    private final MyUserService myUserService;
     @Autowired
-    public ApiController(GitCloner gitCloner,GitDiffAnalyzer gitDiffAnalyzer, GetDataBse getDataBse) {
+    public ApiController(GitCloner gitCloner,GitDiffAnalyzer gitDiffAnalyzer, GetDataBse getDataBse
+                            ,MyUserService myUserService) {
         this.gitCloner = gitCloner;
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.getDataBse = getDataBse;
+        this.myUserService  = myUserService;
     }
 
+    /* Git 資料處理 */
     // (前端未使用) 負責分類存儲庫的 api
     @PostMapping("/fetch-repo/categorize")
     public ResponseEntity<List<Files>> categorizeCode(@RequestParam("Path") String Path) {
@@ -74,9 +80,17 @@ public class ApiController {
         return new ResponseEntity<>(getDataBse.getFilesByProjectName(ProjectName), HttpStatus.OK);
     }
 
+    /* 登入系統 */
     // 登入 api
     @GetMapping("/login")
     public boolean login() {
         return true;
+    }
+
+    // 註冊
+    @PostMapping("/register")
+    public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
+        RegisterResponse registerResult = myUserService.UserRegister(myUser);
+        return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 }
