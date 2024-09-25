@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import Footer from "./Footer";
 
-function Layout() {
+function Layout({user}) {
   return (
     <div>
       <header className="header">
@@ -12,7 +12,11 @@ function Layout() {
               <li><Link to="/">首頁</Link></li>
               <li><Link to="/About">關於我們</Link></li>
               <li><Link to="/Contact">聯絡我們</Link></li>
-              <li><Link to="/Login">登入</Link></li>
+              {user ? (
+                <li><Link to="/UserPage">Welcome {user.myUser.userName}</Link></li>
+              ):(
+                <li><Link to="/Login">登入</Link></li>
+              )}
             </ul>
           </nav>
         </div>

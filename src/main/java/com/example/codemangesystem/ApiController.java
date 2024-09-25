@@ -4,6 +4,8 @@ import com.example.codemangesystem.GitProcess.model_Data.Files;
 import com.example.codemangesystem.GitProcess.service.GetDataBse;
 import com.example.codemangesystem.GitProcess.service.GitCloner;
 import com.example.codemangesystem.GitProcess.service.GitDiffAnalyzer;
+import com.example.codemangesystem.LoginProcess.model_user.LoginINFO;
+import com.example.codemangesystem.LoginProcess.model_user.LoginResponse;
 import com.example.codemangesystem.LoginProcess.model_user.MyUser;
 import com.example.codemangesystem.LoginProcess.model_user.RegisterResponse;
 import com.example.codemangesystem.LoginProcess.services.MyUserService;
@@ -28,13 +30,14 @@ public class ApiController {
     private final GitDiffAnalyzer gitDiffAnalyzer;
     private final GetDataBse getDataBse;
     private final MyUserService myUserService;
+
     @Autowired
-    public ApiController(GitCloner gitCloner,GitDiffAnalyzer gitDiffAnalyzer, GetDataBse getDataBse
-                            ,MyUserService myUserService) {
+    public ApiController(GitCloner gitCloner, GitDiffAnalyzer gitDiffAnalyzer, GetDataBse getDataBse
+            , MyUserService myUserService) {
         this.gitCloner = gitCloner;
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.getDataBse = getDataBse;
-        this.myUserService  = myUserService;
+        this.myUserService = myUserService;
     }
 
     /* Git 資料處理 */
@@ -63,7 +66,7 @@ public class ApiController {
             List<String> listNames = getDataBse.getAllProjectNames();
 
             logger.info("目前有");
-            for (String listName:listNames) {
+            for (String listName : listNames) {
                 logger.info("Name: " + listName);
             }
 
@@ -82,15 +85,16 @@ public class ApiController {
 
     /* 登入系統 */
     // 登入 api
-    @GetMapping("/login")
-    public boolean login() {
-        return true;
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginINFO loginINFO) {
+        LoginResponse loginResponse = myUserService.checkUser(loginINFO);
+        return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
 
     // 註冊
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
-        RegisterResponse registerResult = myUserService.UserRegister(myUser);
+        RegisterResponse registerResult = myUserService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 }

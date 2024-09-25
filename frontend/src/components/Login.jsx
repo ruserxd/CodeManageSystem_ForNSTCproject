@@ -1,22 +1,58 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+
+import { Link , useNavigate } from "react-router-dom";
+import api from "../api/axiosConfig";
 import "../styles/login.css";
 
-const preventRefresh = (e) => {
-  e.preventDefault();
-};
+function Login({ onLogin }) {
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const navigate = useNavigate();
 
-function Login() {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const LoginUserINFO = {
+        userEmail,
+        userPassword,
+      };
+      console.log(LoginUserINFO);
+
+      const result = await api.post("api/login", LoginUserINFO);
+      console.log(result.data);
+      
+      // 輸入格重置
+      setUserEmail("");
+      setUserPassword("");
+
+      if (result.data.success) {
+        onLogin(result.data);
+        alert("登入成功")
+
+        navigate("/UserPage");
+      } else {
+        alert("登入失敗，帳號密碼請確定" + result.data.message);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("登入錯誤");
+    }
+  };
   return (
     <div className="login_signup">
       <div className="login_page">
         <div id="container1">
           <div className="login">
             <h3>登入系統</h3>
-            <form>
+            <form onSubmit={handleSubmit}>
               <input
                 type="text"
-                id="user_account"
+                id="user_email"
                 placeholder="帳號"
+                value={userEmail}
+                onChange={(e) => {
+                  setUserEmail(e.target.value);
+                }}
                 required
               ></input>
               <div className="tab"></div>
@@ -24,10 +60,14 @@ function Login() {
                 type="password"
                 id="user_password"
                 placeholder="密碼"
+                value={userPassword}
+                onChange={(e) => {
+                  setUserPassword(e.target.value);
+                }}
                 required
               ></input>
               <div className="tab"></div>
-              <button type="submit" value="登入" className="submit" onClick={preventRefresh}>
+              <button type="submit" value="登入" className="submit">
                 登入
               </button>
             </form>

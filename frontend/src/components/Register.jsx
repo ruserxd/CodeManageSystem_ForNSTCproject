@@ -10,9 +10,10 @@ function Register() {
   const [userAccount, setUserAccount] = useState("");
   const [userPassword, setUserPassword] = useState("");
   const [successRegister, setSuccessRegister] = useState(false);
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
+
 
     const registerUser = {
       userName,

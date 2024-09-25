@@ -28,6 +28,8 @@ body {
 }
 
 .navigation ul {
+  justify-content: space-between;
+  width: 70%; /* 調整距離寬度 */
   display: flex;
   list-style-type: none;
   margin: 0;
@@ -49,11 +51,6 @@ body {
   display: flex;
   justify-content: flex-end;
   flex-grow: 1;
-}
-
-.navigation ul {
-  justify-content: space-between;
-  width: 50%; /* 調整距離寬度 */
 }
 
 footer {

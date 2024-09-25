@@ -7,7 +7,7 @@
     border-top: 10px solid #84CEEB;
     box-shadow: 0 0 70px rgba(0, 0, 0, 0.1);
 }
-#user_account, #user_password, h3, #sign_name, #sign_email, #sign_account, #sign_password{
+#user_email, #user_password, h3, #sign_name, #sign_email, #sign_account, #sign_password{
     width: 200px;
     height: 20px;
     margin: 10px;
