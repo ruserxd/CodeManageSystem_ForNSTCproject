@@ -1,8 +1,7 @@
 export const passwordValidator = (value) => {
-    if (value.length <= 0) 
-        return { valid: false, errorMsg: "必須填寫" };
-    return {
-        valid: true,
-        errorMsg: ""
-    };
+  if (value.length <= 0) return { valid: false, errorMsg: "必須填寫" };
+  return {
+    valid: true,
+    errorMsg: "",
+  };
 };

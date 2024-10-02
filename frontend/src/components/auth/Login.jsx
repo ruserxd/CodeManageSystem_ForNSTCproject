@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Link , useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
 import "../../styles/login.css";
 
@@ -20,14 +20,14 @@ function Login({ onLogin }) {
 
       const result = await api.post("api/login", LoginUserINFO);
       console.log(result.data);
-      
+
       // 輸入格重置
       setUserAccount("");
       setUserPassword("");
 
       if (result.data.success) {
         onLogin(result.data);
-        alert("登入成功")
+        alert("登入成功");
 
         navigate("/UserPage");
       } else {

@@ -8,31 +8,34 @@ import Contact from "./components/Basic/Contact";
 import About from "./components/Basic/About";
 import UserPage from "./components/user/UserPage";
 
-import './styles/style.css'
+import "./styles/style.css";
 import { useCookies } from "react-cookie";
 
 function App() {
   // 利用 cookies 將使用者資料存下來
-  const [cookies, setCookies, removeCookie] = useCookies(['user']);
+  const [cookies, setCookies, removeCookie] = useCookies(["user"]);
 
   const handleLogin = (user) => {
-    setCookies('user', user, { path: '/' })
-  }
+    setCookies("user", user, { path: "/" });
+  };
 
   const handleLogout = () => {
-    removeCookie('user', { path: '/' });
-  }
+    removeCookie("user", { path: "/" });
+  };
 
   return (
     <Routes>
-      <Route path="/" element={<Layout user={cookies.user}/>}>
-          <Route index element={<MainPage />} />
-          <Route path="/Login" element={<Login onLogin={handleLogin}/>} />
-          <Route path="/Register" element={<Register />} />
-          <Route path="/About" element={<About />} />
-          <Route path="/Contact" element={<Contact />} />
-          <Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
-          <Route path="/UserPage" element={<UserPage onLogout={handleLogout}/>} />
+      <Route path="/" element={<Layout user={cookies.user} />}>
+        <Route index element={<MainPage />} />
+        <Route path="/Login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/Register" element={<Register />} />
+        <Route path="/About" element={<About />} />
+        <Route path="/Contact" element={<Contact />} />
+        <Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
+        <Route
+          path="/UserPage"
+          element={<UserPage onLogout={handleLogout} />}
+        />
       </Route>
     </Routes>
   );

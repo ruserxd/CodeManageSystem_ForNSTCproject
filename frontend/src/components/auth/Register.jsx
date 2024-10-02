@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useInput , validate } from "canathus";
+import { useInput, validate } from "canathus";
 import { nameValidator } from "../validators/nameValidators";
 import { emailValidator } from "../validators/emailValidators";
 import { accountValidator } from "../validators/accountValidators";
@@ -15,7 +15,7 @@ function Register() {
   const [userPassword, setUserPassword] = useInput("", passwordValidator);
 
   const [successRegister, setSuccessRegister] = useState(false);
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -23,24 +23,21 @@ function Register() {
       userName,
       userEmail,
       userAccount,
-      userPassword
+      userPassword,
     });
-    
+
     if (!isValid) {
       return;
     }
 
     const registerUser = {
-      userName:userName.value,
-      userEmail:userEmail.value,
-      userAccount:userAccount.value,
-      userPassword:userPassword.value,
+      userName: userName.value,
+      userEmail: userEmail.value,
+      userAccount: userAccount.value,
+      userPassword: userPassword.value,
     };
 
-    const result = await api.post(
-      "/api/register",
-      registerUser
-    );
+    const result = await api.post("/api/register", registerUser);
     console.log(result.data);
     setSuccessRegister(true);
   };
@@ -94,9 +91,7 @@ function Register() {
               id="sign_account"
               type="text"
               value={userAccount.value}
-              onChange={(e) => 
-                setUserAccount(e.target.value)
-              }
+              onChange={(e) => setUserAccount(e.target.value)}
               required
             ></input>
             <span>{userAccount.error && userAccount.errorMsg}</span>

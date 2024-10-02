@@ -29,7 +29,7 @@ function ListCurProject() {
 
       <ul>
         {data.length > 0 ? (
-          data.map((projectName, id) => ( 
+          data.map((projectName, id) => (
             <li key={id}>
               <Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
             </li>

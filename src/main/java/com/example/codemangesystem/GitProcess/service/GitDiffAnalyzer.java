@@ -36,12 +36,14 @@ import java.util.*;
 @Service
 public class GitDiffAnalyzer {
     private final ProjectRepository projectRepository;
+
     @Autowired
     public GitDiffAnalyzer(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
 
     private static final Logger logger = LoggerFactory.getLogger(GitDiffAnalyzer.class);
+
     // 讀取每段 commit diff 的資訊並解析成以方法名稱
     public List<Files> analyzeCommits(String url) {
         try {
@@ -55,9 +57,9 @@ public class GitDiffAnalyzer {
             }
 
             Project project = Project.builder()
-                            .projectName(url.substring(url.lastIndexOf('/')+1))
-                            .files(new LinkedList<>())
-                            .build();
+                    .projectName(url.substring(url.lastIndexOf('/') + 1))
+                    .files(new LinkedList<>())
+                    .build();
 
             // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
             Repository repository = new RepositoryBuilder()
@@ -248,7 +250,7 @@ public class GitDiffAnalyzer {
 
         // 找尋 project 內相對應的 file
         Files file = null;
-        for (Files projectFile:project.getFiles()) {
+        for (Files projectFile : project.getFiles()) {
             if (projectFile.getFilePath().equals(filePath)) {
                 file = projectFile;
                 break;
@@ -268,7 +270,7 @@ public class GitDiffAnalyzer {
         List<Method> methods = file.getMethods();
 
         // 當有找到對應的方法時，加入 diffInfo
-        for (Method method:methods) {
+        for (Method method : methods) {
             if (method.getMethodName().equals(methodName)) {
                 diffInfo.setMethod(method);
                 method.getDiffInfoList().add(diffInfo);

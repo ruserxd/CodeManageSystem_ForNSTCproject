@@ -11,7 +11,7 @@ function CloneGit() {
         new URLSearchParams({ url })
       );
 
-      const { status, path} = response.data;
+      const { status, path } = response.data;
 
       if (status === "CLONE_SUCCESS" || status === "PULL_SUCCESS") {
         alert(`Repository processed successfully: ${path}`);
@@ -23,7 +23,6 @@ function CloneGit() {
       } else {
         alert(`Unexpected status: ${status}`);
       }
-      
     } catch (error) {
       alert(
         "Error during fetch. Please check the console for more information."

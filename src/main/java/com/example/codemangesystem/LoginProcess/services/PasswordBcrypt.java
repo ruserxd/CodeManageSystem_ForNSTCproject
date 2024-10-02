@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 public class PasswordBcrypt {
 
     private static final Logger logger = LoggerFactory.getLogger(PasswordBcrypt.class);
+
     public String encryptPassword(String plainText) {
         String encodedPassword = BCrypt.hashpw(plainText, BCrypt.gensalt());
         logger.info("加密後的密碼" + encodedPassword);

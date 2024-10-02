@@ -14,6 +14,7 @@ public class GetDataBse {
     private final ProjectRepository projectRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(GetDataBse.class);
+
     @Autowired
     private GetDataBse(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
