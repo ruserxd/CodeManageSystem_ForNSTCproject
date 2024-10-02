@@ -1,12 +1,12 @@
 import { Route, Routes } from "react-router-dom";
-import ShowMethodDiff from "./components/ShowMethodDiff";
-import Login from "./components/Login";
-import Register from "./components/Register";
-import MainPage from "./components/MainPage";
-import Layout from "./components/Layout";
-import Contact from "./components/Contact";
-import About from "./components/About";
-import UserPage from "./components/UserPage";
+import ShowMethodDiff from "./components/diff/ShowMethodDiff";
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
+import MainPage from "./components/Basic/MainPage";
+import Layout from "./components/layout/Layout";
+import Contact from "./components/Basic/Contact";
+import About from "./components/Basic/About";
+import UserPage from "./components/user/UserPage";
 
 import './styles/style.css'
 import { useCookies } from "react-cookie";

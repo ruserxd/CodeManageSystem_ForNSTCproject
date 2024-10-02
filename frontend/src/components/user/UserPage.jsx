@@ -2,6 +2,7 @@ import CloneGit from "./CloneGit";
 import ListCurProject from "./ListCurProject";
 import { Navigate, useNavigate} from "react-router-dom";
 import { useCookies } from "react-cookie";
+import "../../styles/userPage.css"
 
 function UserPage({onLogout}) {
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ function UserPage({onLogout}) {
             <h1>歡迎，{cookies.user.myUser.userName}</h1>
             <ListCurProject />
             <CloneGit />
-            <button onClick={handleSubmit}>登出</button>
+            <button className="btn" onClick={handleSubmit}>登出</button>
         </div>
     )
 }

@@ -8,6 +8,12 @@ body {
   background-color: #C1C8E4;
 }
 
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .header {
   width: 100%;
   margin: 0;
@@ -25,6 +31,17 @@ body {
 
 .mainTitle {
   margin: 0;
+}
+
+.content {
+  text-align: center;
+  flex: 1;
+}
+/* 確保等距離 */
+.navigation {
+  display: flex;
+  justify-content: flex-end;
+  flex-grow: 1;
 }
 
 .navigation ul {
@@ -46,22 +63,21 @@ body {
   text-decoration: underline;
 }
 
-/* 確保等距離 */
-.navigation {
-  display: flex;
-  justify-content: flex-end;
-  flex-grow: 1;
-}
-
 footer {
   background-color: #8860D0;
   font-size: 0.8em;
   padding: 5px;
   width: 100%;
   text-align: center;
-  position: absolute;
-  bottom: 0;
 }
+
+footer nav ul {
+  padding: 0; 
+  margin: 0; 
+}
+
 footer nav ul li {
   list-style-type: none;
+  margin: 0 10px; 
+  margin-top: auto;
 }

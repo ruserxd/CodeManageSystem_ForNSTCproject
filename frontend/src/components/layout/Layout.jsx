@@ -1,13 +1,12 @@
 import { Outlet, Link } from "react-router-dom";
 import Footer from "./Footer";
-import "../styles/style.css";
 
 function Layout({user}) {
   return (
-    <div>
+    <div className="layout">
       <header className="header">
         <div className="topBar">
-          <h1 className="mainTitle">程式單元開發管理系統</h1>
+          <h2 className="mainTitle">程式單元開發管理系統</h2>
           <nav className="navigation">
             <ul>
               <li><Link to="/">首頁</Link></li>
@@ -22,8 +21,9 @@ function Layout({user}) {
           </nav>
         </div>
       </header>
-      
-      <Outlet />
+      <main className="content">
+        <Outlet />
+      </main>
       <Footer />
     </div>
   );

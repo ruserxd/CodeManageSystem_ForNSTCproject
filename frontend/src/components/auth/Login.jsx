@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 import { Link , useNavigate } from "react-router-dom";
-import api from "../api/axiosConfig";
-import "../styles/login.css";
+import api from "../../api/axiosConfig";
+import "../../styles/login.css";
 
 function Login({ onLogin }) {
   const [userAccount, setUserAccount] = useState("");
@@ -35,7 +35,7 @@ function Login({ onLogin }) {
       }
     } catch (e) {
       console.error(e);
-      alert("登入錯誤");
+      alert("登入發生錯誤, 請確定網路狀態");
     }
   };
   return (

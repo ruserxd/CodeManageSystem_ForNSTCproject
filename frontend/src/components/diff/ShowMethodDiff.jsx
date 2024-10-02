@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../api/axiosConfig";
+import api from "../../api/axiosConfig";
 import HighlightedCode from "./HighlightedCode";
 
 function ShowMethodDiff() {
@@ -48,16 +48,20 @@ function ShowMethodDiff() {
               item.methods.map((method, Index) => (
                 <div key={Index}>
                   <h2>方法 {method.methodName}</h2>
-                  {method.diffInfoList && method.diffInfoList.map((diff, Index) => (
-                    <div key={Index}>
-                      <h4>Author: {diff.author}</h4>
-                      <h4>AuthorEmail: {diff.authorEmail}</h4>
-                      <h4>CommitMessage: {diff.commitMessage}</h4>
-                      <h4>AuthorEmail: {diff.authorEmail}</h4>
-                      <h4>AuthorEmail: {diff.commitTime}</h4>
-                      <HighlightedCode language="diff" codeString={diff.diffCode} />
-                    </div>
-                  ))}
+                  {method.diffInfoList &&
+                    method.diffInfoList.map((diff, Index) => (
+                      <div key={Index}>
+                        <h4>Author: {diff.author}</h4>
+                        <h4>AuthorEmail: {diff.authorEmail}</h4>
+                        <h4>CommitMessage: {diff.commitMessage}</h4>
+                        <h4>AuthorEmail: {diff.authorEmail}</h4>
+                        <h4>CommitTime: {diff.commitTime}</h4>
+                        <HighlightedCode
+                          language="diff"
+                          codeString={diff.diffCode}
+                        />
+                      </div>
+                    ))}
                 </div>
               ))}
           </div>

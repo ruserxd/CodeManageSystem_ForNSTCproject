@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/axiosConfig";
+import api from "../../api/axiosConfig";
 
 function CloneGit() {
   const [url, setUrl] = useState("");

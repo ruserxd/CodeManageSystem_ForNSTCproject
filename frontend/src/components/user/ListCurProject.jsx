@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api/axiosConfig";
+import api from "../../api/axiosConfig";
 import { Link } from "react-router-dom";
 
 function ListCurProject() {

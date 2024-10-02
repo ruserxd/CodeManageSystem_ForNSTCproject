@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useInput , validate } from "canathus";
-import { nameValidator } from "./validators/nameValidators";
-import { emailValidator } from "./validators/emailValidators";
-import { accountValidator } from "./validators/accountValidators";
-import { passwordValidator } from "./validators/passwordValidators";
+import { nameValidator } from "../validators/nameValidators";
+import { emailValidator } from "../validators/emailValidators";
+import { accountValidator } from "../validators/accountValidators";
+import { passwordValidator } from "../validators/passwordValidators";
 import { Link } from "react-router-dom";
-import "../styles/login.css";
-import api from "../api/axiosConfig";
+import "../../styles/login.css";
+import api from "../../api/axiosConfig";
 
 function Register() {
   const [userName, setUserName] = useInput("", nameValidator);
