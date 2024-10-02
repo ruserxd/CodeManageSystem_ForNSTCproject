@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axiosConfig";
 import HighlightedCode from "./HighlightedCode";
+import Collapsible from "react-collapsible";
 
 function ShowMethodDiff() {
   const { "*": urlParam } = useParams();
@@ -37,32 +38,32 @@ function ShowMethodDiff() {
 
   return (
     <div>
-      <h1>{projectName} 的方法差異資訊 </h1>
+      <h2>{projectName} 的方法差異資訊 </h2>
       {data &&
         data.map((item) => (
           <div key={item.filePath}>
-            <h2>檔案名稱: {item.fileName}</h2>
-            <h2>檔案路徑: {item.filePath}</h2>
-            <h2>方法:</h2>
+            <h3>檔案名稱: {item.fileName}</h3>
+            <h3>檔案路徑: {item.filePath}</h3>
+            <h3>方法:</h3>
             {item.methods &&
               item.methods.map((method, Index) => (
-                <div key={Index}>
-                  <h2>方法 {method.methodName}</h2>
+                <Collapsible key={Index} trigger={method.methodName}>
                   {method.diffInfoList &&
-                    method.diffInfoList.map((diff, Index) => (
-                      <div key={Index}>
+                    method.diffInfoList.map((diff, diffIndex) => (
+                      <div key={diffIndex} className="diffINFO">
+                        <h4>Number: {diffIndex}</h4>
                         <h4>Author: {diff.author}</h4>
                         <h4>AuthorEmail: {diff.authorEmail}</h4>
                         <h4>CommitMessage: {diff.commitMessage}</h4>
-                        <h4>AuthorEmail: {diff.authorEmail}</h4>
                         <h4>CommitTime: {diff.commitTime}</h4>
                         <HighlightedCode
                           language="diff"
                           codeString={diff.diffCode}
+                          className="diffCode"
                         />
                       </div>
                     ))}
-                </div>
+                </Collapsible>
               ))}
           </div>
         ))}

@@ -8,7 +8,7 @@
     box-shadow: 0 0 70px rgba(0, 0, 0, 0.1);
 }
 
-#user_Account, #user_password, h3, #sign_name, #sign_email, #sign_account, #sign_password, span {
+#user_Account, #user_password, #sign_name, #sign_email, #sign_account, #sign_password, span {
     width: 200px;
     height: 20px;
     margin: 10px;
