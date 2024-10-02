@@ -4,10 +4,10 @@ import com.example.codemangesystem.GitProcess.model_Data.Files;
 import com.example.codemangesystem.GitProcess.service.GetDataBse;
 import com.example.codemangesystem.GitProcess.service.GitCloner;
 import com.example.codemangesystem.GitProcess.service.GitDiffAnalyzer;
-import com.example.codemangesystem.LoginProcess.model_user.LoginINFO;
-import com.example.codemangesystem.LoginProcess.model_user.LoginResponse;
+import com.example.codemangesystem.LoginProcess.model_response.LoginINFO;
+import com.example.codemangesystem.LoginProcess.model_response.LoginResponse;
 import com.example.codemangesystem.LoginProcess.model_user.MyUser;
-import com.example.codemangesystem.LoginProcess.model_user.RegisterResponse;
+import com.example.codemangesystem.LoginProcess.model_response.RegisterResponse;
 import com.example.codemangesystem.LoginProcess.services.MyUserService;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
@@ -96,5 +96,12 @@ public class ApiController {
     public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
         RegisterResponse registerResult = myUserService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
+    }
+
+
+    // 手動加入
+    @GetMapping("/addSuperAccount")
+    public void addSuperAccount() {
+        myUserService.AddSuperAccount();
     }
 }

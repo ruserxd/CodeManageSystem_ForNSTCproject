@@ -62,3 +62,6 @@ footer {
   position: absolute;
   bottom: 0;
 }
+footer nav ul li {
+  list-style-type: none;
+}

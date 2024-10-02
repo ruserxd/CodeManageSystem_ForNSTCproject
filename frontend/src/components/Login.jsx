@@ -5,7 +5,7 @@ import api from "../api/axiosConfig";
 import "../styles/login.css";
 
 function Login({ onLogin }) {
-  const [userEmail, setUserEmail] = useState("");
+  const [userAccount, setUserAccount] = useState("");
   const [userPassword, setUserPassword] = useState("");
   const navigate = useNavigate();
 
@@ -13,7 +13,7 @@ function Login({ onLogin }) {
     e.preventDefault();
     try {
       const LoginUserINFO = {
-        userEmail,
+        userAccount,
         userPassword,
       };
       console.log(LoginUserINFO);
@@ -22,7 +22,7 @@ function Login({ onLogin }) {
       console.log(result.data);
       
       // 輸入格重置
-      setUserEmail("");
+      setUserAccount("");
       setUserPassword("");
 
       if (result.data.success) {
@@ -47,11 +47,11 @@ function Login({ onLogin }) {
             <form onSubmit={handleSubmit}>
               <input
                 type="text"
-                id="user_email"
+                id="user_Account"
                 placeholder="帳號"
-                value={userEmail}
+                value={userAccount}
                 onChange={(e) => {
-                  setUserEmail(e.target.value);
+                  setUserAccount(e.target.value);
                 }}
                 required
               ></input>

@@ -1,4 +1,4 @@
-package com.example.codemangesystem.LoginProcess.model_user;
+package com.example.codemangesystem.LoginProcess.model_response;
 
 import lombok.Builder;
 import lombok.Data;

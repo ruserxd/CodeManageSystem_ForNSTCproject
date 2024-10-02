@@ -29,6 +29,9 @@ public class MyUser {
 
     @Column(name = "user_password")
     private String userPassword;
+
+    @Column(name = "user_authority")
+    private UserAuthority userAuthority;
 }
 
 //TODO: 更改的 key 存入
