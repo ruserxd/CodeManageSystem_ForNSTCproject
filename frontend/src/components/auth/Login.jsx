@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
@@ -80,5 +81,9 @@ function Login({ onLogin }) {
     </div>
   );
 }
+
+Login.propTypes = {
+  onLogin: PropTypes.func.isRequired,
+};
 
 export default Login;

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Outlet, Link } from "react-router-dom";
 import Footer from "./Footer";
 
@@ -39,4 +40,18 @@ function Layout({ user }) {
   );
 }
 
+Layout.propTypes = {
+  user: PropTypes.shape({
+    success: PropTypes.bool.isRequired,
+    message: PropTypes.string.isRequired,
+    myUser: PropTypes.shape({
+      user_id: PropTypes.number.isRequired,
+      userName: PropTypes.string.isRequired,
+      userEmail: PropTypes.string.isRequired,
+      userAccount: PropTypes.string.isRequired,
+      userPassword: PropTypes.string.isRequired,
+      userAuthority: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
+};
 export default Layout;

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import CloneGit from "./CloneGit";
 import ListCurProject from "./ListCurProject";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -29,5 +30,9 @@ function UserPage({ onLogout }) {
     </div>
   );
 }
+
+UserPage.propTypes = {
+  onLogout: PropTypes.func.isRequired,
+};
 
 export default UserPage;

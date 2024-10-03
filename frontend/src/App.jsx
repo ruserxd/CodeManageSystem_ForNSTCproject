@@ -16,6 +16,7 @@ function App() {
   const [cookies, setCookies, removeCookie] = useCookies(["user"]);
 
   const handleLogin = (user) => {
+    console.log("success or not " + JSON.stringify(user.myUser, null, 2));
     setCookies("user", user, { path: "/" });
   };
 
