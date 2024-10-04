@@ -34,15 +34,19 @@ public class GitCloner {
         String repoName = getRepoNameFromUrl(repoUrl);
         String localPath = CLONE_LOCAL_BASE_PATH + repoName;
 
-        // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳路徑
         try {
+
+            // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳路徑
             if (isRepositoryClonedLocally(localPath)) {
                 logger.info("Repository already exists at: {}", localPath);
                 try {
                     renewRepositoryLocally(localPath);
                     // TODO: 更新資料庫的內容
                     logger.info("Successfully pulled and updated repository at {}", localPath);
-                    return CloneResult.builder().status(CloneStatus.PULL_SUCCESS).path(localPath).build();
+                    return CloneResult.builder()
+                            .status(CloneStatus.PULL_SUCCESS)
+                            .path(localPath)
+                            .build();
                 } catch (Exception e) {
                     // 如果更新失敗，記錄錯誤並決定如何處理
                     logger.error("Failed to update existing repository at {}", localPath, e);
@@ -51,7 +55,9 @@ public class GitCloner {
             }
 
             logger.info("Cloning to {} ....", repoUrl);
+
             // 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
+            // 只是要透過 Git 物件將資料 clone 下來
             // clone 成功接續將資料分類存入資料庫內
             try (Git ignored = Git.cloneRepository()
                     .setURI(repoUrl)
@@ -59,7 +65,6 @@ public class GitCloner {
                     .call()) {
 
                 logger.info("成功 clone: {}", localPath);
-
                 logger.info("嘗試分類");
                 List<Files> analyzedFiles = gitDiffAnalyzer.analyzeCommits(localPath);
 
@@ -101,6 +106,7 @@ public class GitCloner {
                     .setRemote("origin")
                     .setRemoteBranchName(DEFAULT_BRANCH)
                     .call();
+
             if (result.isSuccessful()) {
                 logger.info("Pull successful");
             } else {
