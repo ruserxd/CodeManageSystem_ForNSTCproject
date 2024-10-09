@@ -68,7 +68,7 @@ function Login({ onLogin }) {
                 required
               ></input>
               <div className="tab"></div>
-              <button type="submit" value="登入" className="submit">
+              <button type="primary" className="submit">
                 登入
               </button>
             </form>

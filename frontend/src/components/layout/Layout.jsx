@@ -19,6 +19,9 @@ function Layout({ user }) {
               <li>
                 <Link to="/Contact">聯絡我們</Link>
               </li>
+              <li>
+                <Link to="/test">testing web</Link>
+              </li>
               {user ? (
                 <li>
                   <Link to="/UserPage">Welcome {user.myUser.userName}</Link>

@@ -72,7 +72,9 @@ function Register() {
               onChange={(e) => setUserName(e.target.value)}
               required
             ></input>
-            <span>{userName.error && userName.errorMsg}</span>
+            <span className="warning">
+              {userName.error && userName.errorMsg}
+            </span>
             <div className="tab"></div>
 
             <input
@@ -83,7 +85,9 @@ function Register() {
               onChange={(e) => setUserEmail(e.target.value)}
               required
             ></input>
-            <span>{userEmail.error && userEmail.errorMsg}</span>
+            <span className="warning">
+              {userEmail.error && userEmail.errorMsg}
+            </span>
             <div className="tab"></div>
 
             <input
@@ -94,7 +98,9 @@ function Register() {
               onChange={(e) => setUserAccount(e.target.value)}
               required
             ></input>
-            <span>{userAccount.error && userAccount.errorMsg}</span>
+            <span className="warning">
+              {userAccount.error && userAccount.errorMsg}
+            </span>
             <div className="tab"></div>
 
             <input
@@ -105,7 +111,9 @@ function Register() {
               onChange={(e) => setUserPassword(e.target.value)}
               required
             ></input>
-            <span>{userPassword.error && userPassword.errorMsg}</span>
+            <span className="warning">
+              {userPassword.error && userPassword.errorMsg}
+            </span>
             <div className="tab"></div>
 
             <button type="submit" className="submit">

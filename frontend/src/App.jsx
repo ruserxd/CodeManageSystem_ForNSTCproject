@@ -7,9 +7,10 @@ import Layout from "./components/layout/Layout";
 import Contact from "./components/Basic/Contact";
 import About from "./components/Basic/About";
 import UserPage from "./components/user/UserPage";
-
 import "./styles/style.css";
 import { useCookies } from "react-cookie";
+
+import TestLayout from "./components/temporary_antd/TestLayout";
 
 function App() {
   // 利用 cookies 將使用者資料存下來
@@ -25,6 +26,7 @@ function App() {
   };
 
   return (
+    // theme={{ token: { colorPrimary: "#5AB9EA" } }}
     <Routes>
       <Route path="/" element={<Layout user={cookies.user} />}>
         <Route index element={<MainPage />} />
@@ -37,6 +39,18 @@ function App() {
           path="/UserPage"
           element={<UserPage onLogout={handleLogout} />}
         />
+      </Route>
+      <Route path="/test" element={<TestLayout />}>
+        <Route index element={<MainPage />} />
+        <Route path="Login" element={<Login onLogin={handleLogin} />} />
+        <Route path="Register" element={<Register />} />
+        <Route path="About" element={<About />} />
+        <Route path="Contact" element={<Contact />} />
+        <Route path="ShowMethodDiff/*" element={<ShowMethodDiff />} />
+        {/* <Route
+          path="/UserPage"
+          element={<UserPage onLogout={handleLogout} />}
+        /> */}
       </Route>
     </Routes>
   );

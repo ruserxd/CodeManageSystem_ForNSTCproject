@@ -12,7 +12,6 @@
     width: 200px;
     height: 20px;
     margin: 10px;
-    color: #5680E9;
 }
 
 .submit {
@@ -36,7 +35,7 @@ h5:hover {
 }
 
 /* 警告 */
-span {
+.warning {
     margin-top: 0.4rem;
     color: red;
 }
