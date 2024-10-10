@@ -1,4 +1,4 @@
-const Footer = () => {
+const MyFooter = () => {
   return (
     <footer>
       <p>©2024 作者保留所有權利</p>
@@ -16,4 +16,4 @@ const Footer = () => {
   );
 };
 
-export default Footer;
+export default MyFooter;

@@ -52,7 +52,7 @@ public class MyUserService {
                 logger.info("Has this email but the password wrong");
 
                 return LoginResponse.builder()
-                        .message("Password Wrong")
+                        .message("Email or Password Wrong")
                         .success(false)
                         .build();
             }
@@ -60,7 +60,7 @@ public class MyUserService {
             logger.info("No this email");
 
             return LoginResponse.builder()
-                    .message("No this email")
+                    .message("Email or Password Wrong")
                     .success(false)
                     .build();
         }
