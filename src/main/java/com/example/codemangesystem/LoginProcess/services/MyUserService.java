@@ -26,7 +26,7 @@ public class MyUserService {
         this.passwordBcrypt = passwordBcrypt;
     }
 
-    // 這個為自身簡單加入超級帳號使用
+    // 系統簡單加入超級帳號
     public void AddSuperAccount() {
         MyUser myUser = MyUser.builder()
                 .userEmail("zz@gmail.com")
@@ -40,7 +40,7 @@ public class MyUserService {
         myUserRepository.save(myUser);
     }
 
-    // Check User
+    // 用於登入，檢查使用者資訊
     public LoginResponse checkUser(LoginINFO UserINFO) {
         Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(UserINFO.getUserAccount());
         logger.info(UserINFO.getUserAccount());
@@ -75,16 +75,33 @@ public class MyUserService {
     // Add User
     public RegisterResponse userRegister(MyUser myUser) {
         try {
-            Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(myUser.getUserEmail());
-            if (testCurrentHave.isPresent()) {
-                logger.info("email is taken" + testCurrentHave);
+            boolean emailExist = ifEmailExist(myUser);
+            boolean accountExist = ifAccountExist(myUser);
+            // 判斷 email, account 有沒有存在
+            if (emailExist && accountExist) {
+                logger.info("email, account is taken" + myUser.getUserEmail(), myUser.getUserAccount());
+
+                return RegisterResponse.builder()
+                        .success(false)
+                        .message("email, account is taken")
+                        .build();
+            } else if (emailExist) {
+                logger.info("email is taken" + myUser.getUserEmail());
 
                 return RegisterResponse.builder()
                         .success(false)
                         .message("email is taken")
                         .build();
+            } else if (accountExist) {
+                logger.info("email is taken" + myUser.getUserAccount());
+
+                return RegisterResponse.builder()
+                        .success(false)
+                        .message("account is taken")
+                        .build();
             }
 
+            // 都沒問題開始加入帳號進入資料庫
             // 為密碼加密處理 bcrypt
             myUser.setUserPassword(passwordBcrypt.encryptPassword(myUser.getUserPassword()));
             // 設定權限
@@ -105,5 +122,17 @@ public class MyUserService {
                     .message("Failed " + e.getMessage())
                     .build();
         }
+    }
+
+    // judge email
+    public boolean ifEmailExist(MyUser myUser) {
+        Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(myUser.getUserEmail());
+        return testCurrentHave.isPresent();
+    }
+
+    // judge account
+    public boolean ifAccountExist(MyUser myUser) {
+        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(myUser.getUserAccount());
+        return testCurrentHave.isPresent();
     }
 }

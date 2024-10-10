@@ -1,23 +1,29 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
 import { Link } from 'react-router-dom';
+import { Typography, List } from 'antd';
+const { Title } = Typography;
 
 function ListCurProject() {
-	const [data, setData] = useState([]);
+	const [fetchData, setFetchData] = useState([]);
+	const [loading, setloading] = useState(false);
 
 	useEffect(() => {
 		const getProjectNames = async () => {
+			setloading(true);
 			try {
 				const result = await api.get('/api/getProjectNames');
 				console.log('response.data\n', result.data);
 
 				if (result.data && result.data.length > 0) {
-					setData(result.data);
+					setFetchData(result.data);
 				} else {
-					setData([]);
+					setFetchData([]);
 				}
 			} catch (error) {
 				console.error('Error during fetch: ', error);
+			} finally {
+				setloading(false);
 			}
 		};
 		getProjectNames();
@@ -25,19 +31,19 @@ function ListCurProject() {
 
 	return (
 		<div>
-			<h2>Cur Project Names</h2>
+			<Title level={2}>Cur Project Names</Title>
 
-			<ul>
-				{data.length > 0 ? (
-					data.map((projectName, id) => (
-						<li key={id}>
-							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
-						</li>
-					))
-				) : (
-					<p>No projects in SQL</p>
+			<List
+				size="small"
+				bordered
+				dataSource={fetchData}
+				renderItem={(projectName) => (
+					<List.Item>
+						<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
+					</List.Item>
 				)}
-			</ul>
+				loading={loading}
+			/>
 		</div>
 	);
 }

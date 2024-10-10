@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { useState, useMemo } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { DesktopOutlined, PieChartOutlined, UserOutlined } from '@ant-design/icons';
+import { DesktopOutlined, PieChartOutlined, UserOutlined, HomeOutlined } from '@ant-design/icons';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -16,7 +16,6 @@ function getItem(label, key, icon, children) {
 }
 
 function MainLayout({ user }) {
-	// 以下套用 antD
 	const [collapsed, setCollapsed] = useState(false);
 	const {
 		token: { colorBgContainer, borderRadiusLG }
@@ -28,16 +27,16 @@ function MainLayout({ user }) {
 	// 避免重新渲染太多元件 userMemo
 	const items = useMemo(
 		() => [
-			getItem(<Link to="/">主頁</Link>, '1', <PieChartOutlined />),
+			getItem(<Link to="/">主頁</Link>, '主頁', <PieChartOutlined />),
 			getItem('關於', 'sub1', <DesktopOutlined />, [
-				getItem(<Link to="/Contact">聯絡</Link>, '2'),
-				getItem(<Link to="/About">關於</Link>, '3')
+				getItem(<Link to="/Contact">聯絡</Link>, '聯絡'),
+				getItem(<Link to="/About">關於</Link>, '關於')
 			]),
 			user
-				? getItem(<Link to="/UserPage">使用者</Link>, 'user', <UserOutlined />)
+				? getItem(<Link to="/UserPage">使用者</Link>, '使用者', <UserOutlined />)
 				: getItem('使用者', 'sub2', <UserOutlined />, [
-						getItem(<Link to="/Login">登入</Link>, '4'),
-						getItem(<Link to="/Register">註冊</Link>, '5')
+						getItem(<Link to="/Login">登入</Link>, '登入'),
+						getItem(<Link to="/Register">註冊</Link>, '註冊')
 					])
 		],
 		[user]
@@ -46,13 +45,13 @@ function MainLayout({ user }) {
 	// 根據當前路徑設置選中的菜單項
 	const selectedKey = useMemo(() => {
 		const path = curLocation.pathname;
-		if (path === '/') return '1';
-		if (path === '/Contact') return '2';
-		if (path === '/About') return '3';
-		if (path === '/Login') return '4';
-		if (path === '/Register') return '5';
-		if (path === '/UserPage') return 'user';
-		return '1'; // 默認選中首頁
+		if (path === '/') return '主頁';
+		if (path === '/Contact') return '聯絡';
+		if (path === '/About') return '關於';
+		if (path === '/Login') return '登入';
+		if (path === '/Register') return '註冊';
+		if (path === '/UserPage') return '使用者';
+		return '主頁'; // 默認選中首頁
 	}, [curLocation.pathname]);
 
 	return (
@@ -79,7 +78,11 @@ function MainLayout({ user }) {
 						style={{
 							margin: '16px 0'
 						}}
-						items={[{ title: '就這樣' }, { title: '小吳' }]}
+						items={[
+							{ title: <HomeOutlined /> },
+							{ title: '程式單元歷程管理系統' },
+							{ title: selectedKey }
+						]}
 					/>
 					<div
 						style={{
@@ -88,6 +91,7 @@ function MainLayout({ user }) {
 							background: colorBgContainer,
 							borderRadius: borderRadiusLG
 						}}>
+						{/* 存放目前的 component 為何 */}
 						<Outlet />
 					</div>
 				</Content>

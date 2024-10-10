@@ -1,4 +1,4 @@
-package com.example.codemangesystem.LoginProcess.securityConfig;
+package com.example.codemangesystem.securityConfig;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

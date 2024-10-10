@@ -52,7 +52,7 @@ const Register = () => {
 				message.success('註冊成功');
 				form.resetFields();
 			} else {
-				message.error('註冊失敗 ', result.data.message);
+				message.error(`註冊失敗: ${result.data.message || '未知錯誤'}`);
 			}
 		} catch (error) {
 			message.error('註冊失敗，請檢察網路狀態 ', error);

@@ -10,6 +10,7 @@ import About from './components/Basic/About';
 import UserPage from './components/user/UserPage';
 
 import 'antd/dist/reset.css';
+import { ConfigProvider } from 'antd';
 import { useCookies } from 'react-cookie';
 
 function App() {
@@ -30,17 +31,27 @@ function App() {
 
 	return (
 		<div className="App">
-			<Routes>
-				<Route path="/" element={<MainLayout user={cookies.user} />}>
-					<Route index element={<MainPage />} />
-					<Route path="/Login" element={<Login onLogin={handleLogin} />} />
-					<Route path="/Register" element={<Register />} />
-					<Route path="/About" element={<About />} />
-					<Route path="/Contact" element={<Contact />} />
-					<Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
-					<Route path="/UserPage" element={<UserPage onLogout={handleLogout} />} />
-				</Route>
-			</Routes>
+			{/* 設置系統顏色，提供全部 antD 的設定*/}
+			<ConfigProvider
+				theme={{
+					token: {
+						// Primary
+						colorPrimary: '#5680E9',
+						borderRadius: 2
+					}
+				}}>
+				<Routes>
+					<Route path="/" element={<MainLayout user={cookies.user} />}>
+						<Route index element={<MainPage />} />
+						<Route path="/Login" element={<Login onLogin={handleLogin} />} />
+						<Route path="/Register" element={<Register />} />
+						<Route path="/About" element={<About />} />
+						<Route path="/Contact" element={<Contact />} />
+						<Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
+						<Route path="/UserPage" element={<UserPage onLogout={handleLogout} />} />
+					</Route>
+				</Routes>
+			</ConfigProvider>
 		</div>
 	);
 }

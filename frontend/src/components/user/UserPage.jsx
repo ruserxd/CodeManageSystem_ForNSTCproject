@@ -3,6 +3,9 @@ import CloneGit from './CloneGit';
 import ListCurProject from './ListCurProject';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
+import { Button, Typography } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+const { Title } = Typography;
 
 function UserPage({ onLogout }) {
 	const navigate = useNavigate();
@@ -15,17 +18,23 @@ function UserPage({ onLogout }) {
 	const handleSubmit = () => {
 		console.log('登出' + cookies.user);
 		onLogout();
-		navigate('/');
+		navigate('/login');
 	};
 
 	return (
 		<div>
-			<h1>歡迎，{cookies.user.myUser.userName}</h1>
+			<Title>
+				歡迎，
+				<UserOutlined />
+				{cookies.user.myUser.userName}
+			</Title>
+			<br />
 			<ListCurProject />
+			<br />
 			<CloneGit />
-			<button className="btn" onClick={handleSubmit}>
+			<Button type="primary" onClick={handleSubmit}>
 				登出
-			</button>
+			</Button>
 		</div>
 	);
 }

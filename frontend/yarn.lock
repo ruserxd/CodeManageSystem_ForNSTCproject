@@ -5087,7 +5087,7 @@ eslint@^8.3.0:
     strip-ansi "^6.0.1"
     text-table "^0.2.0"
 
-eslint@^9.11.1:
+eslint@^9.12.0:
   version "9.12.0"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-9.12.0.tgz#54fcba2876c90528396da0fa44b6446329031e86"
   integrity sha512-UVIOlTEWxwIopRL1wgSQYdnVDcEvs2wyaO6DGo5mXqe3r16IoCNWkR29iHhyaP4cICWjbgbmFUGAhh0GJRuGZw==
