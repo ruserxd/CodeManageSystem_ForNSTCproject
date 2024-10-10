@@ -1,118 +1,162 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useInput, validate } from 'canathus';
-import { nameValidator } from '../validators/nameValidators';
-import { emailValidator } from '../validators/emailValidators';
-import { accountValidator } from '../validators/accountValidators';
-import { passwordValidator } from '../validators/passwordValidators';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Button, Form, Input, message } from 'antd';
 import api from '../../api/axiosConfig';
 
-function Register() {
-	const [userName, setUserName] = useInput('', nameValidator);
-	const [userEmail, setUserEmail] = useInput('', emailValidator);
-	const [userAccount, setUserAccount] = useInput('', accountValidator);
-	const [userPassword, setUserPassword] = useInput('', passwordValidator);
-
-	const [successRegister, setSuccessRegister] = useState(false);
-
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-
-		const isValid = validate({
-			userName,
-			userEmail,
-			userAccount,
-			userPassword
-		});
-
-		if (!isValid) {
-			return;
+const formItemLayout = {
+	labelCol: {
+		xs: {
+			span: 24
+		},
+		sm: {
+			span: 8
 		}
+	},
+	wrapperCol: {
+		xs: {
+			span: 24
+		},
+		sm: {
+			span: 16
+		}
+	}
+};
+const tailFormItemLayout = {
+	wrapperCol: {
+		xs: {
+			span: 24,
+			offset: 0
+		},
+		sm: {
+			span: 16,
+			offset: 8
+		}
+	}
+};
+const Register = () => {
+	const [form] = Form.useForm();
+	const [loading, setloading] = useState(false);
 
-		const registerUser = {
-			userName: userName.value,
-			userEmail: userEmail.value,
-			userAccount: userAccount.value,
-			userPassword: userPassword.value
-		};
+	const handleSubmit = async (values) => {
+		setloading(true);
+		try {
+			const registerUser = {
+				userName: values.username,
+				userEmail: values.email,
+				userAccount: values.account,
+				userPassword: values.password
+			};
 
-		const result = await api.post('/api/register', registerUser);
-		console.log(result.data);
-		setSuccessRegister(true);
+			const result = await api.post('/api/register', registerUser);
+			console.log(result.data);
+			if (result.data.success) {
+				message.success('註冊成功');
+				form.resetFields();
+			} else {
+				message.error('註冊失敗 ', result.data.message);
+			}
+		} catch (error) {
+			message.error('註冊失敗，請檢察網路狀態 ', error);
+		} finally {
+			setloading(false);
+		}
 	};
 
-	// 傳送完後，將資料清空
-	const resetForm = useCallback(() => {
-		setUserName({ value: '', error: null });
-		setUserEmail({ value: '', error: null });
-		setUserAccount({ value: '', error: null });
-		setUserPassword({ value: '', error: null });
-	}, [setUserName, setUserEmail, setUserAccount, setUserPassword]);
-
-	useEffect(() => {
-		if (successRegister) {
-			resetForm();
-			setSuccessRegister(false);
-			alert('註冊成功');
-		}
-	}, [successRegister, resetForm]);
-
 	return (
-		<div className="signup_page">
-			<div id="container2">
-				<div className="signup">
-					<h3>註冊帳號</h3>
-					<form onSubmit={handleSubmit} noValidate>
-						<input
-							placeholder="使用者名稱"
-							id="sign_name"
-							type="text"
-							value={userName.value}
-							onChange={(e) => setUserName(e.target.value)}
-							required></input>
-						<span className="warning">{userName.error && userName.errorMsg}</span>
-						<div className="tab"></div>
+		<Form
+			{...formItemLayout}
+			form={form}
+			name="register"
+			onFinish={handleSubmit}
+			initialValues={{
+				residence: ['zhejiang', 'hangzhou', 'xihu'],
+				prefix: '86'
+			}}
+			style={{
+				maxWidth: 600
+			}}
+			scrollToFirstError>
+			<Form.Item
+				name="email"
+				label="E-mail"
+				rules={[
+					{
+						type: 'email',
+						message: 'The input is not valid E-mail!'
+					},
+					{
+						required: true,
+						message: 'Please input your E-mail!'
+					}
+				]}>
+				<Input />
+			</Form.Item>
+			<Form.Item
+				name="account"
+				label="Account"
+				rules={[
+					{
+						required: true,
+						message: 'Please input your Account!'
+					}
+				]}>
+				<Input />
+			</Form.Item>
 
-						<input
-							placeholder="電子信箱"
-							id="sign_email"
-							type="email"
-							value={userEmail.value}
-							onChange={(e) => setUserEmail(e.target.value)}
-							required></input>
-						<span className="warning">{userEmail.error && userEmail.errorMsg}</span>
-						<div className="tab"></div>
+			<Form.Item
+				name="password"
+				label="Password"
+				rules={[
+					{
+						required: true,
+						message: 'Please input your password!'
+					}
+				]}
+				hasFeedback>
+				<Input.Password />
+			</Form.Item>
 
-						<input
-							placeholder="帳號"
-							id="sign_account"
-							type="text"
-							value={userAccount.value}
-							onChange={(e) => setUserAccount(e.target.value)}
-							required></input>
-						<span className="warning">{userAccount.error && userAccount.errorMsg}</span>
-						<div className="tab"></div>
+			<Form.Item
+				name="confirm"
+				label="Confirm Password"
+				dependencies={['password']}
+				hasFeedback
+				rules={[
+					{
+						required: true,
+						message: 'Please confirm your password!'
+					},
+					({ getFieldValue }) => ({
+						validator(_, value) {
+							if (!value || getFieldValue('password') === value) {
+								return Promise.resolve();
+							}
+							return Promise.reject(new Error('The new password that you entered do not match!'));
+						}
+					})
+				]}>
+				<Input.Password />
+			</Form.Item>
 
-						<input
-							placeholder="密碼"
-							id="sign_password"
-							type="password"
-							value={userPassword.value}
-							onChange={(e) => setUserPassword(e.target.value)}
-							required></input>
-						<span className="warning">{userPassword.error && userPassword.errorMsg}</span>
-						<div className="tab"></div>
+			<Form.Item
+				name="username"
+				label="Username"
+				tooltip="What do you want others to call you?"
+				rules={[
+					{
+						required: true,
+						message: 'Please input your nickname!',
+						whitespace: true
+					}
+				]}>
+				<Input />
+			</Form.Item>
 
-						<button type="submit" className="submit">
-							註冊
-						</button>
-					</form>
-					<p>
-						已有帳號嗎?<Link to="/Login">登入帳號</Link>
-					</p>
-				</div>
-			</div>
-		</div>
+			<Form.Item {...tailFormItemLayout}>
+				<Button type="primary" htmlType="submit" loading={loading}>
+					Register
+				</Button>
+			</Form.Item>
+		</Form>
 	);
-}
+};
 export default Register;

@@ -14,7 +14,7 @@ const Login = ({ onLogin }) => {
 		setLoading(true);
 		try {
 			const loginUserInfo = {
-				userAccount: values.username,
+				userAccount: values.useraccount,
 				userPassword: values.password
 			};
 
@@ -47,14 +47,14 @@ const Login = ({ onLogin }) => {
 			}}
 			onFinish={handleSubmit}>
 			<Form.Item
-				name="username"
+				name="useraccount"
 				rules={[
 					{
 						required: true,
 						message: '請輸入使用者的名稱!'
 					}
 				]}>
-				<Input prefix={<UserOutlined />} placeholder="Username" />
+				<Input prefix={<UserOutlined />} placeholder="UserAccount" />
 			</Form.Item>
 			<Form.Item
 				name="password"

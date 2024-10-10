@@ -9,7 +9,6 @@ import Contact from './components/Basic/Contact';
 import About from './components/Basic/About';
 import UserPage from './components/user/UserPage';
 
-import TestRegister from './components/testingComponent/TestRegister';
 import 'antd/dist/reset.css';
 import { useCookies } from 'react-cookie';
 
@@ -40,7 +39,6 @@ function App() {
 					<Route path="/Contact" element={<Contact />} />
 					<Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
 					<Route path="/UserPage" element={<UserPage onLogout={handleLogout} />} />
-					<Route path="/test" element={<TestRegister />} />
 				</Route>
 			</Routes>
 		</div>
