@@ -128,3 +128,8 @@ env 管理環境設定
 8. addDiffInfoInToProject
 - 目的 :
 - 操作 :
+
+
+## 許可證
+
+本專案採用 MIT 許可證。詳情請見 [LICENSE](LICENSE) 檔案。
