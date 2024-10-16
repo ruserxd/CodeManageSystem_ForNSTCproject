@@ -31,17 +31,15 @@ public class Files {
 
     @JsonIgnore
     @JsonBackReference
-    @ManyToOne(
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
-    )
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", referencedColumnName = "project_id")
     private Project project;
 
     @OneToMany(
             mappedBy = "files",
             cascade = CascadeType.PERSIST,
-            fetch = FetchType.EAGER
+            fetch = FetchType.EAGER,
+            orphanRemoval = true
     )
     private List<Method> methods;
 }

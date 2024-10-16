@@ -25,8 +25,9 @@ public class Project {
 
     @OneToMany(
             mappedBy = "project",
-            cascade = CascadeType.PERSIST,
-            fetch = FetchType.EAGER
+            cascade = CascadeType.ALL,
+            fetch = FetchType.EAGER,
+            orphanRemoval = true
     )
     private List<Files> files;
 }

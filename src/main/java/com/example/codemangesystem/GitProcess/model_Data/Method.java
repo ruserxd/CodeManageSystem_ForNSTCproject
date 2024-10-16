@@ -27,17 +27,15 @@ public class Method {
 
     @JsonIgnore
     @JsonBackReference
-    @ManyToOne(
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
-    )
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "files_id")
     private Files files;
 
     @OneToMany(
             mappedBy = "method",
             cascade = CascadeType.ALL,
-            fetch = FetchType.EAGER
+            fetch = FetchType.EAGER,
+            orphanRemoval = true
     )
     List<DiffInfo> diffInfoList;
 }

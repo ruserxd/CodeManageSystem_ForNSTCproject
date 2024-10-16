@@ -42,10 +42,7 @@ public class DiffInfo {
 
     @JsonIgnore
     @JsonBackReference
-    @ManyToOne(
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
-    )
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "method_id")
     private Method method;
 }
