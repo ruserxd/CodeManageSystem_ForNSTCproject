@@ -1,36 +1,66 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Tree, Typography } from 'antd';
+import { FileOutlined, CodeOutlined } from '@ant-design/icons';
 import api from '../../api/axiosConfig';
 import HighlightedCode from './HighlightedCode';
-import Collapsible from 'react-collapsible';
 
-function ShowMethodDiff() {
+const { Title } = Typography;
+
+const ShowMethodDiff = () => {
 	const { '*': urlParam } = useParams();
-
-	const [data, setData] = useState(null);
+	const [treeData, setTreeData] = useState([]);
+	const [projectName, setProjectName] = useState('');
 	const [error, setError] = useState(null);
-	const [projectName, setProjectName] = useState(null);
 
 	useEffect(() => {
-		const getTheMethodDiff = async () => {
+		const fetchData = async () => {
 			try {
-				// 等待 post 成立後，再執行下一行
 				const result = await api.post(
 					`/api/getData`,
 					new URLSearchParams({ ProjectName: urlParam })
 				);
-				setData(result.data);
-				console.log('response.data\n', result.data);
+				setTreeData(transformData(result.data));
+				setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
 			} catch (error) {
 				setError(error);
 				console.error('Error during fetch: ', error);
 			}
 		};
+
 		if (urlParam) {
-			setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
-			getTheMethodDiff();
+			fetchData();
 		}
 	}, [urlParam]);
+
+	const transformData = (data) => {
+		return data.map((item) => ({
+			title: item.fileName,
+			key: item.filePath,
+			icon: <FileOutlined />,
+			children: item.methods.map((method, methodIndex) => ({
+				title: method.methodName,
+				key: `${item.filePath}-${methodIndex}`,
+				icon: <CodeOutlined />,
+				children: method.diffInfoList.map((diff, diffIndex) => ({
+					title: `Diff ${diffIndex + 1}`,
+					key: `${item.filePath}-${methodIndex}-${diffIndex}`,
+					icon: <CodeOutlined />,
+					diffInfo: diff
+				}))
+			}))
+		}));
+	};
+
+	const renderDiffInfo = (diffInfo) => (
+		<div className="diffINFO">
+			<Title level={4}>Author: {diffInfo.author}</Title>
+			<Title level={4}>Author Email: {diffInfo.authorEmail}</Title>
+			<Title level={4}>Commit Message: {diffInfo.commitMessage}</Title>
+			<Title level={4}>Commit Time: {diffInfo.commitTime}</Title>
+			<HighlightedCode language="diff" codeString={diffInfo.diffCode} className="diffCode" />
+		</div>
+	);
 
 	if (error) {
 		return <div>Error: {error.message}</div>;
@@ -38,36 +68,25 @@ function ShowMethodDiff() {
 
 	return (
 		<div>
-			<h2>{projectName} 的方法差異資訊 </h2>
-			{data &&
-				data.map((item) => (
-					<div key={item.filePath}>
-						<h3>檔案名稱: {item.fileName}</h3>
-						<h3>檔案路徑: {item.filePath}</h3>
-						<h3>方法:</h3>
-						{item.methods &&
-							item.methods.map((method, Index) => (
-								<Collapsible key={Index} trigger={method.methodName}>
-									{method.diffInfoList &&
-										method.diffInfoList.map((diff, diffIndex) => (
-											<div key={diffIndex} className="diffINFO">
-												<h4>Number: {diffIndex}</h4>
-												<h4>Author: {diff.author}</h4>
-												<h4>AuthorEmail: {diff.authorEmail}</h4>
-												<h4>CommitMessage: {diff.commitMessage}</h4>
-												<h4>CommitTime: {diff.commitTime}</h4>
-												<HighlightedCode
-													language="diff"
-													codeString={diff.diffCode}
-													className="diffCode"
-												/>
-											</div>
-										))}
-								</Collapsible>
-							))}
-					</div>
-				))}
+			<Title level={2}>{projectName} 的方法差異資訊</Title>
+			<Tree
+				treeData={treeData}
+				defaultExpandAll
+				showIcon
+				titleRender={(nodeData) => {
+					if (nodeData.diffInfo) {
+						return (
+							<div>
+								<span>{nodeData.title}</span>
+								{renderDiffInfo(nodeData.diffInfo)}
+							</div>
+						);
+					}
+					return <span>{nodeData.title}</span>;
+				}}
+			/>
 		</div>
 	);
-}
+};
+
 export default ShowMethodDiff;

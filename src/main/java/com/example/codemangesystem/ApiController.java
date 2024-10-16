@@ -52,6 +52,7 @@ public class ApiController {
     @PostMapping("/fetch-repo")
     public ResponseEntity<?> fetchRepo(@RequestParam("url") String url) {
         try {
+            logger.info("嘗試抓取 " + url + " 資料");
             return ResponseEntity.ok(gitCloner.cloneRepository(url));
         } catch (GitAPIException | IOException e) {
             logger.error("Error cloning or accessing repository: ", e);
@@ -87,6 +88,7 @@ public class ApiController {
     // 登入 api
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginINFO loginINFO) {
+        logger.info("嘗試登入");
         LoginResponse loginResponse = myUserService.checkUser(loginINFO);
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
@@ -94,6 +96,7 @@ public class ApiController {
     // 註冊
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
+        logger.info("嘗試註冊");
         RegisterResponse registerResult = myUserService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
@@ -102,6 +105,7 @@ public class ApiController {
     // 手動加入
     @GetMapping("/addSuperAccount")
     public void addSuperAccount() {
+        logger.info("手動加入超級帳號");
         myUserService.AddSuperAccount();
     }
 }

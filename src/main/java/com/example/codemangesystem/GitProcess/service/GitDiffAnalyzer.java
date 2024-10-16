@@ -8,6 +8,7 @@ import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
+import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -56,15 +57,10 @@ public class GitDiffAnalyzer {
                 return Collections.emptyList();
             }
 
-            Project project = Project.builder()
-                    .projectName(url.substring(url.lastIndexOf('/') + 1))
-                    .files(new LinkedList<>())
-                    .build();
+            Project project = Project.builder().projectName(url.substring(url.lastIndexOf('/') + 1)).files(new LinkedList<>()).build();
 
             // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
-            Repository repository = new RepositoryBuilder()
-                    .setGitDir(new File(repoDir, ".git"))
-                    .build();
+            Repository repository = new RepositoryBuilder().setGitDir(new File(repoDir, ".git")).build();
 
             try (Git git = new Git(repository)) {
                 // 確保至少有一次 commit 紀錄
@@ -82,14 +78,9 @@ public class GitDiffAnalyzer {
 
                     // 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
                     // 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
-                    AbstractTreeIterator oldTree = previousCommit != null
-                            ? prepareTreeParser(repository, previousCommit)
-                            : new EmptyTreeIterator();
+                    AbstractTreeIterator oldTree = previousCommit != null ? prepareTreeParser(repository, previousCommit) : new EmptyTreeIterator();
                     AbstractTreeIterator newTree = prepareTreeParser(repository, commit);
-                    diffs = git.diff()
-                            .setOldTree(oldTree)
-                            .setNewTree(newTree)
-                            .call();
+                    diffs = git.diff().setOldTree(oldTree).setNewTree(newTree).call();
 
                     // 完整執行此次 commit 檔案有 diff 的
                     for (DiffEntry diff : diffs) {
@@ -100,11 +91,10 @@ public class GitDiffAnalyzer {
                         // 專注處理 java 檔案
                         if (diff.getNewPath().endsWith(".java")) {
 
+                            logger.info("嘗試比較 " + diff.getNewPath());
                             // 以 String 抓出此次 commit 版與前一次的內容
                             String newContent = getFileContent(git, diff.getNewPath(), commit);
-                            String oldContent = previousCommit != null
-                                    ? getFileContent(git, diff.getNewPath(), previousCommit)
-                                    : "";
+                            String oldContent = previousCommit != null ? getFileContent(git, diff.getNewPath(), previousCommit) : "";
 
                             // 獲取本次 commit 的方法差異
                             List<Pair<String, String>> result = compareTwoContent(newContent, oldContent);
@@ -127,6 +117,7 @@ public class GitDiffAnalyzer {
             projectRepository.save(project);
             return project.getFiles();
         } catch (IOException | GitAPIException e) {
+            logger.error("分析 commits 出現問題");
             throw new RuntimeException(e);
         }
     }
@@ -151,13 +142,7 @@ public class GitDiffAnalyzer {
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
 
-        return DiffInfo.builder()
-                .author(author.getName())
-                .authorEmail(author.getEmailAddress())
-                .commitMessage(commitMessage)
-                .timestamp(commit.getCommitTime())
-                .commitTime(commitTime)
-                .build();
+        return DiffInfo.builder().author(author.getName()).authorEmail(author.getEmailAddress()).commitMessage(commitMessage).timestamp(commit.getCommitTime()).commitTime(commitTime).build();
     }
 
     // 獲取某段 commit 的整個檔案內的資料(程式碼)
@@ -206,21 +191,27 @@ public class GitDiffAnalyzer {
 
     // 獲取這個文件內的 HashMap<方法, 方法內容>
     public HashMap<String, String> getContentMethod(String Content) {
-        CompilationUnit cu = StaticJavaParser.parse(Content);
-        List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
-        HashMap<String, String> ContentMethods = new HashMap<>();
-        for (MethodDeclaration method : methods) {
-            StringBuilder methodContent = new StringBuilder(new StringBuilder());
+        try {
+            CompilationUnit cu = StaticJavaParser.parse(Content);
+            List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
+            HashMap<String, String> ContentMethods = new HashMap<>();
+            for (MethodDeclaration method : methods) {
+                StringBuilder methodContent = new StringBuilder(new StringBuilder());
 
-            List<AnnotationExpr> annotations = method.getAnnotations();
-            for (AnnotationExpr annotation : annotations) {
-                methodContent.append(annotation.toString()).append("\n");
+                List<AnnotationExpr> annotations = method.getAnnotations();
+                for (AnnotationExpr annotation : annotations) {
+                    methodContent.append(annotation.toString()).append("\n");
+                }
+                methodContent.append(method.getDeclarationAsString(true, true, true));
+                method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
+                ContentMethods.put(method.getNameAsString(), methodContent.toString());
             }
-            methodContent.append(method.getDeclarationAsString(true, true, true));
-            method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
-            ContentMethods.put(method.getNameAsString(), methodContent.toString());
+            return ContentMethods;
+        } catch (ParseProblemException e) {
+            // TODO: 解決這項問題 If you need that feature the language level must be configured in the configuration before parsing the source files.
+            logger.error("Parser文件時發生錯誤：" + e.getMessage());
+            return new HashMap<>();
         }
-        return ContentMethods;
     }
 
     // 對比兩個方法，透過 java-diff-utils 去完成
@@ -230,16 +221,10 @@ public class GitDiffAnalyzer {
 
         Patch<String> patch = DiffUtils.diff(oldLines, newLines);
 
-        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
-                "OldVersionMethod.java",
-                "NewVersionMethod.java",
-                oldLines,
-                patch,
-                3       //上下文的差異數量
+        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff("OldVersionMethod.java", "NewVersionMethod.java", oldLines, patch, 3       //上下文的差異數量
         );
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
-        if (unifiedDiff.size() > 2)
-            unifiedDiff.subList(0, 2).clear();
+        if (unifiedDiff.size() > 2) unifiedDiff.subList(0, 2).clear();
 
         // 把 list 透過 \n 拆成一個 String
         return String.join("\n", unifiedDiff);
@@ -256,14 +241,10 @@ public class GitDiffAnalyzer {
                 break;
             }
         }
+
         // 未找到創立一個新的 file 並放入 project 內
         if (file == null) {
-            file = Files.builder()
-                    .fileName(fileName)
-                    .filePath(filePath)
-                    .methods(new LinkedList<>())
-                    .project(project)
-                    .build();
+            file = Files.builder().fileName(fileName).filePath(filePath).methods(new LinkedList<>()).project(project).build();
             project.getFiles().add(file);
         }
 
@@ -279,11 +260,7 @@ public class GitDiffAnalyzer {
         }
 
         // 未找到先創立一個新的 method，接著存放 diffInfo，最後將 method 放入 methods 內
-        Method newMethod = Method.builder()
-                .methodName(methodName)
-                .files(file)
-                .diffInfoList(new LinkedList<>())
-                .build();
+        Method newMethod = Method.builder().methodName(methodName).files(file).diffInfoList(new LinkedList<>()).build();
         diffInfo.setMethod(newMethod);
 
         newMethod.getDiffInfoList().add(diffInfo);

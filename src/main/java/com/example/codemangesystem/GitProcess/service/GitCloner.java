@@ -65,7 +65,7 @@ public class GitCloner {
                     .call()) {
 
                 logger.info("成功 clone: {}", localPath);
-                logger.info("嘗試分類");
+                logger.info("嘗試分類 -> gitDiffAnalyzer");
                 List<Files> analyzedFiles = gitDiffAnalyzer.analyzeCommits(localPath);
 
                 if (analyzedFiles == null || analyzedFiles.isEmpty()) {
