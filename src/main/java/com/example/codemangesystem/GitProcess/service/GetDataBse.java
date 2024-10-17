@@ -1,6 +1,7 @@
 package com.example.codemangesystem.GitProcess.service;
 
 import com.example.codemangesystem.GitProcess.model_Data.Files;
+import com.example.codemangesystem.GitProcess.model_Data.Project;
 import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,25 @@ public class GetDataBse {
             return new ArrayList<>();
         } finally {
             logger.info("完成獲得 " + ProjectName + " Data");
+        }
+    }
+
+    // 刪除 Project 的相關資料
+    public String deleteData(String projectName) {
+        try {
+            Project project = projectRepository.findByProjectName(projectName);
+
+            // 沒找到的情況
+            if (project == null) {
+                logger.warn("No project found with name: " + projectName);
+                return "No project found to delete";
+            }
+
+            projectRepository.delete(project);
+            return "Success delete";
+        } catch (Exception e) {
+            logger.error("delete 發生 : " + e);
+            return "Failed delete";
         }
     }
 }

@@ -84,11 +84,17 @@ public class ApiController {
         return new ResponseEntity<>(getDataBse.getFilesByProjectName(ProjectName), HttpStatus.OK);
     }
 
+    // 手動刪除資料
+    @GetMapping("/deleteData")
+    public String deleteData(@RequestParam("ProjectName") String projectName) {
+        return getDataBse.deleteData(projectName);
+    }
+
     /* 登入系統 */
     // 登入 api
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginINFO loginINFO) {
-        logger.info("嘗試登入");
+        logger.info("嘗試登入 使用者: " + loginINFO);
         LoginResponse loginResponse = myUserService.checkUser(loginINFO);
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }

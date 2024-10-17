@@ -48,8 +48,8 @@ public class GitDiffAnalyzer {
     // 讀取每段 commit diff 的資訊並解析成以方法名稱
     public List<Files> analyzeCommits(String url) {
         try {
-            File repoDir = new File(url);
-            File gitDir = new File(repoDir, ".git");
+            // 路徑上該專案的 .git 檔案
+            File gitDir = new File(url, ".git");
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
@@ -57,12 +57,21 @@ public class GitDiffAnalyzer {
                 return Collections.emptyList();
             }
 
-            Project project = Project.builder().projectName(url.substring(url.lastIndexOf('/') + 1)).files(new LinkedList<>()).build();
+            // 最後要存入資料庫內的 Project 物件
+            Project project = Project.builder()
+                    .projectName(url.substring(url.lastIndexOf('/') + 1))
+                    .files(new LinkedList<>())
+                    .build();
 
-            // 建立一個 repository 物件，指向 repoDir 上的 .git 檔案
-            Repository repository = new RepositoryBuilder().setGitDir(new File(repoDir, ".git")).build();
+            // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
+            Repository repository = new RepositoryBuilder()
+                    .setGitDir(gitDir)
+                    .build();
 
+            // 開始獲取 commit diff
             try (Git git = new Git(repository)) {
+                logger.info("開始獲取 [{}] 上的 commit 的差異資訊", url);
+
                 // 確保至少有一次 commit 紀錄
                 if (repository.resolve("HEAD") == null) {
                     logger.error("Repository has no commits (No HEAD). Please make an initial commit.");
@@ -112,7 +121,8 @@ public class GitDiffAnalyzer {
                     }
                 }
             }
-            logger.info("Successful get all project diff");
+
+            logger.info("成功獲取所有 commit diff 的資訊");
 
             projectRepository.save(project);
             return project.getFiles();
