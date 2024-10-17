@@ -1,5 +1,5 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Form, Input, Flex, message } from 'antd';
+import { App, Button, Checkbox, Form, Input, Flex } from 'antd';
 import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -8,6 +8,7 @@ import api from '../../api/axiosConfig';
 const Login = ({ onLogin }) => {
 	const [form] = Form.useForm();
 	const navigate = useNavigate();
+	const { message } = App.useApp();
 	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (values) => {
@@ -45,7 +46,8 @@ const Login = ({ onLogin }) => {
 			style={{
 				maxWidth: 360
 			}}
-			onFinish={handleSubmit}>
+			onFinish={handleSubmit}
+			form={form}>
 			<Form.Item
 				name="useraccount"
 				rules={[
@@ -56,6 +58,7 @@ const Login = ({ onLogin }) => {
 				]}>
 				<Input prefix={<UserOutlined />} placeholder="UserAccount" />
 			</Form.Item>
+
 			<Form.Item
 				name="password"
 				rules={[

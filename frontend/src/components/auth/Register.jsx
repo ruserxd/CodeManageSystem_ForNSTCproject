@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Form, Input, message } from 'antd';
+import { Button, Form, Input, App } from 'antd';
 import api from '../../api/axiosConfig';
 
 const formItemLayout = {
@@ -32,7 +32,9 @@ const tailFormItemLayout = {
 		}
 	}
 };
+
 const Register = () => {
+	const { message } = App.useApp();
 	const [form] = Form.useForm();
 	const [loading, setloading] = useState(false);
 
