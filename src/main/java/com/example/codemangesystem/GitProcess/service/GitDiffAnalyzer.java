@@ -80,6 +80,7 @@ public class GitDiffAnalyzer {
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
+
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
                     List<DiffEntry> diffs;
@@ -89,7 +90,10 @@ public class GitDiffAnalyzer {
                     // 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
                     AbstractTreeIterator oldTree = previousCommit != null ? prepareTreeParser(repository, previousCommit) : new EmptyTreeIterator();
                     AbstractTreeIterator newTree = prepareTreeParser(repository, commit);
-                    diffs = git.diff().setOldTree(oldTree).setNewTree(newTree).call();
+                    diffs = git.diff()
+                            .setOldTree(oldTree)
+                            .setNewTree(newTree)
+                            .call();
 
                     // 完整執行此次 commit 檔案有 diff 的
                     for (DiffEntry diff : diffs) {
@@ -101,6 +105,7 @@ public class GitDiffAnalyzer {
                         if (diff.getNewPath().endsWith(".java")) {
 
                             logger.info("嘗試比較 " + diff.getNewPath());
+
                             // 以 String 抓出此次 commit 版與前一次的內容
                             String newContent = getFileContent(git, diff.getNewPath(), commit);
                             String oldContent = previousCommit != null ? getFileContent(git, diff.getNewPath(), previousCommit) : "";
@@ -123,8 +128,8 @@ public class GitDiffAnalyzer {
             }
 
             logger.info("成功獲取所有 commit diff 的資訊");
-
             projectRepository.save(project);
+
             return project.getFiles();
         } catch (IOException | GitAPIException e) {
             logger.error("分析 commits 出現問題");
@@ -142,7 +147,11 @@ public class GitDiffAnalyzer {
             // .reset(ObjectReader reader, AnyObjectId id)，透過 SHA-1 哈希值，使 CanonicalTreeParser 指到指定的樹位置
             treeParser.reset(reader, tree.getId());
             return treeParser;
+        } catch (IOException e) {
+            logger.error("Git 語法樹上出現問題: ", e);
         }
+        logger.error("失敗回傳 null");
+        return null;
     }
 
     // 創立 DiffInfo 並存入修改程式碼的作者、email、時間、commit
@@ -171,8 +180,8 @@ public class GitDiffAnalyzer {
     public List<Pair<String, String>> compareTwoContent(String newContent, String oldContent) {
         List<Pair<String, String>> differences = new ArrayList<>();
 
-        HashMap<String, String> newMethods = getContentMethod(newContent);
-        HashMap<String, String> oldMethods = getContentMethod(oldContent);
+        Map<String, String> newMethods = getContentMethod(newContent);
+        Map<String, String> oldMethods = getContentMethod(oldContent);
 
         // 新版本與舊版本的對照
         for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
@@ -200,20 +209,33 @@ public class GitDiffAnalyzer {
     }
 
     // 獲取這個文件內的 HashMap<方法, 方法內容>
-    public HashMap<String, String> getContentMethod(String Content) {
+    public Map<String, String> getContentMethod(String Content) {
         try {
+            // TODO: 修改 Static 的部分
+            // TODO: 先 format Code 在進行操作
             CompilationUnit cu = StaticJavaParser.parse(Content);
+
+            // 找出所有的方法資訊，並存入 list 內
             List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
-            HashMap<String, String> ContentMethods = new HashMap<>();
+
+            // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
+            Map<String, String> ContentMethods = new HashMap<>();
             for (MethodDeclaration method : methods) {
+                // 運用 StringBuilder 因為我們將大量對文件做相對應處理
                 StringBuilder methodContent = new StringBuilder(new StringBuilder());
 
+                // 獲得註解的部分，e.g., @Service, @Controller etc.
                 List<AnnotationExpr> annotations = method.getAnnotations();
                 for (AnnotationExpr annotation : annotations) {
                     methodContent.append(annotation.toString()).append("\n");
                 }
+
+                // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
                 methodContent.append(method.getDeclarationAsString(true, true, true));
+
+                // 獲得方法的內容 { 方法內容 }
                 method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
+
                 ContentMethods.put(method.getNameAsString(), methodContent.toString());
             }
             return ContentMethods;

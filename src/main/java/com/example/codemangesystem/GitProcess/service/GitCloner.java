@@ -112,8 +112,8 @@ public class GitCloner {
             } else {
                 logger.info("Pull failed");
             }
-        } catch (IOException | GitAPIException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("Pull 更新資料庫出現 " + e);
         }
     }
 }

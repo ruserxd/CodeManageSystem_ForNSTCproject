@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         name=""
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+    <description>
+        This is the PMD additional ruleset for TEAMMATES production code.
+    </description>
+
+    <!--不需要測試的-->
+    <exclude-pattern>.*/test/java/.*</exclude-pattern>
+    <exclude-pattern>.*/client/java/.*</exclude-pattern>
+    <exclude-pattern>.*.html</exclude-pattern>
+    <exclude-pattern>.*.jsp</exclude-pattern>
+    <exclude-pattern>.*.js</exclude-pattern>
+    <exclude-pattern>.*.xml</exclude-pattern>
+
+    <!--規則-->
+    <!--造成內存過大、與 log 互相交叉不易閱讀-->
+    <rule ref="category/java/bestpractices.xml/AvoidPrintStackTrace"/>
+    <rule ref="category/java/bestpractices.xml/SystemPrintln"/>
+
+    <rule ref="category/java/design.xml/AvoidThrowingRawExceptionTypes"/>
+    <rule ref="category/java/design.xml/SignatureDeclareThrowsException"/>
+
+    <!-- 排除掉 GuardLogStatement -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="GuardLogStatement"/>
+    </rule>
+</ruleset>
