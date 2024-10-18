@@ -107,7 +107,6 @@ public class ApiController {
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 
-
     // 手動加入
     @GetMapping("/addSuperAccount")
     public void addSuperAccount() {

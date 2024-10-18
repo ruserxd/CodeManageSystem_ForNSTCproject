@@ -103,6 +103,30 @@ env 管理環境設定
 - 操作 : Git 物件打開本地端資料，對 main 分支執行 pull
 
 ### GitDiffAnalyzer
+```mermaid
+gitGraph
+       commit
+       commit
+       commit
+       commit
+```
+目前的做法是先將 3(Head) 的部分 clone 下來，接著一個一個去比對
+
+ex. 3 <-> 2, 2 <-> 1, 1 <-> 0
+
+
+
+示意圖 (a 代表較新的版本, b 代表較舊的版本)
+```mermaid
+graph TD
+id1[clone_Head_的資料] --> id2[對各個 commit 進行操作];
+id2[對各個 commit 進行操作] --> id3[透過_JavaParser_分類出方法];
+id3[透過_JavaParser_分類出方法] --> id4[JavaDiff_比較兩者差異];
+id4[JavaDiff_比較兩者差異] -- a無方法_b有 --> id5[代表刪減--];
+id4[JavaDiff_比較兩者差異] -- a有方法_b有 --> id6[代表有diff];
+id4[JavaDiff_比較兩者差異] -- a有方法_b無 --> id7[代表新增++];
+```
+
 1. analyzeCommits
 - 目的 :
 - 操作 :
