@@ -36,7 +36,7 @@ import java.util.*;
 
 /**
  * 獲取 Git 每段 commit 的方法差異
- * */
+ */
 @Service
 public class GitDiffAnalyzer {
     private final ProjectRepository projectRepository;
@@ -67,22 +67,22 @@ public class GitDiffAnalyzer {
                     .setGitDir(gitDir)
                     .build();
 
-            // 最後要存入資料庫內的 Project 物件，並將 Head 的 SHA-1 存入
+            // 確保至少有一次 commit 紀錄
+            if (repository.resolve("HEAD") == null) {
+                LOGGER.error("Repository has no commits (No HEAD). Please make an initial commit.");
+                return Collections.emptyList();
+            }
+
+            // 最後要存入資料庫內的 Project 物件，並透過 getHeadName 將 Head 的 SHA-1 存入
             Project project = Project.builder()
                     .projectName(url.substring(url.lastIndexOf('/') + 1))
                     .files(new LinkedList<>())
                     .headRevstr(getHeadName(repository))
                     .build();
 
-            // 開始獲取 commit diff
+            // Git 打開 repository
             try (Git git = new Git(repository)) {
                 LOGGER.info("開始獲取 [{}] 上的 commit 的差異資訊", url);
-
-                // 確保至少有一次 commit 紀錄
-                if (repository.resolve("HEAD") == null) {
-                    LOGGER.error("Repository has no commits (No HEAD). Please make an initial commit.");
-                    return Collections.emptyList();
-                }
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
@@ -90,6 +90,8 @@ public class GitDiffAnalyzer {
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
                     List<DiffEntry> diffs;
+
+                    // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
                     /* 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
@@ -102,35 +104,7 @@ public class GitDiffAnalyzer {
                             .setNewTree(newTree)
                             .call();
 
-                    // 完整執行此次 commit 檔案有 diff 的
-                    for (DiffEntry diff : diffs) {
-                        // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
-                        String filePath = diff.getNewPath();
-                        String fileName = new File(diff.getNewPath()).getName();
-
-                        // 專注處理 java 檔案
-                        if (diff.getNewPath().endsWith(".java")) {
-
-                            LOGGER.info("嘗試比較 " + diff.getNewPath());
-
-                            // 以 String 抓出此次 commit 版與前一次的內容
-                            String newContent = getFileContent(git, diff.getNewPath(), commit);
-                            String oldContent = previousCommit != null ? getFileContent(git, diff.getNewPath(), previousCommit) : "";
-
-                            // 獲取本次 commit 的方法差異
-                            List<Pair<String, String>> result = compareTwoContent(newContent, oldContent);
-
-                            // <方法名稱, 方法差異>
-                            for (Pair<String, String> methodDiff : result) {
-                                // 有 diff 我們在去做存取
-                                if (!Objects.equals(methodDiff.getValue(), "")) {
-                                    DiffInfo diffInfo = takeCommitINFO(commit);
-                                    diffInfo.setDiffCode(methodDiff.getValue());
-                                    addDiffInfoInToProject(filePath, fileName, methodDiff.getKey(), diffInfo, project);
-                                }
-                            }
-                        }
-                    }
+                    getEachCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
 
@@ -144,6 +118,45 @@ public class GitDiffAnalyzer {
         } catch (GitAPIException e) {
             LOGGER.error("嘗試使用 Git 出現問題" + e);
             throw new IllegalStateException(e);
+        }
+    }
+
+    /* 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
+     * diffs -> 新版本, 舊版本的差異資訊 */
+    public void getEachCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
+        try {
+            // 完整執行此次 commit 檔案有 diff 的
+            for (DiffEntry diff : diffs) {
+                // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
+                String filePath = diff.getNewPath();
+                String fileName = new File(diff.getNewPath()).getName();
+
+                // 專注處理 java 檔案
+                if (diff.getNewPath().endsWith(".java")) {
+
+                    LOGGER.info("嘗試比較 " + diff.getNewPath());
+
+                    // 以 String 抓出此次 commit 版與前一次的內容
+                    String newContent = getFileContent(git, diff.getNewPath(), commit);
+                    String oldContent = previousCommit != null ? getFileContent(git, diff.getNewPath(), previousCommit) : "";
+
+                    // 獲取本次 commit 的方法差異
+                    List<Pair<String, String>> result = compareTwoContent(newContent, oldContent);
+
+                    // <方法名稱, 方法差異>
+                    for (Pair<String, String> methodDiff : result) {
+                        // 有 diff 我們在去做存取
+                        if (!Objects.equals(methodDiff.getValue(), "")) {
+                            DiffInfo diffInfo = takeCommitINFO(commit);
+                            diffInfo.setDiffCode(methodDiff.getValue());
+                            addDiffInfoInToProject(filePath, fileName, methodDiff.getKey(), diffInfo, project);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.error("當獲取 {} 出現" + e, commit.getId().getName());
+            throw new IOException(e);
         }
     }
 
