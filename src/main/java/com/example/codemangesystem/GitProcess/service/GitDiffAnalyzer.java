@@ -48,7 +48,9 @@ public class GitDiffAnalyzer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitDiffAnalyzer.class);
 
-    // 讀取每段 commit diff 的資訊並解析成以方法名稱
+    /* 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
+     *  作為查詢的條件
+     * */
     public List<Files> analyzeCommits(String url) throws GitAPIException, IOException {
         try {
             // 路徑上該專案的 .git 檔案
@@ -60,15 +62,16 @@ public class GitDiffAnalyzer {
                 return Collections.emptyList();
             }
 
-            // 最後要存入資料庫內的 Project 物件
-            Project project = Project.builder()
-                    .projectName(url.substring(url.lastIndexOf('/') + 1))
-                    .files(new LinkedList<>())
-                    .build();
-
             // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
             Repository repository = new RepositoryBuilder()
                     .setGitDir(gitDir)
+                    .build();
+
+            // 最後要存入資料庫內的 Project 物件，並將 Head 的 SHA-1 存入
+            Project project = Project.builder()
+                    .projectName(url.substring(url.lastIndexOf('/') + 1))
+                    .files(new LinkedList<>())
+                    .headRevstr(getHeadName(repository))
                     .build();
 
             // 開始獲取 commit diff
@@ -89,8 +92,9 @@ public class GitDiffAnalyzer {
                     List<DiffEntry> diffs;
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
-                    // 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
-                    // 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
+                    /* 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
+                     * 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
+                     * */
                     AbstractTreeIterator oldTree = previousCommit != null ? prepareTreeParser(repository, previousCommit) : new EmptyTreeIterator();
                     AbstractTreeIterator newTree = prepareTreeParser(repository, commit);
                     diffs = git.diff()
@@ -143,9 +147,23 @@ public class GitDiffAnalyzer {
         }
     }
 
+    // 獲取 Head 的 SHA-1
+    public String getHeadName(Repository repo) throws IOException {
+        String result;
+        try {
+            ObjectId commit = repo.resolve(Constants.HEAD);
+            result = commit.getName();
+            LOGGER.info("得到了，Git Commit Head 的 SHA-1 值");
+        } catch (IOException e) {
+            LOGGER.error("獲取 Head 的 SHA-1 出錯誤 " + e);
+            throw new IOException(e);
+        }
+        return result;
+    }
+
     // 回傳一個 AbstractTreeIterator
     public static AbstractTreeIterator prepareTreeParser(Repository repository, RevCommit commit) throws IOException {
-        // 從 commit's tree 上獲得一個 reference
+        // 從 commits tree 上獲得一個 reference
         RevTree tree = commit.getTree();
         try (ObjectReader reader = repository.newObjectReader()) {
             CanonicalTreeParser treeParser = new CanonicalTreeParser();
@@ -201,9 +219,9 @@ public class GitDiffAnalyzer {
             String methodName = newMethod.getKey();
 
             /* 獲取方法的程式碼，舊版本可能為空，因此要避免
-            *  如果舊的方法是空的我們會把他設為空字串，表示新增
-            *  若非空的就抓取方法內的程式碼
-            * */
+             *  如果舊的方法是空的我們會把他設為空字串，表示新增
+             *  若非空的就抓取方法內的程式碼
+             * */
             String newMethodBody = newMethod.getValue();
             String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(methodName), "");
 

@@ -23,6 +23,9 @@ public class Project {
     @Column(name = "project_name")
     private String projectName;
 
+    @Column(name = "head_Revstr")
+    private String headRevstr;
+
     @OneToMany(
             mappedBy = "project",
             cascade = CascadeType.ALL,

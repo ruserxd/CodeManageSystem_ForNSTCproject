@@ -15,7 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-// 處理有關 Git clone 的操作
+/**
+ * 處理有關 Git clone, pull的操作
+ * */
 @Service
 public class GitCloner {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitCloner.class);
@@ -41,8 +43,8 @@ public class GitCloner {
                 LOGGER.info("Repository already exists at: {}", localPath);
                 try {
                     renewRepositoryLocally(localPath);
-                    // TODO: 更新資料庫的內容
                     LOGGER.info("Successfully pulled and updated repository at {}", localPath);
+
                     return CloneResult.builder()
                             .status(CloneStatus.PULL_SUCCESS)
                             .path(localPath)
@@ -50,15 +52,17 @@ public class GitCloner {
                 } catch (Exception e) {
                     // 如果更新失敗，記錄錯誤並決定如何處理
                     LOGGER.error("Failed to update existing repository at {}", localPath, e);
-                    return CloneResult.builder().status(CloneStatus.PULL_FAILED).build();
+                    return CloneResult.builder()
+                            .status(CloneStatus.PULL_FAILED)
+                            .build();
                 }
             }
 
             LOGGER.info("Cloning to {} ....", repoUrl);
 
-            // 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
-            // 只是要透過 Git 物件將資料 clone 下來
-            // clone 成功接續將資料分類存入資料庫內
+            /* 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
+             * 只是要透過 Git 物件將資料 clone 下來
+             * lone 成功接續將資料分類存入資料庫內 */
             try (Git ignored = Git.cloneRepository()
                     .setURI(repoUrl)
                     .setDirectory(new File(localPath))
@@ -86,8 +90,10 @@ public class GitCloner {
     private String getRepoNameFromUrl(String repoUrl) {
         // 將網址透過 "/" 分開並存在陣列內
         String[] parts = repoUrl.split("/");
+
         // 抓取最後面的專案名稱
         String repoNameWithExtension = parts[parts.length - 1];
+
         // .git 的部分換成 ""
         return repoNameWithExtension.replace(".git", "");
     }
