@@ -15,6 +15,11 @@
     <exclude-pattern>.*.js</exclude-pattern>
     <exclude-pattern>.*.xml</exclude-pattern>
 
+    <!--codestyle 負責命名的規則-->
+    <rule ref="category/java/codestyle.xml/ClassNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/MethodNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/VariableNamingConventions"/>
+
     <!--規則-->
     <!--造成內存過大、與 log 互相交叉不易閱讀-->
     <rule ref="category/java/bestpractices.xml/AvoidPrintStackTrace"/>

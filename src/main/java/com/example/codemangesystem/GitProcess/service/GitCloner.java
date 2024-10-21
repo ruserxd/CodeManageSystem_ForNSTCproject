@@ -18,7 +18,7 @@ import java.util.List;
 // 處理有關 Git clone 的操作
 @Service
 public class GitCloner {
-    private static final Logger logger = LoggerFactory.getLogger(GitCloner.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitCloner.class);
     private static final String DEFAULT_BRANCH = "main";
     private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
@@ -38,23 +38,23 @@ public class GitCloner {
 
             // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳路徑
             if (isRepositoryClonedLocally(localPath)) {
-                logger.info("Repository already exists at: {}", localPath);
+                LOGGER.info("Repository already exists at: {}", localPath);
                 try {
                     renewRepositoryLocally(localPath);
                     // TODO: 更新資料庫的內容
-                    logger.info("Successfully pulled and updated repository at {}", localPath);
+                    LOGGER.info("Successfully pulled and updated repository at {}", localPath);
                     return CloneResult.builder()
                             .status(CloneStatus.PULL_SUCCESS)
                             .path(localPath)
                             .build();
                 } catch (Exception e) {
                     // 如果更新失敗，記錄錯誤並決定如何處理
-                    logger.error("Failed to update existing repository at {}", localPath, e);
+                    LOGGER.error("Failed to update existing repository at {}", localPath, e);
                     return CloneResult.builder().status(CloneStatus.PULL_FAILED).build();
                 }
             }
 
-            logger.info("Cloning to {} ....", repoUrl);
+            LOGGER.info("Cloning to {} ....", repoUrl);
 
             // 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
             // 只是要透過 Git 物件將資料 clone 下來
@@ -64,20 +64,20 @@ public class GitCloner {
                     .setDirectory(new File(localPath))
                     .call()) {
 
-                logger.info("成功 clone: {}", localPath);
-                logger.info("嘗試分類 -> gitDiffAnalyzer");
+                LOGGER.info("成功 clone: {}", localPath);
+                LOGGER.info("嘗試分類 -> gitDiffAnalyzer");
                 List<Files> analyzedFiles = gitDiffAnalyzer.analyzeCommits(localPath);
 
                 if (analyzedFiles == null || analyzedFiles.isEmpty()) {
-                    logger.warn("No files were analyzed in the repository: {}", localPath);
+                    LOGGER.warn("No files were analyzed in the repository: {}", localPath);
                     return CloneResult.builder().status(CloneStatus.ANALYSIS_FAILED).build();
                 }
 
-                logger.info("成功將資料分類完成");
+                LOGGER.info("成功將資料分類完成");
                 return CloneResult.builder().status(CloneStatus.CLONE_SUCCESS).path(localPath).build();
             }
         } catch (GitAPIException e) {
-            logger.error("Failed clone to {}", repoUrl, e);
+            LOGGER.error("Failed clone to {}", repoUrl, e);
             throw e;
         }
     }
@@ -101,19 +101,19 @@ public class GitCloner {
     // pull 更新本地端資料
     private void renewRepositoryLocally(String repoPath) {
         try (Git git = Git.open(new File(repoPath))) {
-            logger.info("Try to pull {} ...", repoPath);
+            LOGGER.info("Try to pull {} ...", repoPath);
             PullResult result = git.pull()
                     .setRemote("origin")
                     .setRemoteBranchName(DEFAULT_BRANCH)
                     .call();
 
             if (result.isSuccessful()) {
-                logger.info("Pull successful");
+                LOGGER.info("Pull successful");
             } else {
-                logger.info("Pull failed");
+                LOGGER.info("Pull failed");
             }
         } catch (Exception e) {
-            logger.error("Pull 更新資料庫出現 " + e);
+            LOGGER.error("Pull 更新資料庫出現 " + e);
         }
     }
 }

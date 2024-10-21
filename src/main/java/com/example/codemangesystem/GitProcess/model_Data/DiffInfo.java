@@ -20,7 +20,7 @@ public class DiffInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "diff_info_id")
-    private Long diffInfo_id;
+    private Long diffInfoId;
 
     @Column(name = "author")
     private String author;

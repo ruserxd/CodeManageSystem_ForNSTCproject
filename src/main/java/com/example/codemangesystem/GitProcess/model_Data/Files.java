@@ -21,7 +21,7 @@ public class Files {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "files_id")
-    private Long files_id;
+    private Long filesId;
 
     @Column(name = "file_name")
     private String fileName;

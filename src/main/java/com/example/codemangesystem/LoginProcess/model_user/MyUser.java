@@ -16,7 +16,7 @@ public class MyUser {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
-    private Long user_id;
+    private Long userId;
 
     @Column(name = "user_name")
     private String userName;
@@ -33,5 +33,3 @@ public class MyUser {
     @Column(name = "user_authority")
     private UserAuthority userAuthority;
 }
-
-//TODO: 更改的 key 存入

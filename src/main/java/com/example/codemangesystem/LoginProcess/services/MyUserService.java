@@ -16,7 +16,7 @@ import java.util.Optional;
 @Service
 public class MyUserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(MyUserService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MyUserService.class);
     private final MyUserRepository myUserRepository;
     private final PasswordBcrypt passwordBcrypt;
 
@@ -27,7 +27,7 @@ public class MyUserService {
     }
 
     // 系統簡單加入超級帳號
-    public void AddSuperAccount() {
+    public void addSuperAccount() {
         MyUser myUser = MyUser.builder()
                 .userEmail("zz@gmail.com")
                 .userName("Admin")
@@ -41,15 +41,15 @@ public class MyUserService {
     }
 
     // 用於登入，檢查使用者資訊
-    public LoginResponse checkUser(LoginINFO UserINFO) {
-        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(UserINFO.getUserAccount());
-        logger.info(UserINFO.getUserAccount());
+    public LoginResponse checkUser(LoginINFO userINFO) {
+        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(userINFO.getUserAccount());
+        LOGGER.info(userINFO.getUserAccount());
 
         if (testCurrentHave.isPresent()) {
-            logger.info("Account have " + testCurrentHave);
+            LOGGER.info("Account have " + testCurrentHave);
 
-            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get().getUserPassword(), UserINFO.getUserPassword())) {
-                logger.info("Has this email but the password wrong");
+            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get().getUserPassword(), userINFO.getUserPassword())) {
+                LOGGER.info("Has this email but the password wrong");
 
                 return LoginResponse.builder()
                         .message("Email or Password Wrong")
@@ -57,7 +57,7 @@ public class MyUserService {
                         .build();
             }
         } else {
-            logger.info("No this email");
+            LOGGER.info("No this email");
 
             return LoginResponse.builder()
                     .message("Email or Password Wrong")
@@ -79,21 +79,21 @@ public class MyUserService {
             boolean accountExist = ifAccountExist(myUser);
             // 判斷 email, account 有沒有存在
             if (emailExist && accountExist) {
-                logger.info("email, account is taken" + myUser.getUserEmail(), myUser.getUserAccount());
+                LOGGER.info("email, account is taken" + myUser.getUserEmail(), myUser.getUserAccount());
 
                 return RegisterResponse.builder()
                         .success(false)
                         .message("email, account is taken")
                         .build();
             } else if (emailExist) {
-                logger.info("email is taken" + myUser.getUserEmail());
+                LOGGER.info("email is taken" + myUser.getUserEmail());
 
                 return RegisterResponse.builder()
                         .success(false)
                         .message("email is taken")
                         .build();
             } else if (accountExist) {
-                logger.info("email is taken" + myUser.getUserAccount());
+                LOGGER.info("email is taken" + myUser.getUserAccount());
 
                 return RegisterResponse.builder()
                         .success(false)
@@ -108,14 +108,14 @@ public class MyUserService {
             myUser.setUserAuthority(UserAuthority.OWNER);
 
             myUserRepository.save(myUser);
-            logger.info("Register success");
+            LOGGER.info("Register success");
 
             return RegisterResponse.builder()
                     .success(true)
                     .message("success register")
                     .build();
         } catch (Exception e) {
-            logger.info("Register failed " + e.getMessage());
+            LOGGER.info("Register failed " + e.getMessage());
 
             return RegisterResponse.builder()
                     .success(false)

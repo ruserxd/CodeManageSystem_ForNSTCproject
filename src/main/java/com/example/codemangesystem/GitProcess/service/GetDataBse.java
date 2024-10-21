@@ -11,11 +11,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 獲取 ProjectRepository 的相關資料，(新增、獲取、刪除)
+ */
 @Service
 public class GetDataBse {
     private final ProjectRepository projectRepository;
 
-    private static final Logger logger = LoggerFactory.getLogger(GetDataBse.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetDataBse.class);
 
     @Autowired
     private GetDataBse(ProjectRepository projectRepository) {
@@ -28,16 +31,16 @@ public class GetDataBse {
     }
 
     // 透過 ProjectName 獲取有關的資料
-    public List<Files> getFilesByProjectName(String ProjectName) {
+    public List<Files> getFilesByProjectName(String projectName) {
         try {
-            return projectRepository.findByProjectName(ProjectName).getFiles();
+            return projectRepository.findByProjectName(projectName).getFiles();
         } catch (Exception error) {
 
             // 如果在 jpa 的部分執行時發生錯誤，回傳一個空的陣列，避免後續可能出現 null 的情況
-            logger.error(error.getMessage());
+            LOGGER.error(error.getMessage());
             return new ArrayList<>();
         } finally {
-            logger.info("完成獲得 " + ProjectName + " Data");
+            LOGGER.info("完成獲得 " + projectName + " Data");
         }
     }
 
@@ -48,14 +51,14 @@ public class GetDataBse {
 
             // 沒找到的情況
             if (project == null) {
-                logger.warn("No project found with name: " + projectName);
+                LOGGER.warn("No project found with name: " + projectName);
                 return "No project found to delete";
             }
 
             projectRepository.delete(project);
             return "Success delete";
         } catch (Exception e) {
-            logger.error("delete 發生 : " + e);
+            LOGGER.error("delete 發生 : " + e);
             return "Failed delete";
         }
     }

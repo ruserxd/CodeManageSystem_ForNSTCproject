@@ -34,6 +34,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * 獲取 Git 每段 commit 的方法差異
+ * */
 @Service
 public class GitDiffAnalyzer {
     private final ProjectRepository projectRepository;
@@ -43,17 +46,17 @@ public class GitDiffAnalyzer {
         this.projectRepository = projectRepository;
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(GitDiffAnalyzer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitDiffAnalyzer.class);
 
     // 讀取每段 commit diff 的資訊並解析成以方法名稱
-    public List<Files> analyzeCommits(String url) {
+    public List<Files> analyzeCommits(String url) throws GitAPIException, IOException {
         try {
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(url, ".git");
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
-                logger.error("The specified path does not contain a valid Git repository: " + url);
+                LOGGER.error("The specified path does not contain a valid Git repository: " + url);
                 return Collections.emptyList();
             }
 
@@ -70,11 +73,11 @@ public class GitDiffAnalyzer {
 
             // 開始獲取 commit diff
             try (Git git = new Git(repository)) {
-                logger.info("開始獲取 [{}] 上的 commit 的差異資訊", url);
+                LOGGER.info("開始獲取 [{}] 上的 commit 的差異資訊", url);
 
                 // 確保至少有一次 commit 紀錄
                 if (repository.resolve("HEAD") == null) {
-                    logger.error("Repository has no commits (No HEAD). Please make an initial commit.");
+                    LOGGER.error("Repository has no commits (No HEAD). Please make an initial commit.");
                     return Collections.emptyList();
                 }
 
@@ -104,7 +107,7 @@ public class GitDiffAnalyzer {
                         // 專注處理 java 檔案
                         if (diff.getNewPath().endsWith(".java")) {
 
-                            logger.info("嘗試比較 " + diff.getNewPath());
+                            LOGGER.info("嘗試比較 " + diff.getNewPath());
 
                             // 以 String 抓出此次 commit 版與前一次的內容
                             String newContent = getFileContent(git, diff.getNewPath(), commit);
@@ -127,13 +130,16 @@ public class GitDiffAnalyzer {
                 }
             }
 
-            logger.info("成功獲取所有 commit diff 的資訊");
+            LOGGER.info("成功獲取所有 commit diff 的資訊");
             projectRepository.save(project);
 
             return project.getFiles();
-        } catch (IOException | GitAPIException e) {
-            logger.error("分析 commits 出現問題");
-            throw new RuntimeException(e);
+        } catch (IOException e) {
+            LOGGER.error("分析 commits 出現問題" + e);
+            throw new IOException(e);
+        } catch (GitAPIException e) {
+            LOGGER.error("嘗試使用 Git 出現問題" + e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -148,9 +154,9 @@ public class GitDiffAnalyzer {
             treeParser.reset(reader, tree.getId());
             return treeParser;
         } catch (IOException e) {
-            logger.error("Git 語法樹上出現問題: ", e);
+            LOGGER.error("Git 語法樹上出現問題: ", e);
         }
-        logger.error("失敗回傳 null");
+        LOGGER.error("失敗回傳 null");
         return null;
     }
 
@@ -161,7 +167,13 @@ public class GitDiffAnalyzer {
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
 
-        return DiffInfo.builder().author(author.getName()).authorEmail(author.getEmailAddress()).commitMessage(commitMessage).timestamp(commit.getCommitTime()).commitTime(commitTime).build();
+        return DiffInfo.builder()
+                .author(author.getName())
+                .authorEmail(author.getEmailAddress())
+                .commitMessage(commitMessage)
+                .timestamp(commit.getCommitTime())
+                .commitTime(commitTime)
+                .build();
     }
 
     // 獲取某段 commit 的整個檔案內的資料(程式碼)
@@ -186,13 +198,16 @@ public class GitDiffAnalyzer {
         // 新版本與舊版本的對照
         for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
             //兩段的方法名稱為相同
-            String MethodName = newMethod.getKey();
+            String methodName = newMethod.getKey();
 
-            // 獲取方法的程式碼，舊版本可能為空，因此要避免
+            /* 獲取方法的程式碼，舊版本可能為空，因此要避免
+            *  如果舊的方法是空的我們會把他設為空字串，表示新增
+            *  若非空的就抓取方法內的程式碼
+            * */
             String newMethodBody = newMethod.getValue();
-            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(MethodName), "");
+            String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(methodName), "");
 
-            differences.add(Pair.of(MethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+            differences.add(Pair.of(methodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
         }
 
         // 例外: 會出現舊版本有，但新版沒有，代表這個方法被刪減
@@ -209,17 +224,17 @@ public class GitDiffAnalyzer {
     }
 
     // 獲取這個文件內的 HashMap<方法, 方法內容>
-    public Map<String, String> getContentMethod(String Content) {
+    public Map<String, String> getContentMethod(String content) {
         try {
             // TODO: 修改 Static 的部分
             // TODO: 先 format Code 在進行操作
-            CompilationUnit cu = StaticJavaParser.parse(Content);
+            CompilationUnit cu = StaticJavaParser.parse(content);
 
             // 找出所有的方法資訊，並存入 list 內
             List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
 
             // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
-            Map<String, String> ContentMethods = new HashMap<>();
+            Map<String, String> contentMethods = new HashMap<>();
             for (MethodDeclaration method : methods) {
                 // 運用 StringBuilder 因為我們將大量對文件做相對應處理
                 StringBuilder methodContent = new StringBuilder(new StringBuilder());
@@ -236,12 +251,12 @@ public class GitDiffAnalyzer {
                 // 獲得方法的內容 { 方法內容 }
                 method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
 
-                ContentMethods.put(method.getNameAsString(), methodContent.toString());
+                contentMethods.put(method.getNameAsString(), methodContent.toString());
             }
-            return ContentMethods;
+            return contentMethods;
         } catch (ParseProblemException e) {
             // TODO: 解決這項問題 If you need that feature the language level must be configured in the configuration before parsing the source files.
-            logger.error("Parser文件時發生錯誤：" + e.getMessage());
+            LOGGER.error("Parser文件時發生錯誤：" + e.getMessage());
             return new HashMap<>();
         }
     }

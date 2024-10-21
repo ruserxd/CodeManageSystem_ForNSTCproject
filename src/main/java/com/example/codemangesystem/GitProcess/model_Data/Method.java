@@ -20,7 +20,7 @@ public class Method {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "method_id")
-    private Long method_id;
+    private Long methodId;
 
     @Column(name = "method_name")
     private String methodName;
