@@ -50,10 +50,10 @@ public class ApiController {
 
     // 負責 clone 存儲庫的 api ，並將資料做分類存入資料庫
     @PostMapping("/fetch-repo")
-    public ResponseEntity<?> fetchRepo(@RequestParam("url") String url) {
+    public ResponseEntity<?> fetchRepo(@RequestParam("url") String url, @RequestParam("commitId") String commitId) {
         try {
-            LOGGER.info("嘗試抓取 " + url + " 資料");
-            return ResponseEntity.ok(gitCloner.cloneRepository(url));
+            LOGGER.info("嘗試抓取 " + "url: " + url + "commitId: " + commitId + " 的資料");
+            return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId));
         } catch (GitAPIException | IOException e) {
             LOGGER.error("Error cloning or accessing repository: ", e);
             return ResponseEntity.status(500).body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");

@@ -6,21 +6,21 @@ function CloneGit() {
 	const [form] = Form.useForm();
 	const [loading, setloading] = useState(false);
 
-	const handleFetchData = async (url) => {
+	const handleFetchData = async (url, commitId) => {
 		setloading(true);
 		try {
-			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url }));
+			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId }));
 
 			const { status, path } = response.data;
 
 			if (status === 'CLONE_SUCCESS' || status === 'PULL_SUCCESS') {
-				alert(`Repository processed successfully: ${path}`);
+				alert(`Repository processed successfully: ${path} , ${status}`);
 				window.location.reload();
 				form.resetFields();
 			} else if (status === 'ANALYSIS_FAILED') {
-				alert(`Repository cloned but no files were analyzed`);
+				alert(`Repository cloned but no files were analyzed , ${status}`);
 			} else if (status === 'PULL_FAILED' || status === 'CLONE_FAILED') {
-				alert(`Failed to process repository`);
+				alert(`Failed to process repository , ${status}`);
 			} else {
 				alert(`Unexpected status: ${status}`);
 			}
@@ -33,10 +33,16 @@ function CloneGit() {
 	};
 
 	const handleClick = (values) => {
-		console.log(values.url);
+		console.log(values.url, values.commitId);
 		if (values.url.trim()) {
 			console.log('Submitting URL:', values.url);
-			handleFetchData(values.url);
+			if (values.commitId === undefined) {
+				handleFetchData(values.url, 'HEAD');
+				console.log('Submitting CommitID: ', values.commitId);
+			} else {
+				console.log('Submitting CommitID: ', values.commitId);
+				handleFetchData(values.url, values.commitId);
+			}
 		} else {
 			message.error('URL is empty');
 		}
@@ -77,6 +83,20 @@ function CloneGit() {
 						}
 					]}>
 					<Input placeholder="GitHub repository url" />
+				</Form.Item>
+				<Form.Item
+					name="commitId"
+					label="COMMITID"
+					rules={[
+						{
+							required: false
+						},
+						{
+							type: 'string',
+							min: 6
+						}
+					]}>
+					<Input placeholder="GitHub commitId" />
 				</Form.Item>
 				<Form.Item>
 					<Space>

@@ -8,9 +8,11 @@ import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseProblemException;
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import org.apache.commons.lang3.tuple.Pair;
@@ -326,9 +328,21 @@ public class GitDiffAnalyzer {
     // 獲取這個文件內的 HashMap<方法, 方法內容>
     public Map<String, String> getContentMethod(String content) {
         try {
-            // TODO: 修改 Static 的部分
-            // TODO: 先 format Code 在進行操作
-            CompilationUnit cu = StaticJavaParser.parse(content);
+            // 不使用 staticJavaParser，避免掉版本不相容的問題
+            // 自訂 JavaParser 設定
+            final ParserConfiguration parserConfiguration = new ParserConfiguration();
+            parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
+
+            JavaParser javaParser = new JavaParser(parserConfiguration);
+
+            CompilationUnit cu = javaParser.parse(content)
+                    .getResult()
+                    .filter(result -> result.findCompilationUnit().isPresent())
+                    .flatMap(Node::findCompilationUnit)
+                    .orElse(null);
+
+            // 確保 cu 不為 null
+            assert cu != null;
 
             // 找出所有的方法資訊，並存入 list 內
             List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);

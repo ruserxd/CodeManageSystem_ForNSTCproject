@@ -1,12 +1,15 @@
 package com.example.codemangesystem.GitProcess.service;
 
+import com.example.codemangesystem.GitProcess.model_Data.Files;
 import com.example.codemangesystem.GitProcess.model_Git.CloneResult;
 import com.example.codemangesystem.GitProcess.model_Git.CloneStatus;
-import com.example.codemangesystem.GitProcess.model_Data.Files;
 import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.RevisionSyntaxException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 處理有關 Git clone, pull的操作
@@ -34,7 +38,7 @@ public class GitCloner {
     }
 
     // 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
-    public CloneResult cloneRepository(String repoUrl) throws GitAPIException, IOException {
+    public CloneResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
         String repoName = getRepoNameFromUrl(repoUrl);
         String localPath = CLONE_LOCAL_BASE_PATH + repoName;
 
@@ -62,13 +66,33 @@ public class GitCloner {
 
             LOGGER.info("Cloning to {} ....", repoUrl);
 
+            CloneCommand cloneCommand = Git.cloneRepository()
+                    .setURI(repoUrl)
+                    .setDirectory(new File(localPath));
+
             /* 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
              * 只是要透過 Git 物件將資料 clone 下來
              * lone 成功接續將資料分類存入資料庫內 */
-            try (Git ignored = Git.cloneRepository()
-                    .setURI(repoUrl)
-                    .setDirectory(new File(localPath))
-                    .call()) {
+            try (Git git = cloneCommand.call()) {
+                if (!Objects.equals(commitId, "HEAD")) {
+                    try {
+                        ObjectId specifyCommit = git.getRepository().resolve(commitId);
+                        if (specifyCommit == null) {
+                            LOGGER.error("Commit {} not found in repository", commitId);
+                            return CloneResult.builder()
+                                    .status(CloneStatus.CLONE_FAILED)
+                                    .message("指定的 Commit ID 不存在: " + commitId)
+                                    .build();
+                        }
+
+                        git.checkout()
+                                .setName(specifyCommit.getName())
+                                .call();
+                        LOGGER.info("成功 checked out commit: {}", commitId);
+                    } catch (RevisionSyntaxException | IOException | GitAPIException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
                 LOGGER.info("成功 clone: {}", localPath);
                 LOGGER.info("嘗試分類 -> gitDiffAnalyzer");
