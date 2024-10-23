@@ -45,7 +45,7 @@ public class ApiController {
     @PostMapping("/fetch-repo/categorize")
     public ResponseEntity<List<Files>> categorizeCode(@RequestParam("Path") String path) throws GitAPIException, IOException {
         LOGGER.info("嘗試分類 Data by " + path);
-        return new ResponseEntity<>(gitDiffAnalyzer.analyzeCommits(path), HttpStatus.OK);
+        return new ResponseEntity<>(gitDiffAnalyzer.analyzeAllCommits(path), HttpStatus.OK);
     }
 
     // 負責 clone 存儲庫的 api ，並將資料做分類存入資料庫

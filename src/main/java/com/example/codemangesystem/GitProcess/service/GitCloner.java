@@ -3,6 +3,7 @@ package com.example.codemangesystem.GitProcess.service;
 import com.example.codemangesystem.GitProcess.model_Git.CloneResult;
 import com.example.codemangesystem.GitProcess.model_Git.CloneStatus;
 import com.example.codemangesystem.GitProcess.model_Data.Files;
+import com.example.codemangesystem.GitProcess.repository.ProjectRepository;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -25,10 +26,11 @@ public class GitCloner {
     private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
     private final GitDiffAnalyzer gitDiffAnalyzer;
-
+    private final ProjectRepository projectRepository;
     @Autowired
-    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer) {
+    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, ProjectRepository projectRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
+        this.projectRepository = projectRepository;
     }
 
     // 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
@@ -42,11 +44,11 @@ public class GitCloner {
             if (isRepositoryClonedLocally(localPath)) {
                 LOGGER.info("Repository already exists at: {}", localPath);
                 try {
-                    renewRepositoryLocally(localPath);
+                    CloneStatus cloneStatus =  renewRepositoryLocally(localPath);
                     LOGGER.info("Successfully pulled and updated repository at {}", localPath);
 
                     return CloneResult.builder()
-                            .status(CloneStatus.PULL_SUCCESS)
+                            .status(cloneStatus)
                             .path(localPath)
                             .build();
                 } catch (Exception e) {
@@ -70,15 +72,20 @@ public class GitCloner {
 
                 LOGGER.info("成功 clone: {}", localPath);
                 LOGGER.info("嘗試分類 -> gitDiffAnalyzer");
-                List<Files> analyzedFiles = gitDiffAnalyzer.analyzeCommits(localPath);
+                List<Files> analyzedFiles = gitDiffAnalyzer.analyzeAllCommits(localPath);
 
                 if (analyzedFiles == null || analyzedFiles.isEmpty()) {
                     LOGGER.warn("No files were analyzed in the repository: {}", localPath);
-                    return CloneResult.builder().status(CloneStatus.ANALYSIS_FAILED).build();
+                    return CloneResult.builder()
+                            .status(CloneStatus.ANALYSIS_FAILED)
+                            .build();
                 }
 
                 LOGGER.info("成功將資料分類完成");
-                return CloneResult.builder().status(CloneStatus.CLONE_SUCCESS).path(localPath).build();
+                return CloneResult.builder()
+                        .status(CloneStatus.CLONE_SUCCESS)
+                        .path(localPath)
+                        .build();
             }
         } catch (GitAPIException e) {
             LOGGER.error("Failed clone to {}", repoUrl, e);
@@ -105,21 +112,38 @@ public class GitCloner {
     }
 
     // pull 更新本地端資料
-    private void renewRepositoryLocally(String repoPath) {
+    private CloneStatus renewRepositoryLocally(String repoPath) {
         try (Git git = Git.open(new File(repoPath))) {
             LOGGER.info("Try to pull {} ...", repoPath);
             PullResult result = git.pull()
                     .setRemote("origin")
                     .setRemoteBranchName(DEFAULT_BRANCH)
                     .call();
+            String projectName = getRepoNameFromUrl(repoPath);
+
+            String previousHeadRevstr = projectRepository.findHeadRevstrByProjectName(projectName);
 
             if (result.isSuccessful()) {
                 LOGGER.info("Pull successful");
+                LOGGER.info("更新資料庫 {} 的內容", projectName);
+                List<Files> analyzedFiles = gitDiffAnalyzer.analyzePartCommits(repoPath, previousHeadRevstr);
+
+                if (analyzedFiles == null) {
+                    LOGGER.warn("No files were analyzed in the repository");
+                    return CloneStatus.PULL_FAILED;
+                }
+
+                return CloneStatus.PULL_SUCCESS;
             } else {
                 LOGGER.info("Pull failed");
+                return CloneStatus.PULL_FAILED;
             }
-        } catch (Exception e) {
+        } catch (IOException | GitAPIException e) {
             LOGGER.error("Pull 更新資料庫出現 " + e);
+        } finally {
+            LOGGER.info("renewRepositoryLocally 結束");
         }
+
+        return CloneStatus.PULL_FAILED;
     }
 }

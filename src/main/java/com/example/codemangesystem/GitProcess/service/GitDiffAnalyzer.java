@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.*;
 /**
  * 獲取 Git 每段 commit 的方法差異
  */
+// TODO: 當執行 git pull 時，我們應該先記錄下之前的 Head SHA-1 -> clone 更新 -> Head -> 前 Head SHA-1
 @Service
 public class GitDiffAnalyzer {
     private final ProjectRepository projectRepository;
@@ -50,15 +52,18 @@ public class GitDiffAnalyzer {
 
     /* 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
      *  作為查詢的條件
+     *
+     * @Transactional 確保資料的一致性
      * */
-    public List<Files> analyzeCommits(String url) throws GitAPIException, IOException {
+    @Transactional
+    public List<Files> analyzeAllCommits(String repoPath) throws GitAPIException, IOException {
         try {
             // 路徑上該專案的 .git 檔案
-            File gitDir = new File(url, ".git");
+            File gitDir = new File(repoPath, ".git");
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
-                LOGGER.error("The specified path does not contain a valid Git repository: " + url);
+                LOGGER.error("The specified path does not contain a valid Git repository: " + repoPath);
                 return Collections.emptyList();
             }
 
@@ -75,36 +80,26 @@ public class GitDiffAnalyzer {
 
             // 最後要存入資料庫內的 Project 物件，並透過 getHeadName 將 Head 的 SHA-1 存入
             Project project = Project.builder()
-                    .projectName(url.substring(url.lastIndexOf('/') + 1))
-                    .files(new LinkedList<>())
+                    .projectName(repoPath.substring(repoPath.lastIndexOf('/') + 1))
+                    .files(new ArrayList<>())
                     .headRevstr(getHeadName(repository))
                     .build();
 
             // Git 打開 repository
             try (Git git = new Git(repository)) {
-                LOGGER.info("開始獲取 [{}] 上的 commit 的差異資訊", url);
+                LOGGER.info("開始獲取 [{}] 上的 commit 的差異資訊", repoPath);
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
 
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
-                    List<DiffEntry> diffs;
-
                     // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
-                    /* 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
-                     * 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
-                     * */
-                    AbstractTreeIterator oldTree = previousCommit != null ? prepareTreeParser(repository, previousCommit) : new EmptyTreeIterator();
-                    AbstractTreeIterator newTree = prepareTreeParser(repository, commit);
-                    diffs = git.diff()
-                            .setOldTree(oldTree)
-                            .setNewTree(newTree)
-                            .call();
+                    List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
-                    getEachCommitDiff(diffs, project, git, commit, previousCommit);
+                    getCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
 
@@ -121,9 +116,80 @@ public class GitDiffAnalyzer {
         }
     }
 
-    /* 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
+    // 如果執行 pull 只需要分析部分的 commit 即可
+    @Transactional
+    public List<Files> analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
+        try {
+            // 路徑上該專案的 .git 檔案
+            File gitDir = new File(repoPath, ".git");
+
+            // 確保本地端有這個專案
+            if (!gitDir.exists() || !gitDir.isDirectory()) {
+                LOGGER.error("The specified path does not contain a valid Git repository: " + repoPath);
+                return Collections.emptyList();
+            }
+
+            // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
+            Repository repository = new RepositoryBuilder()
+                    .setGitDir(gitDir)
+                    .build();
+            String projectName = repoPath.substring(repoPath.lastIndexOf('/') + 1);
+            Project project = projectRepository.findByProjectName(projectName);
+
+            // Git 打開 repository
+            try (Git git = new Git(repository)) {
+                LOGGER.info("開始獲取 [{}] 上的 commit 的差異資訊", repoPath);
+
+                // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
+                Iterable<RevCommit> commits = git.log().call();
+
+                // 獲取兩個版本之間的差異
+                for (RevCommit commit : commits) {
+                    // 當 commit 走過，break 發生
+                    if (commit.getName().equals(oldHeadRevstr))
+                        break;
+
+                    // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
+                    RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
+
+                    List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
+
+                    getCommitDiff(diffs, project, git, commit, previousCommit);
+                }
+            }
+            return project.getFiles();
+        } catch (IOException e) {
+            LOGGER.error("分析 commits 出現問題" + e);
+            throw new IOException(e);
+        } catch (GitAPIException e) {
+            LOGGER.error("嘗試使用 Git 出現問題" + e);
+            throw new IllegalStateException(e);
+        }
+    }
+
+    //
+    public List<DiffEntry> getCommitDiffList(RevCommit commit, Git git, Repository repository, RevCommit previousCommit) throws IOException, IllegalStateException{
+        try {
+            /* 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
+             * 若未有 previous 可以做比較則設置一個空的 (Iterator over an empty tree (a directory with no files))
+             * */
+            AbstractTreeIterator oldTree = previousCommit != null ? prepareTreeParser(repository, previousCommit) : new EmptyTreeIterator();
+            AbstractTreeIterator newTree = prepareTreeParser(repository, commit);
+
+            return git.diff()
+                    .setOldTree(oldTree)
+                    .setNewTree(newTree)
+                    .call();
+        } catch (IOException e) {
+            throw new IOException(e);
+        } catch (GitAPIException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+     /* 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
      * diffs -> 新版本, 舊版本的差異資訊 */
-    public void getEachCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
+    public void getCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
         try {
             // 完整執行此次 commit 檔案有 diff 的
             for (DiffEntry diff : diffs) {
@@ -162,16 +228,19 @@ public class GitDiffAnalyzer {
 
     // 獲取 Head 的 SHA-1
     public String getHeadName(Repository repo) throws IOException {
-        String result;
+        String headRevstr;
         try {
+            // Eclipse
+            // Parse a git revision string and return an object id
+            // string form of the SHA-1, in lower case hexadecimal
             ObjectId commit = repo.resolve(Constants.HEAD);
-            result = commit.getName();
-            LOGGER.info("得到了，Git Commit Head 的 SHA-1 值");
+            headRevstr = commit.getName();
+            LOGGER.info("得到了，Git Commit Head 的 SHA-1 值 {}", headRevstr);
         } catch (IOException e) {
             LOGGER.error("獲取 Head 的 SHA-1 出錯誤 " + e);
             throw new IOException(e);
         }
-        return result;
+        return headRevstr;
     }
 
     // 回傳一個 AbstractTreeIterator
@@ -238,7 +307,7 @@ public class GitDiffAnalyzer {
             String newMethodBody = newMethod.getValue();
             String oldMethodBody = Objects.requireNonNullElse(oldMethods.get(methodName), "");
 
-            differences.add(Pair.of(methodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+            differences.add(Pair.of(methodName, generateGitDiff(oldMethodBody, newMethodBody)));
         }
 
         // 例外: 會出現舊版本有，但新版沒有，代表這個方法被刪減
@@ -247,7 +316,7 @@ public class GitDiffAnalyzer {
             if (!newMethods.containsKey(oldMethodName)) {
                 String newMethodBody = "";
                 String oldMethodBody = oldMethod.getValue();
-                differences.add(Pair.of(oldMethodName, generateLikeGitDiff(oldMethodBody, newMethodBody)));
+                differences.add(Pair.of(oldMethodName, generateGitDiff(oldMethodBody, newMethodBody)));
             }
         }
 
@@ -293,14 +362,15 @@ public class GitDiffAnalyzer {
     }
 
     // 對比兩個方法，透過 java-diff-utils 去完成
-    private static String generateLikeGitDiff(String oldMethod, String newMethod) {
+    private static String generateGitDiff(String oldMethod, String newMethod) {
         List<String> oldLines = List.of(oldMethod.split("\n"));
         List<String> newLines = List.of(newMethod.split("\n"));
 
         Patch<String> patch = DiffUtils.diff(oldLines, newLines);
 
-        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff("OldVersionMethod.java", "NewVersionMethod.java", oldLines, patch, 3       //上下文的差異數量
-        );
+        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff("OldVersionMethod.java",
+                "NewVersionMethod.java", oldLines, patch, 3);       //上下文的差異數量
+
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
         if (unifiedDiff.size() > 2) unifiedDiff.subList(0, 2).clear();
 
@@ -322,7 +392,12 @@ public class GitDiffAnalyzer {
 
         // 未找到創立一個新的 file 並放入 project 內
         if (file == null) {
-            file = Files.builder().fileName(fileName).filePath(filePath).methods(new LinkedList<>()).project(project).build();
+            file = Files.builder()
+                    .fileName(fileName)
+                    .filePath(filePath)
+                    .methods(new ArrayList<>())
+                    .project(project)
+                    .build();
             project.getFiles().add(file);
         }
 
@@ -338,7 +413,11 @@ public class GitDiffAnalyzer {
         }
 
         // 未找到先創立一個新的 method，接著存放 diffInfo，最後將 method 放入 methods 內
-        Method newMethod = Method.builder().methodName(methodName).files(file).diffInfoList(new LinkedList<>()).build();
+        Method newMethod = Method.builder()
+                .methodName(methodName)
+                .files(file)
+                .diffInfoList(new ArrayList<>())
+                .build();
         diffInfo.setMethod(newMethod);
 
         newMethod.getDiffInfoList().add(diffInfo);
