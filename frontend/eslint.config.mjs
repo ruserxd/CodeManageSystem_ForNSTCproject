@@ -16,7 +16,10 @@ export default [
 	},
 	{
 		rules: {
-			'react/react-in-jsx-scope': 'off'
+			'react/react-in-jsx-scope': 'off',
+			// 檢查 hook 的問題
+			'react-hooks/rules-of-hooks': 'error', // Checks rulse of Hooks
+			'react-hooks/exhaustive-deps': 'warn' // Checks effect dependencies
 		}
 	}
 ];

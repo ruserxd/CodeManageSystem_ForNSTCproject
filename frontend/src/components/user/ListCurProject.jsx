@@ -1,7 +1,9 @@
+import { App } from 'antd';
+import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
 import { Link } from 'react-router-dom';
-import { Typography, List, Spin, message } from 'antd';
+import { Typography, List, Spin } from 'antd';
 
 const { Title } = Typography;
 const contentStyle = {
@@ -11,10 +13,11 @@ const contentStyle = {
 };
 const content = <div style={contentStyle} />;
 
-function ListCurProject() {
+function ListCurProject(trigger) {
 	const [fetchData, setFetchData] = useState([]);
 	const [loading, setloading] = useState(false);
 	const [erroorJudge, setErrorJudge] = useState(false);
+	const { message } = App.useApp();
 
 	// 獲取目前資料庫有的 ProjectNames
 	useEffect(() => {
@@ -36,8 +39,10 @@ function ListCurProject() {
 				setloading(false);
 			}
 		};
+
 		getProjectNames();
-	}, []);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [trigger]);
 
 	return (
 		<div>
@@ -61,5 +66,9 @@ function ListCurProject() {
 		</div>
 	);
 }
+
+ListCurProject.propTypes = {
+	trigger: PropTypes.number.isRequired
+};
 
 export default ListCurProject;

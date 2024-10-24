@@ -8,5 +8,4 @@ import lombok.Data;
 public class CloneResult {
     private final CloneStatus status;
     private final String message;
-    private final String path;
 }

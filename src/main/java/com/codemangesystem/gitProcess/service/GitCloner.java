@@ -37,6 +37,7 @@ public class GitCloner {
         this.projectRepository = projectRepository;
     }
 
+    // TODO: message 的加入
     // 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
     public CloneResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
         String repoName = getRepoNameFromUrl(repoUrl);
@@ -53,7 +54,6 @@ public class GitCloner {
 
                     return CloneResult.builder()
                             .status(cloneStatus)
-                            .path(localPath)
                             .build();
                 } catch (Exception e) {
                     // 如果更新失敗，記錄錯誤並決定如何處理
@@ -108,7 +108,6 @@ public class GitCloner {
                 log.info("成功將資料分類完成");
                 return CloneResult.builder()
                         .status(CloneStatus.CLONE_SUCCESS)
-                        .path(localPath)
                         .build();
             }
         } catch (GitAPIException e) {

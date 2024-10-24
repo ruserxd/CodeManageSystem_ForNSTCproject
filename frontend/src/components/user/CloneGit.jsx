@@ -1,31 +1,48 @@
-import { useState } from 'react';
+import { App } from 'antd';
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
-import { Button, Form, Input, message, Space } from 'antd';
+import { useCookies } from 'react-cookie';
+import { Button, Form, Input, Space } from 'antd';
 
-function CloneGit() {
+function CloneGit({ setTrigger }) {
 	const [form] = Form.useForm();
 	const [loading, setloading] = useState(false);
+	const [cookies] = useCookies(['user']);
+	const { notification, message } = App.useApp();
+
+	const showNotification = (status, message) => {
+		notification.info({
+			message: `${status}`,
+			description: `${cookies.user.myUser.userName}  ${message}`,
+			placement: 'bottomLeft'
+		});
+	};
 
 	const handleFetchData = async (url, commitId) => {
 		setloading(true);
 		try {
 			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId }));
 
-			const { status, path } = response.data;
+			const { status, message } = response.data;
 
+			console.log(status);
 			if (status === 'CLONE_SUCCESS' || status === 'PULL_SUCCESS') {
-				alert(`Repository processed successfully: ${path} , ${status}`);
-				window.location.reload();
+				showNotification(status);
 				form.resetFields();
+
+				if (setTrigger) {
+					setTrigger();
+				}
 			} else if (status === 'ANALYSIS_FAILED') {
-				alert(`Repository cloned but no files were analyzed , ${status}`);
+				showNotification(message);
 			} else if (status === 'PULL_FAILED' || status === 'CLONE_FAILED') {
-				alert(`Failed to process repository , ${status}`);
+				showNotification(status);
 			} else {
-				alert(`Unexpected status: ${status}`);
+				showNotification(status);
 			}
 		} catch (error) {
-			alert('Error during fetch. Please check the console for more information.');
+			showNotification('FetchError', error);
 			console.error('Error during fetch:', error);
 		} finally {
 			setloading(false);
@@ -51,6 +68,7 @@ function CloneGit() {
 	return (
 		<div>
 			<Form
+				form={form}
 				onFinish={handleClick}
 				name="wrap"
 				labelCol={{
@@ -109,5 +127,9 @@ function CloneGit() {
 		</div>
 	);
 }
+
+CloneGit.propTypes = {
+	setTrigger: PropTypes.func.isRequired
+};
 
 export default CloneGit;
