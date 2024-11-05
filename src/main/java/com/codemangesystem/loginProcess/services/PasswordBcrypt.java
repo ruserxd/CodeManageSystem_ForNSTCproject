@@ -18,7 +18,6 @@ public class PasswordBcrypt {
     }
 
     // 確定輸入的密碼與資料庫的密碼是否相同
-
     public boolean decryptPasswordIsSameOrNot(String encodedPassword, String userInputPassword) {
         return BCrypt.checkpw(userInputPassword, encodedPassword);
     }

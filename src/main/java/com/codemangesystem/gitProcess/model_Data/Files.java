@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-// 用 lombok 減少程式碼的撰寫、增加可讀性
 @Data
 @Builder
 @Entity

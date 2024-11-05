@@ -1,4 +1,4 @@
-package com.codemangesystem;
+package com.codemangesystem.config;
 
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;

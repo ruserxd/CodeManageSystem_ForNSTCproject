@@ -37,8 +37,10 @@ public class GitCloner {
         this.projectRepository = projectRepository;
     }
 
-    // TODO: message 的加入
-    // 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
+    /**
+     * TODO: message 的加入
+     * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
+     */
     public CloneResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
         String repoName = getRepoNameFromUrl(repoUrl);
         String localPath = CLONE_LOCAL_BASE_PATH + repoName;
@@ -70,9 +72,9 @@ public class GitCloner {
                     .setURI(repoUrl)
                     .setDirectory(new File(localPath));
 
-            /* 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
-             * 只是要透過 Git 物件將資料 clone 下來
-             * lone 成功接續將資料分類存入資料庫內 */
+            // 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
+            // 只是要透過 Git 物件將資料 clone 下來
+            // clone 成功接續將資料分類存入資料庫內
             try (Git git = cloneCommand.call()) {
                 if (!Objects.equals(commitId, "HEAD")) {
                     try {
@@ -116,7 +118,9 @@ public class GitCloner {
         }
     }
 
-    // 從儲存庫 URL 中取得專案名稱
+    /**
+     * 從儲存庫 URL 中取得專案名稱
+     */
     private String getRepoNameFromUrl(String repoUrl) {
         // 將網址透過 "/" 分開並存在陣列內
         String[] parts = repoUrl.split("/");
@@ -128,13 +132,17 @@ public class GitCloner {
         return repoNameWithExtension.replace(".git", "");
     }
 
-    // 檢查指定路徑是否為已存在 Git 儲存庫
+    /**
+     * 檢查指定路徑是否為已存在 Git 儲存庫
+     */
     private boolean isRepositoryClonedLocally(String path) {
         File gitDir = new File(path, ".git");
         return gitDir.exists();
     }
 
-    // pull 更新本地端資料
+    /**
+     * pull 更新本地端資料
+     */
     private CloneStatus renewRepositoryLocally(String repoPath) {
         try (Git git = Git.open(new File(repoPath))) {
             log.info("Try to pull {} ...", repoPath);

@@ -1,5 +1,8 @@
 package com.codemangesystem.gitProcess.model_Git;
 
+/**
+ * 格式化回傳的 clone 狀態
+ */
 public enum CloneStatus {
     CLONE_SUCCESS,
     PULL_SUCCESS,

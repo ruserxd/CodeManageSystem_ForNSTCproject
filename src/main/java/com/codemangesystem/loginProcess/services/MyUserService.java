@@ -25,8 +25,15 @@ public class MyUserService {
         this.passwordBcrypt = passwordBcrypt;
     }
 
-    // 系統簡單加入超級帳號
+    /**
+     * 系統加入超級帳號
+     */
     public void addSuperAccount() {
+        // 確定目前資料庫內沒有超級帳號
+        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount("123");
+        if (testCurrentHave.isPresent())
+            return;
+
         MyUser myUser = MyUser.builder()
                 .userEmail("zz@gmail.com")
                 .userName("Admin")
@@ -39,7 +46,9 @@ public class MyUserService {
         myUserRepository.save(myUser);
     }
 
-    // 用於登入，檢查使用者資訊
+    /**
+     * 用於登入，檢查使用者資訊
+     */
     public LoginResponse checkUser(LoginINFO userINFO) {
         Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(userINFO.getUserAccount());
         log.info(userINFO.getUserAccount());
@@ -71,7 +80,9 @@ public class MyUserService {
                 .build();
     }
 
-    // Add User
+    /**
+     * 新增 User
+     */
     public RegisterResponse userRegister(MyUser myUser) {
         try {
             boolean emailExist = ifEmailExist(myUser);
@@ -123,13 +134,17 @@ public class MyUserService {
         }
     }
 
-    // judge email
+    /**
+     * 判斷是否有重複的 email
+     */
     public boolean ifEmailExist(MyUser myUser) {
         Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(myUser.getUserEmail());
         return testCurrentHave.isPresent();
     }
 
-    // judge account
+    /**
+     * 判斷是否有重複的 account
+     */
     public boolean ifAccountExist(MyUser myUser) {
         Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(myUser.getUserAccount());
         return testCurrentHave.isPresent();

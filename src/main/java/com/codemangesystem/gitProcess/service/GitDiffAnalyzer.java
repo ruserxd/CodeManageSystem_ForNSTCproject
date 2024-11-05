@@ -117,7 +117,9 @@ public class GitDiffAnalyzer {
         }
     }
 
-    // 如果執行 pull 只需要分析部分的 commit 即可
+    /**
+     * 如果執行 pull 只需要分析部分的 commit 即可
+     */
     @Transactional
     public List<Files> analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
         try {
