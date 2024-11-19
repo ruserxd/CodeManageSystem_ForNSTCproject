@@ -33,12 +33,14 @@ build/
 .vscode/
 
 ### cloneFile ###
-/src/cloneCode/*
-!/src/cloneCode/.gitkeep
+/backend/src/cloneCode/*
+!/backend/src/cloneCode/.gitkeep
 
 ### React ###
 /frontend/node_modules
 
 ### env ###
-.env
-/src/log/
+backend/.env
+/backend/src/log/
+
+frontend/src/api/axiosConfig.js
