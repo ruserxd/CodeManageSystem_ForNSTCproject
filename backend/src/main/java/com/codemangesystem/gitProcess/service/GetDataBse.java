@@ -42,7 +42,7 @@ public class GetDataBse {
             log.error(error.getMessage());
             return new ArrayList<>();
         } finally {
-            log.info("完成獲得 " + projectName + " Data");
+            log.info("完成獲得 {}'s Data", projectName);
         }
     }
 
@@ -65,5 +65,11 @@ public class GetDataBse {
             log.error("delete 發生 : {}", String.valueOf(e));
             return "Failed delete";
         }
+    }
+
+    /*
+     * 透過 projectName 獲得*/
+    public String getHeadRevstr(String projectName) {
+        return projectRepository.findHeadRevstrByProjectName(projectName);
     }
 }

@@ -88,7 +88,7 @@ public class GitDiffAnalyzer {
 
             // Git 打開 repository
             try (Git git = new Git(repository)) {
-                log.info("開始獲取 [{}] 上的 commit 的差異資訊", repoPath);
+                log.info("開始獲取 {} 上的 commit 的差異資訊", repoPath);
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log().call();
@@ -108,12 +108,12 @@ public class GitDiffAnalyzer {
             projectRepository.save(project);
 
             return project.getFiles();
-        } catch (IOException e) {
-            log.error("分析 commits 出現問題" + e);
-            throw new IOException(e);
-        } catch (GitAPIException e) {
-            log.error("嘗試使用 Git 出現問題" + e);
-            throw new IllegalStateException(e);
+        } catch (IOException error) {
+            log.error("分析 commits 出現問題 {}", error.getMessage());
+            throw new IOException(error);
+        } catch (GitAPIException error) {
+            log.error("嘗試使用 Git 出現問題 {}", error.getMessage());
+            throw new IllegalStateException(error);
         }
     }
 
@@ -162,15 +162,16 @@ public class GitDiffAnalyzer {
             }
             return project.getFiles();
         } catch (IOException e) {
-            log.error("分析 commits 出現問題" + e);
+            log.error("分析 commits 出現問題 {}", e.getMessage());
             throw new IOException(e);
         } catch (GitAPIException e) {
-            log.error("嘗試使用 Git 出現問題" + e);
+            log.error("嘗試使用 Git 出現問題 {}", e.getMessage());
             throw new IllegalStateException(e);
         }
     }
 
-    //
+    /* 獲取新舊的 commit 差異資訊
+     * */
     public List<DiffEntry> getCommitDiffList(RevCommit commit, Git git, Repository repository, RevCommit previousCommit) throws IOException, IllegalStateException {
         try {
             /* 透過 git diff [oldCommit] [newCommit] 找出兩個 commit 差異的資訊
@@ -224,7 +225,7 @@ public class GitDiffAnalyzer {
                 }
             }
         } catch (IOException e) {
-            log.error("當獲取 {} 出現" + e, commit.getId().getName());
+            log.error("當獲取 {} 出現 {}", commit.getId().getName(), e.getMessage());
             throw new IOException(e);
         }
     }
@@ -239,9 +240,9 @@ public class GitDiffAnalyzer {
             ObjectId commit = repo.resolve(Constants.HEAD);
             headRevstr = commit.getName();
             log.info("得到了，Git Commit Head 的 SHA-1 值 {}", headRevstr);
-        } catch (IOException e) {
-            log.error("獲取 Head 的 SHA-1 出錯誤 " + e);
-            throw new IOException(e);
+        } catch (IOException error) {
+            log.error("獲取 Head 的 SHA-1 出錯誤 ", error);
+            throw new IOException(error);
         }
         return headRevstr;
     }
