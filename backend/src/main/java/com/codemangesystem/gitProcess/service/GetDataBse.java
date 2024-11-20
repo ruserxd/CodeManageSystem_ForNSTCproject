@@ -67,8 +67,9 @@ public class GetDataBse {
         }
     }
 
-    /*
-     * 透過 projectName 獲得*/
+    /**
+     * 透過 projectName 獲得資料庫內的 HeadRevstr
+     */
     public String getHeadRevstr(String projectName) {
         return projectRepository.findHeadRevstrByProjectName(projectName);
     }

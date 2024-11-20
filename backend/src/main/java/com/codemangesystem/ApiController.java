@@ -7,7 +7,7 @@ import com.codemangesystem.loginProcess.model_response.LoginINFO;
 import com.codemangesystem.loginProcess.model_response.LoginResponse;
 import com.codemangesystem.loginProcess.model_response.RegisterResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
-import com.codemangesystem.loginProcess.services.MyUserService;
+import com.codemangesystem.loginProcess.services.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,13 +26,13 @@ public class ApiController {
 
     private final GitCloner gitCloner;
     private final GetDataBse getDataBse;
-    private final MyUserService myUserService;
+    private final UserService userService;
 
     @Autowired
-    public ApiController(GitCloner gitCloner, GetDataBse getDataBse, MyUserService myUserService) {
+    public ApiController(GitCloner gitCloner, GetDataBse getDataBse, UserService userService) {
         this.gitCloner = gitCloner;
         this.getDataBse = getDataBse;
-        this.myUserService = myUserService;
+        this.userService = userService;
     }
 
     /* Git 資料處理 */
@@ -40,7 +40,7 @@ public class ApiController {
     @PostMapping("/fetch-repo")
     public ResponseEntity<?> fetchRepository(@RequestParam("url") String url, @RequestParam("commitId") String commitId) {
         try {
-            log.info("嘗試抓取 " + "url: " + url + "commitId: " + commitId + " 的資料");
+            log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
             return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId));
         } catch (GitAPIException | IOException e) {
             log.error("Error cloning or accessing repository: ", e);
@@ -72,7 +72,7 @@ public class ApiController {
      */
     @PostMapping("/getData")
     public ResponseEntity<List<Files>> getFileDataByProjectName(@RequestParam("ProjectName") String projectName) {
-        log.info("嘗試抓取 Data by " + projectName);
+        log.info("嘗試抓取 Data by {}", projectName);
         return new ResponseEntity<>(getDataBse.getFilesByProjectName(projectName), HttpStatus.OK);
     }
 
@@ -89,7 +89,7 @@ public class ApiController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginINFO loginINFO) {
         log.info("嘗試登入 使用者: {}", loginINFO);
-        LoginResponse loginResponse = myUserService.checkUser(loginINFO);
+        LoginResponse loginResponse = userService.checkUser(loginINFO);
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
 
@@ -99,7 +99,7 @@ public class ApiController {
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
         log.info("嘗試註冊");
-        RegisterResponse registerResult = myUserService.userRegister(myUser);
+        RegisterResponse registerResult = userService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 
@@ -109,6 +109,6 @@ public class ApiController {
     @GetMapping("/addSuperAccount")
     public void addSuperAccount() {
         log.info("手動加入超級帳號");
-        myUserService.addSuperAccount();
+        userService.addSuperAccount();
     }
 }

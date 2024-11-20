@@ -128,7 +128,7 @@ public class GitDiffAnalyzer {
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
-                log.error("The specified path does not contain a valid Git repository: " + repoPath);
+                log.error("The specified path does not contain a valid Git repository: {}", repoPath);
                 return Collections.emptyList();
             }
 
@@ -191,8 +191,10 @@ public class GitDiffAnalyzer {
         }
     }
 
-    /* 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
-     * diffs -> 新版本, 舊版本的差異資訊 */
+    /**
+     * 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
+     * diffs -> 新版本, 舊版本的差異資訊
+     */
     public void getCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
         try {
             // 完整執行此次 commit 檔案有 diff 的
@@ -204,7 +206,7 @@ public class GitDiffAnalyzer {
                 // 專注處理 java 檔案
                 if (diff.getNewPath().endsWith(".java")) {
 
-                    log.info("嘗試比較 " + diff.getNewPath());
+                    log.info("嘗試比較 {}", diff.getNewPath());
 
                     // 以 String 抓出此次 commit 版與前一次的內容
                     String newContent = getFileContent(git, diff.getNewPath(), commit);
@@ -378,7 +380,7 @@ public class GitDiffAnalyzer {
             }
             return contentMethods;
         } catch (ParseProblemException e) {
-            log.error("Parser文件時發生錯誤：" + e.getMessage());
+            log.error("Parser文件時發生錯誤：{}", e.getMessage());
             return new HashMap<>();
         }
     }

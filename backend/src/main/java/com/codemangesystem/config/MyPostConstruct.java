@@ -2,7 +2,7 @@ package com.codemangesystem.config;
 
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
-import com.codemangesystem.loginProcess.services.MyUserService;
+import com.codemangesystem.loginProcess.services.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +23,13 @@ public class MyPostConstruct {
     public static String path = "src/cloneCode";
 
     ProjectRepository projectRepository;
-    MyUserService myUserService;
+    UserService userService;
     MyUserRepository myUserRepository;
 
     @Autowired
-    public MyPostConstruct(ProjectRepository projectRepository, MyUserService myUserService, MyUserRepository myUserRepository) {
+    public MyPostConstruct(ProjectRepository projectRepository, UserService userService, MyUserRepository myUserRepository) {
         this.projectRepository = projectRepository;
-        this.myUserService = myUserService;
+        this.userService = userService;
         this.myUserRepository = myUserRepository;
     }
 
@@ -85,7 +85,7 @@ public class MyPostConstruct {
     public void addSuperAccount() {
         if (myUserRepository.findByUserAccount("123").isEmpty()) {
             log.info("加入超級帳號");
-            myUserService.addSuperAccount();
+            userService.addSuperAccount();
         } else {
             log.info("超級帳號已存在");
         }

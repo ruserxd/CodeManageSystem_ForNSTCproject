@@ -28,6 +28,7 @@ public class GitPuller {
         this.getDataBse = getDataBse;
         this.gitDiffAnalyzer = gitDiffAnalyzer;
     }
+
     /**
      * pull 更新本地端資料，並且更新本地端資料庫內容
      */

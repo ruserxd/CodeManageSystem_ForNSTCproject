@@ -3,7 +3,7 @@ package com.codemangesystem.gitProcess.service;
 import java.io.File;
 
 /**
- * 經常使用的 static 方法
+ * Git 部分經常使用的 static 方法
  */
 public class GitFunction {
     /**

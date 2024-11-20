@@ -14,13 +14,13 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-public class MyUserService {
+public class UserService {
 
     private final MyUserRepository myUserRepository;
     private final PasswordBcrypt passwordBcrypt;
 
     @Autowired
-    public MyUserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt) {
+    public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt) {
         this.myUserRepository = myUserRepository;
         this.passwordBcrypt = passwordBcrypt;
     }
@@ -89,21 +89,21 @@ public class MyUserService {
             boolean accountExist = ifAccountExist(myUser);
             // 判斷 email, account 有沒有存在
             if (emailExist && accountExist) {
-                log.info("email, account is taken" + myUser.getUserEmail(), myUser.getUserAccount());
+                log.info("email, account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
 
                 return RegisterResponse.builder()
                         .success(false)
                         .message("email, account is taken")
                         .build();
             } else if (emailExist) {
-                log.info("email is taken" + myUser.getUserEmail());
+                log.info("email is taken {}", myUser.getUserEmail());
 
                 return RegisterResponse.builder()
                         .success(false)
                         .message("email is taken")
                         .build();
             } else if (accountExist) {
-                log.info("email is taken" + myUser.getUserAccount());
+                log.info("account is taken {}", myUser.getUserAccount());
 
                 return RegisterResponse.builder()
                         .success(false)
@@ -125,7 +125,7 @@ public class MyUserService {
                     .message("success register")
                     .build();
         } catch (Exception e) {
-            log.info("Register failed " + e.getMessage());
+            log.info("Register failed {}", e.getMessage());
 
             return RegisterResponse.builder()
                     .success(false)

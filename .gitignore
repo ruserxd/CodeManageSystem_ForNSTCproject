@@ -42,5 +42,3 @@ build/
 ### env ###
 backend/.env
 /backend/src/log/
-
-frontend/src/api/axiosConfig.js
