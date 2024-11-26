@@ -20,6 +20,7 @@ import java.util.Objects;
 /**
  * 處理有關 Git clone 的操作
  */
+// TODO: 遇上分支上的問題
 @Slf4j
 @Service
 public class GitCloner {
@@ -35,7 +36,6 @@ public class GitCloner {
     }
 
     /**
-     * TODO: message 的加入
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
     public CloneResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
@@ -43,7 +43,6 @@ public class GitCloner {
         String localPath = CLONE_LOCAL_BASE_PATH + repoName;
 
         try {
-
             // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳路徑
             if (GitFunction.isRepositoryClonedLocally(localPath)) {
                 log.info("Repository already exists at: {}", localPath);
@@ -53,12 +52,14 @@ public class GitCloner {
 
                     return CloneResult.builder()
                             .status(cloneStatus)
+                            .message("Successfully pulled and updated repository at " + localPath)
                             .build();
                 } catch (Exception e) {
                     // 如果更新失敗，記錄錯誤並決定如何處理
                     log.error("Failed to update existing repository at {}", localPath, e);
                     return CloneResult.builder()
                             .status(CloneStatus.PULL_FAILED)
+                            .message("Failed to update existing repository at " + localPath)
                             .build();
                 }
             }
@@ -75,7 +76,8 @@ public class GitCloner {
             try (Git git = cloneCommand.call()) {
                 if (!Objects.equals(commitId, "HEAD")) {
                     try {
-                        ObjectId specifyCommit = git.getRepository().resolve(commitId);
+                        ObjectId specifyCommit = git.getRepository()
+                                .resolve(commitId);
                         if (specifyCommit == null) {
                             log.error("Commit {} not found in repository", commitId);
                             return CloneResult.builder()
@@ -101,12 +103,14 @@ public class GitCloner {
                     log.warn("No files were analyzed in the repository: {}", localPath);
                     return CloneResult.builder()
                             .status(CloneStatus.ANALYSIS_FAILED)
+                            .message("No files were analyzed in the repository: " + localPath)
                             .build();
                 }
 
                 log.info("成功將資料分類完成");
                 return CloneResult.builder()
                         .status(CloneStatus.CLONE_SUCCESS)
+                        .message("成功將資料分類完成")
                         .build();
             }
         } catch (GitAPIException e) {

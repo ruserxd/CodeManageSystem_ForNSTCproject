@@ -7,7 +7,7 @@ import com.codemangesystem.loginProcess.model_response.LoginINFO;
 import com.codemangesystem.loginProcess.model_response.LoginResponse;
 import com.codemangesystem.loginProcess.model_response.RegisterResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
-import com.codemangesystem.loginProcess.services.UserService;
+import com.codemangesystem.loginProcess.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.beans.factory.annotation.Autowired;

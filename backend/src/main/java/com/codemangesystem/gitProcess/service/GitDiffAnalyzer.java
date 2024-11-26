@@ -40,6 +40,7 @@ import java.util.*;
  * 獲取 Git 每段 commit 的方法差異
  */
 // TODO: 當執行 git pull 時，我們應該先記錄下之前的 Head SHA-1 -> clone 更新 -> Head -> 前 Head SHA-1
+// TODO: 更新 anlyzeCommit 兩個方法
 @Slf4j
 @Service
 public class GitDiffAnalyzer {
@@ -51,9 +52,9 @@ public class GitDiffAnalyzer {
     }
 
 
-    /* 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
+    /**
+     *  第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
      *  作為查詢的條件
-     *
      * @Transactional 確保資料的一致性
      * */
     @Transactional

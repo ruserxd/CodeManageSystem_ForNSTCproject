@@ -1,4 +1,4 @@
-package com.codemangesystem.loginProcess.services;
+package com.codemangesystem.loginProcess.service;
 
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
 import com.codemangesystem.loginProcess.model_response.LoginResponse;
@@ -54,7 +54,7 @@ public class UserService {
         log.info(userINFO.getUserAccount());
 
         if (testCurrentHave.isPresent()) {
-            log.info("Account have " + testCurrentHave);
+            log.info("Account have {}", testCurrentHave);
 
             if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get().getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");

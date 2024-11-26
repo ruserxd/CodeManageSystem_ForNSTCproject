@@ -1,4 +1,4 @@
-package com.codemangesystem.loginProcess.services;
+package com.codemangesystem.loginProcess.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.mindrot.jbcrypt.BCrypt;
