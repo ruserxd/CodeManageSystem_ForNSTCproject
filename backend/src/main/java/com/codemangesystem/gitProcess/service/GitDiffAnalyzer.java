@@ -40,7 +40,7 @@ import java.util.*;
  * 獲取 Git 每段 commit 的方法差異
  */
 // TODO: 當執行 git pull 時，我們應該先記錄下之前的 Head SHA-1 -> clone 更新 -> Head -> 前 Head SHA-1
-// TODO: 更新 anlyzeCommit 兩個方法
+// TODO: 更新 analyzeCommit 兩個方法
 @Slf4j
 @Service
 public class GitDiffAnalyzer {
@@ -50,7 +50,6 @@ public class GitDiffAnalyzer {
     public GitDiffAnalyzer(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
-
 
     /**
      * 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
@@ -124,15 +123,14 @@ public class GitDiffAnalyzer {
      * 如果執行 pull 只需要分析部分的 commit 即可
      */
     @Transactional
-    public List<Files> analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
+    public void analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
         try {
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(repoPath, ".git");
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
-                log.error("The specified path does not contain a valid Git repository: {}", repoPath);
-                return Collections.emptyList();
+                log.error("The specified path does not contain a valid Git repository at {}", repoPath);
             }
 
             // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
@@ -165,7 +163,6 @@ public class GitDiffAnalyzer {
                     getCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
-            return project.getFiles();
         } catch (IOException e) {
             log.error("分析 commits 出現問題 {}", e.getMessage());
             throw new IOException(e);

@@ -38,7 +38,6 @@ public class GetDataBse {
             return projectRepository.findByProjectName(projectName)
                     .getFiles();
         } catch (Exception error) {
-
             // 如果在 jpa 的部分執行時發生錯誤，回傳一個空的陣列，避免後續可能出現 null 的情況
             log.error(error.getMessage());
             return new ArrayList<>();
