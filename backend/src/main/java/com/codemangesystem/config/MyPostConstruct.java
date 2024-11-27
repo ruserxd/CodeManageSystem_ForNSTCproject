@@ -83,7 +83,8 @@ public class MyPostConstruct {
      * 檢查超級帳號是否存在，不存在則建立
      */
     public void addSuperAccount() {
-        if (myUserRepository.findByUserAccount("123").isEmpty()) {
+        if (myUserRepository.findByUserAccount("123")
+                .isEmpty()) {
             log.info("加入超級帳號");
             userService.addSuperAccount();
         } else {

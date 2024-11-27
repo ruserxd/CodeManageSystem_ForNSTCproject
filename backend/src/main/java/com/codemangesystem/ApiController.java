@@ -35,8 +35,9 @@ public class ApiController {
         this.userService = userService;
     }
 
-    /* Git 資料處理 */
-    /* 負責 clone 存儲庫的 api ，並將資料做分類存入資料庫 */
+    /* Git 資料處理
+     *  負責 clone 存儲庫的 api
+     * 並將資料做分類存入資料庫前端沒有輸入的話，commId 預設為 HEAD*/
     @PostMapping("/fetch-repo")
     public ResponseEntity<?> fetchRepository(@RequestParam("url") String url, @RequestParam("commitId") String commitId) {
         try {
@@ -44,7 +45,8 @@ public class ApiController {
             return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId));
         } catch (GitAPIException | IOException e) {
             log.error("Error cloning or accessing repository: ", e);
-            return ResponseEntity.status(500).body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
+            return ResponseEntity.status(500)
+                    .body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
         }
     }
 

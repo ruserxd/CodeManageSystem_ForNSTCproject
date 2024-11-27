@@ -8,7 +8,7 @@ import lombok.Data;
  */
 @Builder
 @Data
-public class CloneResult {
-    private final CloneStatus status;
+public class GitResult {
+    private final GitStatus status;
     private final String message;
 }

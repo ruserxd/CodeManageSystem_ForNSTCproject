@@ -23,8 +23,8 @@ public class GitFunction {
     /**
      * 檢查指定路徑是否為已存在 Git 儲存庫
      */
-    public static boolean isRepositoryClonedLocally(String path) {
-        File gitDir = new File(path, ".git");
+    public static boolean isCloned(String localPath) {
+        File gitDir = new File(localPath, ".git");
         return gitDir.exists();
     }
 }

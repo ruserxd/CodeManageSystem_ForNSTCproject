@@ -1,8 +1,9 @@
 package com.codemangesystem.gitProcess.service;
 
 import com.codemangesystem.gitProcess.model_Data.Files;
-import com.codemangesystem.gitProcess.model_Git.CloneResult;
-import com.codemangesystem.gitProcess.model_Git.CloneStatus;
+import com.codemangesystem.gitProcess.model_Git.GitResult;
+import com.codemangesystem.gitProcess.model_Git.GitStatus;
+import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
@@ -35,53 +36,45 @@ public class GitCloner {
         this.gitPuller = gitPuller;
     }
 
+    // TODO: 使用者 GitHub 的權限
+
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
-    public CloneResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
-        String repoName = GitFunction.getRepoNameFromUrl(repoUrl);
-        String localPath = CLONE_LOCAL_BASE_PATH + repoName;
+    public GitResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
+        RepoINFO repoINFO = RepoINFO.builder()
+                .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
+                .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
+                .build();
 
+        log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
-            // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳路徑
-            if (GitFunction.isRepositoryClonedLocally(localPath)) {
-                log.info("Repository already exists at: {}", localPath);
-                try {
-                    CloneStatus cloneStatus = gitPuller.renewLocalRepository(localPath);
-                    log.info("Successfully pulled and updated repository at {}", localPath);
-
-                    return CloneResult.builder()
-                            .status(cloneStatus)
-                            .message("Successfully pulled and updated repository at " + localPath)
-                            .build();
-                } catch (Exception e) {
-                    // 如果更新失敗，記錄錯誤並決定如何處理
-                    log.error("Failed to update existing repository at {}", localPath, e);
-                    return CloneResult.builder()
-                            .status(CloneStatus.PULL_FAILED)
-                            .message("Failed to update existing repository at " + localPath)
-                            .build();
-                }
+            // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳 GitResult
+            if (GitFunction.isCloned(repoINFO.localPath)) {
+                log.info("Repository already exists at: {}", repoINFO.localPath);
+                return gitPuller.renewLocalRepository(repoINFO);
             }
 
-            log.info("Cloning to {} ....", repoUrl);
+            //TODO: Refactor 到這邊
+            log.info("Cloning to {}", repoUrl);
 
             CloneCommand cloneCommand = Git.cloneRepository()
                     .setURI(repoUrl)
-                    .setDirectory(new File(localPath));
+                    .setDirectory(new File(repoINFO.localPath));
 
-            // 將資料 clone 下來， Git 物件命名為 ignored ，因為在這個特定的 try 區塊中，實際上並不需要直接使用這個物件
+            // 將資料 clone 下來，try 達到 close
             // 只是要透過 Git 物件將資料 clone 下來
             // clone 成功接續將資料分類存入資料庫內
-            try (Git git = cloneCommand.call()) {
+            try (Git git = cloneCommand.call();) {
                 if (!Objects.equals(commitId, "HEAD")) {
+                    log.info("commitId 為 {}", commitId);
                     try {
                         ObjectId specifyCommit = git.getRepository()
                                 .resolve(commitId);
                         if (specifyCommit == null) {
                             log.error("Commit {} not found in repository", commitId);
-                            return CloneResult.builder()
-                                    .status(CloneStatus.CLONE_FAILED)
+                            return GitResult.builder()
+                                    .status(GitStatus.CLONE_FAILED)
                                     .message("指定的 Commit ID 不存在: " + commitId)
                                     .build();
                         }
@@ -95,27 +88,30 @@ public class GitCloner {
                     }
                 }
 
-                log.info("成功 clone: {}", localPath);
+                log.info("成功 clone: {}", repoINFO.localPath);
                 log.info("嘗試分類 -> gitDiffAnalyzer");
-                List<Files> analyzedFiles = gitDiffAnalyzer.analyzeAllCommits(localPath);
+                List<Files> analyzedFiles = gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath);
 
                 if (analyzedFiles == null || analyzedFiles.isEmpty()) {
-                    log.warn("No files were analyzed in the repository: {}", localPath);
-                    return CloneResult.builder()
-                            .status(CloneStatus.ANALYSIS_FAILED)
-                            .message("No files were analyzed in the repository: " + localPath)
+                    log.warn("No files were analyzed in the repository: {}", repoINFO.localPath);
+                    return GitResult.builder()
+                            .status(GitStatus.ANALYSIS_FAILED)
+                            .message("No files were analyzed in the repository: " + repoINFO.localPath)
                             .build();
                 }
 
                 log.info("成功將資料分類完成");
-                return CloneResult.builder()
-                        .status(CloneStatus.CLONE_SUCCESS)
+                return GitResult.builder()
+                        .status(GitStatus.CLONE_SUCCESS)
                         .message("成功將資料分類完成")
                         .build();
             }
         } catch (GitAPIException e) {
             log.error("Failed clone to {}", repoUrl, e);
-            throw e;
+            return GitResult.builder()
+                    .status(GitStatus.CLONE_FAILED)
+                    .message("Failed to clone " + e)
+                    .build();
         }
     }
 }

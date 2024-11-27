@@ -53,10 +53,11 @@ public class GitDiffAnalyzer {
 
 
     /**
-     *  第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
-     *  作為查詢的條件
+     * 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱
+     * 作為查詢的條件
+     *
      * @Transactional 確保資料的一致性
-     * */
+     */
     @Transactional
     public List<Files> analyzeAllCommits(String repoPath) throws GitAPIException, IOException {
         try {
@@ -65,7 +66,7 @@ public class GitDiffAnalyzer {
 
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
-                log.error("The specified path does not contain a valid Git repository: " + repoPath);
+                log.error("The specified path does not contain a valid Git repository: {}", repoPath);
                 return Collections.emptyList();
             }
 
@@ -92,7 +93,8 @@ public class GitDiffAnalyzer {
                 log.info("開始獲取 {} 上的 commit 的差異資訊", repoPath);
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
-                Iterable<RevCommit> commits = git.log().call();
+                Iterable<RevCommit> commits = git.log()
+                        .call();
 
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
@@ -145,12 +147,14 @@ public class GitDiffAnalyzer {
                 log.info("開始獲取 [{}] 上的 commit 的差異資訊", repoPath);
 
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
-                Iterable<RevCommit> commits = git.log().call();
+                Iterable<RevCommit> commits = git.log()
+                        .call();
 
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
                     // 當 commit 走過，break 發生
-                    if (commit.getName().equals(oldHeadRevstr))
+                    if (commit.getName()
+                            .equals(oldHeadRevstr))
                         break;
 
                     // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
@@ -205,7 +209,8 @@ public class GitDiffAnalyzer {
                 String fileName = new File(diff.getNewPath()).getName();
 
                 // 專注處理 java 檔案
-                if (diff.getNewPath().endsWith(".java")) {
+                if (diff.getNewPath()
+                        .endsWith(".java")) {
 
                     log.info("嘗試比較 {}", diff.getNewPath());
 
@@ -228,7 +233,8 @@ public class GitDiffAnalyzer {
                 }
             }
         } catch (IOException e) {
-            log.error("當獲取 {} 出現 {}", commit.getId().getName(), e.getMessage());
+            log.error("當獲取 {} 出現 {}", commit.getId()
+                    .getName(), e.getMessage());
             throw new IOException(e);
         }
     }
@@ -287,7 +293,8 @@ public class GitDiffAnalyzer {
     public static String getFileContent(Git git, String path, RevCommit commit) throws IOException {
         try (TreeWalk treeWalk = TreeWalk.forPath(git.getRepository(), path, commit.getTree())) {
             if (treeWalk != null) {
-                ObjectLoader objectLoader = git.getRepository().open(treeWalk.getObjectId(0));
+                ObjectLoader objectLoader = git.getRepository()
+                        .open(treeWalk.getObjectId(0));
                 byte[] bytes = objectLoader.getBytes();
                 return new String(bytes, StandardCharsets.UTF_8);
             }
@@ -347,7 +354,8 @@ public class GitDiffAnalyzer {
             // 獲取程式碼的語法樹的頭節點
             CompilationUnit cu = javaParser.parse(content)
                     .getResult()
-                    .filter(result -> result.findCompilationUnit().isPresent())
+                    .filter(result -> result.findCompilationUnit()
+                            .isPresent())
                     .flatMap(Node::findCompilationUnit)
                     .orElse(null);
 
@@ -368,14 +376,17 @@ public class GitDiffAnalyzer {
                 // 獲得註解的部分，e.g., @Service, @Controller etc.
                 List<AnnotationExpr> annotations = method.getAnnotations();
                 for (AnnotationExpr annotation : annotations) {
-                    methodContent.append(annotation.toString()).append("\n");
+                    methodContent.append(annotation.toString())
+                            .append("\n");
                 }
 
                 // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
                 methodContent.append(method.getDeclarationAsString(true, true, true));
 
                 // 獲得方法的內容 { 方法內容 }
-                method.getBody().ifPresent(body -> methodContent.append(" ").append(body));
+                method.getBody()
+                        .ifPresent(body -> methodContent.append(" ")
+                                .append(body));
 
                 contentMethods.put(method.getNameAsString(), methodContent.toString());
             }
@@ -397,7 +408,8 @@ public class GitDiffAnalyzer {
                 "NewVersionMethod.java", oldLines, patch, 3);       //上下文的差異數量
 
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
-        if (unifiedDiff.size() > 2) unifiedDiff.subList(0, 2).clear();
+        if (unifiedDiff.size() > 2) unifiedDiff.subList(0, 2)
+                .clear();
 
         // 把 list 透過 \n 拆成一個 String
         return String.join("\n", unifiedDiff);
@@ -409,7 +421,8 @@ public class GitDiffAnalyzer {
         // 找尋 project 內相對應的 file
         Files file = null;
         for (Files projectFile : project.getFiles()) {
-            if (projectFile.getFilePath().equals(filePath)) {
+            if (projectFile.getFilePath()
+                    .equals(filePath)) {
                 file = projectFile;
                 break;
             }
@@ -423,16 +436,19 @@ public class GitDiffAnalyzer {
                     .methods(new ArrayList<>())
                     .project(project)
                     .build();
-            project.getFiles().add(file);
+            project.getFiles()
+                    .add(file);
         }
 
         List<Method> methods = file.getMethods();
 
         // 當有找到對應的方法時，加入 diffInfo
         for (Method method : methods) {
-            if (method.getMethodName().equals(methodName)) {
+            if (method.getMethodName()
+                    .equals(methodName)) {
                 diffInfo.setMethod(method);
-                method.getDiffInfoList().add(diffInfo);
+                method.getDiffInfoList()
+                        .add(diffInfo);
                 return;
             }
         }
@@ -445,7 +461,8 @@ public class GitDiffAnalyzer {
                 .build();
         diffInfo.setMethod(newMethod);
 
-        newMethod.getDiffInfoList().add(diffInfo);
+        newMethod.getDiffInfoList()
+                .add(diffInfo);
         methods.add(newMethod);
     }
 }

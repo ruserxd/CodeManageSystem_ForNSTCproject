@@ -19,8 +19,10 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers(HttpMethod.POST, "/members").hasAnyAuthority("USER", "ADMIN")
-                        .anyRequest().permitAll()
+                        .requestMatchers(HttpMethod.POST, "/members")
+                        .hasAnyAuthority("USER", "ADMIN")
+                        .anyRequest()
+                        .permitAll()
                 )
                 .formLogin(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)

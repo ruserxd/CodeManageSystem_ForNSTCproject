@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class PasswordBcrypt {
     /**
      * 對原始密碼加密並回傳
-     * */
+     */
     public String encryptPassword(String plainText) {
         String encodedPassword = BCrypt.hashpw(plainText, BCrypt.gensalt());
         log.info("加密後的密碼 {}", encodedPassword);

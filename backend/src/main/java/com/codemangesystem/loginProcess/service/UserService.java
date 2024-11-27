@@ -56,7 +56,8 @@ public class UserService {
         if (testCurrentHave.isPresent()) {
             log.info("Account have {}", testCurrentHave);
 
-            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get().getUserPassword(), userINFO.getUserPassword())) {
+            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get()
+                    .getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
                 return LoginResponse.builder()
