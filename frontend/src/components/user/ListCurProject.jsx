@@ -55,8 +55,9 @@ function ListCurProject(trigger) {
 					bordered
 					dataSource={fetchData}
 					renderItem={(projectName) => (
-						<List.Item>
+						<List.Item key = {projectName}>
 							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
+							<a>edit</a>
 						</List.Item>
 					)}
 					// 讓使用者的體驗增加

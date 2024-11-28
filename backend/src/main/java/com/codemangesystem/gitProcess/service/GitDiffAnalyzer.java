@@ -4,6 +4,8 @@ import com.codemangesystem.gitProcess.model_Data.DiffInfo;
 import com.codemangesystem.gitProcess.model_Data.Files;
 import com.codemangesystem.gitProcess.model_Data.Method;
 import com.codemangesystem.gitProcess.model_Data.Project;
+import com.codemangesystem.gitProcess.model_Git.GitResult;
+import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
@@ -58,7 +60,7 @@ public class GitDiffAnalyzer {
      * @Transactional 確保資料的一致性
      */
     @Transactional
-    public List<Files> analyzeAllCommits(String repoPath) throws GitAPIException, IOException {
+    public GitResult analyzeAllCommits(String repoPath) throws GitAPIException, IOException {
         try {
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(repoPath, ".git");
@@ -66,7 +68,10 @@ public class GitDiffAnalyzer {
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
                 log.error("The specified path does not contain a valid Git repository: {}", repoPath);
-                return Collections.emptyList();
+                return GitResult.builder()
+                                .message("進行 pull 本地端沒有此檔案")
+                                .status(GitStatus.PULL_FAILED)
+                                .build();
             }
 
             // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
@@ -77,14 +82,17 @@ public class GitDiffAnalyzer {
             // 確保至少有一次 commit 紀錄
             if (repository.resolve("HEAD") == null) {
                 log.error("Repository has no commits (No HEAD). Please make an initial commit.");
-                return Collections.emptyList();
+                return GitResult.builder()
+                                .message("進行 pull 沒有 commit 的紀錄")
+                                .status(GitStatus.PULL_FAILED)
+                                .build();
             }
 
             // 最後要存入資料庫內的 Project 物件，並透過 getHeadName 將 Head 的 SHA-1 存入
             Project project = Project.builder()
                                      .projectName(repoPath.substring(repoPath.lastIndexOf('/') + 1))
                                      .files(new ArrayList<>())
-                                     .headRevstr(getHeadName(repository))
+                                     .headRevstr(getHeadSHA1(repository))
                                      .build();
 
             // Git 打開 repository
@@ -109,7 +117,20 @@ public class GitDiffAnalyzer {
             log.info("成功獲取所有 commit diff 的資訊");
             projectRepository.save(project);
 
-            return project.getFiles();
+            log.info("成功將資料分類完成");
+            // 這不代表是錯誤，可能是專案非 Java 檔案
+            if (project.getFiles() == null ||project.getFiles().isEmpty()) {
+                log.warn("No files were analyzed in the repository: {}", repoPath);
+                return GitResult.builder()
+                                .status(GitStatus.CLONE_SUCCESS)
+                                .message("No files were analyzed in the repository: " + repoPath + " 可能是沒有 method 可以分類")
+                                .build();
+            }
+
+            return GitResult.builder()
+                            .status(GitStatus.CLONE_SUCCESS)
+                            .message("成功將資料分類完成")
+                            .build();
         } catch (IOException error) {
             log.error("分析 commits 出現問題 {}", error.getMessage());
             throw new IOException(error);
@@ -237,7 +258,7 @@ public class GitDiffAnalyzer {
     }
 
     // 獲取 Head 的 SHA-1
-    public String getHeadName(Repository repo) throws IOException {
+    public String getHeadSHA1(Repository repo) throws IOException {
         String headRevstr;
         try {
             // Eclipse
@@ -344,7 +365,7 @@ public class GitDiffAnalyzer {
              * 自訂 JavaParser 設定
              * */
             final ParserConfiguration parserConfiguration = new ParserConfiguration();
-            parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
+            parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
 
             JavaParser javaParser = new JavaParser(parserConfiguration);
 

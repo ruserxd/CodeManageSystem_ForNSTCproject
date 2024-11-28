@@ -1,6 +1,5 @@
 package com.codemangesystem.gitProcess.service;
 
-import com.codemangesystem.gitProcess.model_Data.Files;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * 處理有關 Git clone 的操作
@@ -37,7 +35,7 @@ public class GitCloner {
     }
 
     // TODO: 使用者 GitHub 的權限
-
+    // TODO: 出現 pull + commitID
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
@@ -79,24 +77,9 @@ public class GitCloner {
                 log.info("嘗試分類 -> gitDiffAnalyzer");
 
                 // 執行分析專案
-                List<Files> analyzedFiles = gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath);
+                GitResult result = gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath);
 
-                log.info("成功將資料分類完成");
-
-                // 這不代表是錯誤，可能是專案非 Java 檔案
-                if (analyzedFiles == null || analyzedFiles.isEmpty()) {
-                    log.warn("No files were analyzed in the repository: {}", repoINFO.localPath);
-                    return GitResult.builder()
-                                    .status(GitStatus.ANALYSIS_FAILED)
-                                    .message("No files were analyzed in the repository: " + repoINFO.localPath
-                                            + " 可能是沒有 method 可以分類")
-                                    .build();
-                }
-
-                return GitResult.builder()
-                                .status(GitStatus.CLONE_SUCCESS)
-                                .message("成功將資料分類完成")
-                                .build();
+                return result;
             }
         } catch (GitAPIException | RevisionSyntaxException | IOException e) {
             log.error("Failed clone to {}", repoUrl, e);

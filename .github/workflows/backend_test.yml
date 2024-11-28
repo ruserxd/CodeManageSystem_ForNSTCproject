@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ./backend    # 設定所有 run 命令的預設工作目錄
+    
     steps:
-    - name: cd to backend
-      uses: cd backend
-      
     - name: Checkout code
       uses: actions/checkout@v2
 
