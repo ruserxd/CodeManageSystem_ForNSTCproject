@@ -4,11 +4,23 @@ import com.codemangesystem.gitProcess.model_Data.Files;
 import com.codemangesystem.gitProcess.model_Data.Project;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.internal.storage.file.WindowCache;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 獲取 ProjectRepository 的相關資料，(新增、獲取、刪除)
@@ -16,6 +28,8 @@ import java.util.List;
 @Slf4j
 @Service
 public class GetDataBse {
+    private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
+
     private final ProjectRepository projectRepository;
 
     @Autowired
@@ -60,6 +74,8 @@ public class GetDataBse {
             }
 
             projectRepository.delete(project);
+            deleteGitRepository(CLONE_LOCAL_BASE_PATH + projectName);
+            log.info("刪除資料夾 {}", projectName);
             return "Success delete";
         } catch (Exception e) {
             log.error("delete 發生 : {}", String.valueOf(e));
@@ -72,5 +88,22 @@ public class GetDataBse {
      */
     public String getHeadRevstr(String projectName) {
         return projectRepository.findHeadRevstrByProjectName(projectName);
+    }
+
+    /*
+     * 刪除指定位置的資料夾*/
+    public void deleteGitRepository(String repoPath) throws IOException {
+        Repository repo = new FileRepository(repoPath);
+        Git git = new Git(repo);
+        git.getRepository().close();
+
+        // false 時使用 malloc()+read()
+        // 解決來自 : https://stackoverflow.com/questions/19191727/pack-file-from-git-repo-cant-be-deleted-using-file-delete-method
+        WindowCacheConfig config = new WindowCacheConfig();
+        config.setPackedGitMMAP(false);
+        WindowCache.reconfigure(config);
+
+        File file = new File(repoPath);
+        FileUtils.deleteDirectory(file);
     }
 }

@@ -1,4 +1,4 @@
-import { App } from 'antd';
+import { App, Button } from 'antd';
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
@@ -15,15 +15,16 @@ const content = <div style={contentStyle} />;
 
 function ListCurProject(trigger) {
 	const [fetchData, setFetchData] = useState([]);
-	const [loading, setloading] = useState(false);
-	const [erroorJudge, setErrorJudge] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [errorJudge, setErrorJudge] = useState(false);
+	const [successDelete, setSuccessDelete] = useState(false)
 	const { message } = App.useApp();
 
 	// 獲取目前資料庫有的 ProjectNames
 	useEffect(() => {
 		const getProjectNames = async () => {
 			try {
-				setloading(true);
+				setLoading(true);
 				const result = await api.get('/api/getProjectNames');
 
 				if (result.data && result.data.length > 0) {
@@ -36,18 +37,35 @@ function ListCurProject(trigger) {
 				message.error('Error during fetch the ProjectNames: ', err);
 				setErrorJudge(true);
 			} finally {
-				setloading(false);
+				setLoading(false);
 			}
 		};
 
 		getProjectNames();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [trigger]);
+	}, [trigger, successDelete]);
+
+	const deleteData = async (projectName) => {
+		try {
+			setSuccessDelete(false)
+			setLoading(true);
+			await api.get('/api/deleteData', { params: { ProjectName: projectName }});
+
+			message.success(`成功刪除 ${projectName}`);
+		} catch (err) {
+			message.error('Error during delete the ProjectNames: ', err);
+			setErrorJudge(true);
+		} finally {
+			//設置 trigger 當刪除成功呼叫 getProjectName
+			setLoading(false);
+			setSuccessDelete(true)
+		}
+	}
 
 	return (
 		<div>
 			<Title level={2}>Cur Project Names</Title>
-			{erroorJudge ? (
+			{errorJudge ? (
 				<Spin tip="Loading">{content}</Spin>
 			) : (
 				<List
@@ -55,9 +73,9 @@ function ListCurProject(trigger) {
 					bordered
 					dataSource={fetchData}
 					renderItem={(projectName) => (
-						<List.Item key = {projectName}>
+						<List.Item>
 							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
-							<a>edit</a>
+							<Button onClick={() => deleteData(projectName)} loading={loading}>Delete</Button>
 						</List.Item>
 					)}
 					// 讓使用者的體驗增加

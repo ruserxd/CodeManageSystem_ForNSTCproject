@@ -119,7 +119,7 @@ public class GitDiffAnalyzer {
 
             log.info("成功將資料分類完成");
             // 這不代表是錯誤，可能是專案非 Java 檔案
-            if (project.getFiles() == null ||project.getFiles().isEmpty()) {
+            if (project.getFiles() == null || project.getFiles().isEmpty()) {
                 log.warn("No files were analyzed in the repository: {}", repoPath);
                 return GitResult.builder()
                                 .status(GitStatus.CLONE_SUCCESS)

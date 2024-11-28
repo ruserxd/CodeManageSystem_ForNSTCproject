@@ -7,7 +7,7 @@ import { Button, Form, Input, Space } from 'antd';
 
 function CloneGit({ setTrigger }) {
 	const [form] = Form.useForm();
-	const [loading, setloading] = useState(false);
+	const [loading, setLoading] = useState(false);
 	const [cookies] = useCookies(['user']);
 	const { notification, message } = App.useApp();
 
@@ -20,7 +20,7 @@ function CloneGit({ setTrigger }) {
 	};
 
 	const handleFetchData = async (url, commitId) => {
-		setloading(true);
+		setLoading(true);
 		try {
 			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId }));
 
@@ -45,7 +45,7 @@ function CloneGit({ setTrigger }) {
 			showNotification('FetchError', error);
 			console.error('Error during fetch:', error);
 		} finally {
-			setloading(false);
+			setLoading(false);
 		}
 	};
 
