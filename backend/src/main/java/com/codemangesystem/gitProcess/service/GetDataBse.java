@@ -49,7 +49,7 @@ public class GetDataBse {
     /**
      * 透過 ProjectName 刪除 Project 的相關資料
      */
-    public String deleteData(String projectName) {
+    public String deleteDataByProjectName(String projectName) {
         try {
             Project project = projectRepository.findByProjectName(projectName);
 

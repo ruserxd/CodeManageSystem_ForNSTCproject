@@ -40,12 +40,15 @@ public class GitPuller {
                                        .setRemote(DEFAULT_Remote)
                                        .setRemoteBranchName(DEFAULT_BRANCH)
                                        .call();
+
             if (!pullResult.isSuccessful()) {
                 return GitResult.builder()
                                 .message("發生不可預期 Failed pull " + repoINFO.repoName)
                                 .status(GitStatus.PULL_FAILED)
                                 .build();
             }
+
+            // 獲取前一次存放的 Revstr
             String previousHeadRevstr = getDataBse.getHeadRevstr(repoINFO.repoName);
             gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
 
@@ -61,6 +64,4 @@ public class GitPuller {
                             .build();
         }
     }
-
-
 }

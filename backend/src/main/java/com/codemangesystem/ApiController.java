@@ -83,7 +83,7 @@ public class ApiController {
      */
     @GetMapping("/deleteData")
     public String deleteDataByProjectName(@RequestParam("ProjectName") String projectName) {
-        return getDataBse.deleteData(projectName);
+        return getDataBse.deleteDataByProjectName(projectName);
     }
 
     /* 登入系統 */
