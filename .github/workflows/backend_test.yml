@@ -18,11 +18,8 @@ jobs:
       with:
         java-version: '21'
 
-    - name: Set up Maven
-      uses: actions/setup-java@v1
-      with:
-        java-package: maven
-        java-version: '21'
+    - name: Install Maven
+      run: sudo apt-get install -y maven
 
     - name: Install dependencies
       run: mvn install
