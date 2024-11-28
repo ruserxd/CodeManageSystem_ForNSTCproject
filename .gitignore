@@ -32,7 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
-### cloneFile ###
+### cloneFile ###   
 /backend/src/cloneCode/*
 !/backend/src/cloneCode/.gitkeep
 
