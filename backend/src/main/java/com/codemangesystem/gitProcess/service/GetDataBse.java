@@ -97,7 +97,11 @@ public class GetDataBse {
         Git git = new Git(repo);
         git.getRepository().close();
 
+        // JGit 的 Bug
         // false 時使用 malloc()+read()
+        // 重新設置 JGit 在 JVM 中如何處理 Git 文件的緩存
+        // 造成的原因
+        // 問題在於 JVM 的 garbage collection 必須確認映射段不再使用後，才能調用 munmap() 釋放內存映射，這可能造成無法及時釋放。
         // 解決來自 : https://stackoverflow.com/questions/19191727/pack-file-from-git-repo-cant-be-deleted-using-file-delete-method
         WindowCacheConfig config = new WindowCacheConfig();
         config.setPackedGitMMAP(false);
