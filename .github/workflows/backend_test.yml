@@ -12,22 +12,45 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend    # 設定所有 run 命令的預設工作目錄
+        working-directory: ./backend
     
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: test_db
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v1
-      with:
-        java-version: '21'
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
-    - name: Install Maven
-      run: sudo apt-get install -y maven
-
-    - name: Install dependencies
-      run: mvn install
-
-    - name: Run tests
-      run: mvn test -Dtest="com.codemangesystem/**/*Test.java"
+      - name: Run tests
+        run: mvn test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/test_db
+          SPRING_DATASOURCE_USERNAME: test_user
+          SPRING_DATASOURCE_PASSWORD: test_password
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
