@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: cd to backend
+      uses: cd backend
+      
     - name: Checkout code
       uses: actions/checkout@v2
 
