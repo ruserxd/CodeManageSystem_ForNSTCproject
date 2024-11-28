@@ -84,7 +84,7 @@ public class MyPostConstruct {
      */
     public void addSuperAccount() {
         if (myUserRepository.findByUserAccount("123")
-                .isEmpty()) {
+                            .isEmpty()) {
             log.info("加入超級帳號");
             userService.addSuperAccount();
         } else {

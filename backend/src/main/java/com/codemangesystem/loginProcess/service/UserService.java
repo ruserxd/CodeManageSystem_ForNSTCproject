@@ -35,12 +35,12 @@ public class UserService {
             return;
 
         MyUser myUser = MyUser.builder()
-                .userEmail("zz@gmail.com")
-                .userName("Admin")
-                .userAccount("123")
-                .userPassword("123")
-                .userAuthority(UserAuthority.ADMIN)
-                .build();
+                              .userEmail("zz@gmail.com")
+                              .userName("Admin")
+                              .userAccount("123")
+                              .userPassword("123")
+                              .userAuthority(UserAuthority.ADMIN)
+                              .build();
         myUser.setUserPassword(passwordBcrypt.encryptPassword(myUser.getUserPassword()));
 
         myUserRepository.save(myUser);
@@ -57,28 +57,28 @@ public class UserService {
             log.info("Account have {}", testCurrentHave);
 
             if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get()
-                    .getUserPassword(), userINFO.getUserPassword())) {
+                                                                          .getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
                 return LoginResponse.builder()
-                        .message("Email or Password Wrong")
-                        .success(false)
-                        .build();
+                                    .message("Email or Password Wrong")
+                                    .success(false)
+                                    .build();
             }
         } else {
             log.info("No this email");
 
             return LoginResponse.builder()
-                    .message("Email or Password Wrong")
-                    .success(false)
-                    .build();
+                                .message("Email or Password Wrong")
+                                .success(false)
+                                .build();
         }
 
         return LoginResponse.builder()
-                .message("Success")
-                .success(true)
-                .myUser(testCurrentHave.get())
-                .build();
+                            .message("Success")
+                            .success(true)
+                            .myUser(testCurrentHave.get())
+                            .build();
     }
 
     /**
@@ -93,23 +93,23 @@ public class UserService {
                 log.info("email, account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
 
                 return RegisterResponse.builder()
-                        .success(false)
-                        .message("email, account is taken")
-                        .build();
+                                       .success(false)
+                                       .message("email, account is taken")
+                                       .build();
             } else if (emailExist) {
                 log.info("email is taken {}", myUser.getUserEmail());
 
                 return RegisterResponse.builder()
-                        .success(false)
-                        .message("email is taken")
-                        .build();
+                                       .success(false)
+                                       .message("email is taken")
+                                       .build();
             } else if (accountExist) {
                 log.info("account is taken {}", myUser.getUserAccount());
 
                 return RegisterResponse.builder()
-                        .success(false)
-                        .message("account is taken")
-                        .build();
+                                       .success(false)
+                                       .message("account is taken")
+                                       .build();
             }
 
             // 都沒問題開始加入帳號進入資料庫
@@ -122,16 +122,16 @@ public class UserService {
             log.info("Register success");
 
             return RegisterResponse.builder()
-                    .success(true)
-                    .message("success register")
-                    .build();
+                                   .success(true)
+                                   .message("success register")
+                                   .build();
         } catch (Exception e) {
             log.info("Register failed {}", e.getMessage());
 
             return RegisterResponse.builder()
-                    .success(false)
-                    .message("Failed " + e.getMessage())
-                    .build();
+                                   .success(false)
+                                   .message("Failed " + e.getMessage())
+                                   .build();
         }
     }
 

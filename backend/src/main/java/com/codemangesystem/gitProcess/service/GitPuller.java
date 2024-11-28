@@ -37,28 +37,28 @@ public class GitPuller {
         try (Git git = Git.open(new File(repoINFO.localPath))) {
             log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
             PullResult pullResult = git.pull()
-                    .setRemote(DEFAULT_Remote)
-                    .setRemoteBranchName(DEFAULT_BRANCH)
-                    .call();
+                                       .setRemote(DEFAULT_Remote)
+                                       .setRemoteBranchName(DEFAULT_BRANCH)
+                                       .call();
             if (!pullResult.isSuccessful()) {
                 return GitResult.builder()
-                        .message("發生不可預期 Failed pull " + repoINFO.repoName)
-                        .status(GitStatus.PULL_FAILED)
-                        .build();
+                                .message("發生不可預期 Failed pull " + repoINFO.repoName)
+                                .status(GitStatus.PULL_FAILED)
+                                .build();
             }
             String previousHeadRevstr = getDataBse.getHeadRevstr(repoINFO.repoName);
             gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
 
             return GitResult.builder()
-                    .message("Success pull " + repoINFO.repoName)
-                    .status(GitStatus.PULL_SUCCESS)
-                    .build();
+                            .message("Success pull " + repoINFO.repoName)
+                            .status(GitStatus.PULL_SUCCESS)
+                            .build();
         } catch (IOException | GitAPIException e) {
             log.error("Pull 發生 {}", String.valueOf(e));
             return GitResult.builder()
-                    .message("Error when pull")
-                    .status(GitStatus.PULL_FAILED)
-                    .build();
+                            .message("Error when pull")
+                            .status(GitStatus.PULL_FAILED)
+                            .build();
         }
     }
 

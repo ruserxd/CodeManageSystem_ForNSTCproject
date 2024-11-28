@@ -43,9 +43,9 @@ public class GitCloner {
      */
     public GitResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
         RepoINFO repoINFO = RepoINFO.builder()
-                .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
-                .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
-                .build();
+                                    .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
+                                    .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
+                                    .build();
 
         log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
@@ -58,33 +58,39 @@ public class GitCloner {
             //TODO: Refactor 到這邊
             log.info("Cloning to {}", repoUrl);
 
-            CloneCommand cloneCommand = Git.cloneRepository()
-                    .setURI(repoUrl)
-                    .setDirectory(new File(repoINFO.localPath));
+            CloneCommand command = Git.cloneRepository()
+                                      .setURI(repoUrl)
+                                      .setDirectory(new File(repoINFO.localPath));
+            // UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(login, password);
+            // clone.setCredentialsProvider(user);
+            // clone.call()
 
             // 將資料 clone 下來，try 達到 close
             // 只是要透過 Git 物件將資料 clone 下來
             // clone 成功接續將資料分類存入資料庫內
-            try (Git git = cloneCommand.call();) {
+            try (Git git = command.call()) {
                 if (!Objects.equals(commitId, "HEAD")) {
                     log.info("commitId 為 {}", commitId);
                     try {
                         ObjectId specifyCommit = git.getRepository()
-                                .resolve(commitId);
+                                                    .resolve(commitId);
                         if (specifyCommit == null) {
                             log.error("Commit {} not found in repository", commitId);
                             return GitResult.builder()
-                                    .status(GitStatus.CLONE_FAILED)
-                                    .message("指定的 Commit ID 不存在: " + commitId)
-                                    .build();
+                                            .status(GitStatus.CLONE_FAILED)
+                                            .message("指定的 Commit ID 不存在: " + commitId)
+                                            .build();
                         }
 
                         git.checkout()
-                                .setName(specifyCommit.getName())
-                                .call();
+                           .setName(specifyCommit.getName())
+                           .call();
                         log.info("成功 checked out commit: {}", commitId);
                     } catch (RevisionSyntaxException | IOException | GitAPIException e) {
-                        throw new RuntimeException(e);
+                        return GitResult.builder()
+                                        .status(GitStatus.CLONE_FAILED)
+                                        .message("Clone 指定 commitId 發生 " + e)
+                                        .build();
                     }
                 }
 
@@ -95,23 +101,23 @@ public class GitCloner {
                 if (analyzedFiles == null || analyzedFiles.isEmpty()) {
                     log.warn("No files were analyzed in the repository: {}", repoINFO.localPath);
                     return GitResult.builder()
-                            .status(GitStatus.ANALYSIS_FAILED)
-                            .message("No files were analyzed in the repository: " + repoINFO.localPath)
-                            .build();
+                                    .status(GitStatus.ANALYSIS_FAILED)
+                                    .message("No files were analyzed in the repository: " + repoINFO.localPath)
+                                    .build();
                 }
 
                 log.info("成功將資料分類完成");
                 return GitResult.builder()
-                        .status(GitStatus.CLONE_SUCCESS)
-                        .message("成功將資料分類完成")
-                        .build();
+                                .status(GitStatus.CLONE_SUCCESS)
+                                .message("成功將資料分類完成")
+                                .build();
             }
         } catch (GitAPIException e) {
             log.error("Failed clone to {}", repoUrl, e);
             return GitResult.builder()
-                    .status(GitStatus.CLONE_FAILED)
-                    .message("Failed to clone " + e)
-                    .build();
+                            .status(GitStatus.CLONE_FAILED)
+                            .message("Failed to clone " + e)
+                            .build();
         }
     }
 }

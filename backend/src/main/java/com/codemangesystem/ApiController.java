@@ -46,7 +46,7 @@ public class ApiController {
         } catch (GitAPIException | IOException e) {
             log.error("Error cloning or accessing repository: ", e);
             return ResponseEntity.status(500)
-                    .body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
+                                 .body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
         }
     }
 
