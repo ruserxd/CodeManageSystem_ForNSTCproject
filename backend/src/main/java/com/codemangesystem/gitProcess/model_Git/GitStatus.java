@@ -8,6 +8,5 @@ public enum GitStatus {
     PULL_SUCCESS,
     PULL_FAILED,
     CLONE_FAILED,
-    ANALYSIS_FAILED,
-    ERROR
+    ANALYSIS_FAILED
 }

@@ -36,13 +36,16 @@ public class ApiController {
     }
 
     /* Git 資料處理
-     *  負責 clone 存儲庫的 api
+     * 負責 clone 存儲庫的 api
      * 並將資料做分類存入資料庫前端沒有輸入的話，commId 預設為 HEAD*/
     @PostMapping("/fetch-repo")
-    public ResponseEntity<?> fetchRepository(@RequestParam("url") String url, @RequestParam("commitId") String commitId) {
+    public ResponseEntity<?> fetchRepository(@RequestParam("url") String url,
+                                             @RequestParam("commitId") String commitId,
+                                             @RequestParam("userId") String userId) {
         try {
             log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
-            return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId));
+            log.info("UserId {}", userId);
+            return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId, Long.valueOf(userId)));
         } catch (GitAPIException | IOException e) {
             log.error("Error cloning or accessing repository: ", e);
             return ResponseEntity.status(500)

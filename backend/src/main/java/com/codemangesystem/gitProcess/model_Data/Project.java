@@ -1,5 +1,8 @@
 package com.codemangesystem.gitProcess.model_Data;
 
+import com.codemangesystem.loginProcess.model_user.MyUser;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,4 +36,10 @@ public class Project {
             orphanRemoval = true
     )
     private List<Files> files;
+
+    @JsonIgnore
+    @JsonBackReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
+    private MyUser user;
 }

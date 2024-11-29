@@ -3,6 +3,8 @@ package com.codemangesystem.gitProcess.service;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
+import com.codemangesystem.loginProcess.model_user.MyUser;
+import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * 處理有關 Git clone 的操作
@@ -27,24 +30,28 @@ public class GitCloner {
 
     private final GitDiffAnalyzer gitDiffAnalyzer;
     private final GitPuller gitPuller;
-
+    private final MyUserRepository myUserRepository;
     @Autowired
-    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, GitPuller gitPuller) {
+    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, GitPuller gitPuller, MyUserRepository myUserRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.gitPuller = gitPuller;
+        this.myUserRepository = myUserRepository;
     }
 
     // TODO: 使用者 GitHub 的權限
     // TODO: 出現 pull + commitID
-
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
-    public GitResult cloneRepository(String repoUrl, String commitId) throws GitAPIException, IOException {
+    public GitResult cloneRepository(String repoUrl, String commitId, Long userId) throws GitAPIException, IOException {
+        log.info("Clone by {} {} {}", repoUrl, commitId, userId);
         RepoINFO repoINFO = RepoINFO.builder()
                                     .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
                                     .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
                                     .build();
+
+        MyUser user = myUserRepository.findByUserId(userId)
+                                      .orElse(null);
 
         log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
@@ -78,9 +85,7 @@ public class GitCloner {
                 log.info("嘗試分類 -> gitDiffAnalyzer");
 
                 // 執行分析專案
-                GitResult result = gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath);
-
-                return result;
+                return gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath, user);
             }
         } catch (GitAPIException | RevisionSyntaxException | IOException e) {
             log.error("Failed clone to {}", repoUrl, e);
