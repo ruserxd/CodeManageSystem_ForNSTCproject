@@ -7,6 +7,7 @@ import com.codemangesystem.gitProcess.model_Data.Project;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
+import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -60,7 +61,7 @@ public class GitDiffAnalyzer {
      * @Transactional 確保資料的一致性
      */
     @Transactional
-    public GitResult analyzeAllCommits(String repoPath) throws GitAPIException, IOException {
+    public GitResult analyzeAllCommits(String repoPath, MyUser user) throws GitAPIException, IOException {
         try {
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(repoPath, ".git");
@@ -93,6 +94,7 @@ public class GitDiffAnalyzer {
                                      .projectName(repoPath.substring(repoPath.lastIndexOf('/') + 1))
                                      .files(new ArrayList<>())
                                      .headRevstr(getHeadSHA1(repository))
+                                     .user(user)
                                      .build();
 
             // Git 打開 repository

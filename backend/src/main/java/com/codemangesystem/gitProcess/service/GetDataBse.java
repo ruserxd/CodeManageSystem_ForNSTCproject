@@ -9,18 +9,14 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryNotEmptyException;
-import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 獲取 ProjectRepository 的相關資料，(新增、獲取、刪除)
@@ -38,10 +34,12 @@ public class GetDataBse {
     }
 
     /**
-     * 獲取目前資料庫內的所有 ProjectName
+     * 獲取目前 User 資料庫內所有的 ProjectName
      */
-    public List<String> getAllProjectNames() {
-        return projectRepository.findAllProjectNames();
+    public List<String> getUserProjects(String userId) {
+        List<String> userProjectNames = projectRepository.findProjectNameByUserId(Long.valueOf(userId));
+        log.info("{} 獲得 {}",userId , userProjectNames);
+        return  userProjectNames;
     }
 
     /**

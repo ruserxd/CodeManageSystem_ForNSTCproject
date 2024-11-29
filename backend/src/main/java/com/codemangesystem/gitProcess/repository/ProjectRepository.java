@@ -12,8 +12,8 @@ import java.util.List;
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     // 找尋所有的 projectName
-    @Query("SELECT p.projectName FROM Project p")
-    List<String> findAllProjectNames();
+    @Query("SELECT p.projectName FROM Project p WHERE p.user.userId = :userId")
+    List<String> findProjectNameByUserId(Long userId);
 
     // 透過 projectName 找尋 Project 物件
     Project findByProjectName(String projectName);

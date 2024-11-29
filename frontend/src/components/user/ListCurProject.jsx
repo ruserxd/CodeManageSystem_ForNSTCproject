@@ -4,16 +4,20 @@ import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
 import { Link } from 'react-router-dom';
 import { Typography, List, Spin } from 'antd';
-
-const { Title } = Typography;
-const contentStyle = {
-	padding: 50,
-	background: 'rgba(0, 0, 0, 0.05)',
-	borderRadius: 4
-};
-const content = <div style={contentStyle} />;
+import { useCookies } from 'react-cookie';
 
 function ListCurProject(trigger) {
+	const [cookies] = useCookies(['user']);
+
+
+	const { Title } = Typography;
+	const contentStyle = {
+		padding: 50,
+		background: 'rgba(0, 0, 0, 0.05)',
+		borderRadius: 4
+	};
+	const content = <div style={contentStyle} />;
+
 	const [fetchData, setFetchData] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [errorJudge, setErrorJudge] = useState(false);
@@ -25,7 +29,14 @@ function ListCurProject(trigger) {
 		const getProjectNames = async () => {
 			try {
 				setLoading(true);
-				const result = await api.get('/api/getProjectNames');
+
+				let Id = cookies.user.myUser.userId;
+				console.log("嘗試獲取 %s 的所有 ProjectName", Id);
+				const result = await api.get('/api/getProjectNames' , {
+					params: {
+						userId: Id
+					}
+				});
 
 				if (result.data && result.data.length > 0) {
 					setFetchData(result.data);
@@ -87,7 +98,7 @@ function ListCurProject(trigger) {
 }
 
 ListCurProject.propTypes = {
-	trigger: PropTypes.number.isRequired
+	trigger: PropTypes.number.isRequired,
 };
 
 export default ListCurProject;

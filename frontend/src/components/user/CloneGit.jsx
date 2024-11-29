@@ -1,6 +1,6 @@
 import { App } from 'antd';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import React, {useState } from 'react';
 import api from '../../api/axiosConfig';
 import { useCookies } from 'react-cookie';
 import { Button, Form, Input, Space } from 'antd';
@@ -22,7 +22,9 @@ function CloneGit({ setTrigger }) {
 	const handleFetchData = async (url, commitId) => {
 		setLoading(true);
 		try {
-			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId }));
+			const userId =  cookies.user.myUser.userId;
+			console.log('Submitting UserID: ', userId);
+			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId, userId}));
 
 			const { status, message } = response.data;
 
@@ -54,8 +56,8 @@ function CloneGit({ setTrigger }) {
 		if (values.url.trim()) {
 			console.log('Submitting URL:', values.url);
 			if (values.commitId === undefined) {
+				console.log('Submitting CommitID: Head');
 				handleFetchData(values.url, 'HEAD');
-				console.log('Submitting CommitID: ', values.commitId);
 			} else {
 				console.log('Submitting CommitID: ', values.commitId);
 				handleFetchData(values.url, values.commitId);

@@ -1,10 +1,15 @@
 package com.codemangesystem.loginProcess.model_user;
 
+import com.codemangesystem.gitProcess.model_Data.Files;
+import com.codemangesystem.gitProcess.model_Data.Method;
+import com.codemangesystem.gitProcess.model_Data.Project;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -32,4 +37,12 @@ public class MyUser {
 
     @Column(name = "user_authority")
     private UserAuthority userAuthority;
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.PERSIST,
+            fetch = FetchType.EAGER,
+            orphanRemoval = true
+    )
+    private List<Project> projects;
 }
