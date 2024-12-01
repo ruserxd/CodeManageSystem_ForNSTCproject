@@ -51,10 +51,10 @@ public class GitPuller {
             // 獲取前一次存放的 Revstr
             String previousHeadRevstr = getDataBse.getHeadRevstr(repoINFO.repoName);
             return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
-        } catch (IOException | GitAPIException e) {
-            log.error("Pull 發生 {}", String.valueOf(e));
+        } catch (IOException | GitAPIException error) {
+            log.error("Pull 發生 {}", String.valueOf(error));
             return GitResult.builder()
-                            .message("Error when pull " + e)
+                            .message("Pull 發生 " + error)
                             .status(GitStatus.PULL_FAILED)
                             .build();
         }

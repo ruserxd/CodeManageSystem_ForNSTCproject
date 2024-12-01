@@ -40,6 +40,7 @@ public class GitCloner {
 
     // TODO: 使用者 GitHub 的權限
     // TODO: 出現 pull + commitID
+
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
@@ -91,7 +92,7 @@ public class GitCloner {
             log.error("Failed clone to {}", repoUrl, e);
             return GitResult.builder()
                             .status(GitStatus.CLONE_FAILED)
-                            .message("Failed to clone " + e)
+                            .message("Clone 發生 " + e)
                             .build();
         }
     }

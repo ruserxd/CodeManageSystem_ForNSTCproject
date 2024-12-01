@@ -68,7 +68,7 @@ public class GitDiffAnalyzer {
             if (!gitDir.exists() || !gitDir.isDirectory()) {
                 log.error("The specified path does not contain a valid Git repository: {}", repoPath);
                 return GitResult.builder()
-                                .message("進行 pull 本地端沒有此檔案")
+                                .message("分析時，本地端沒有此檔案")
                                 .status(GitStatus.ANALYSIS_FAILED)
                                 .build();
             }
@@ -82,7 +82,7 @@ public class GitDiffAnalyzer {
             if (repository.resolve("HEAD") == null) {
                 log.error("Repository has no commits (No HEAD). Please make an initial commit.");
                 return GitResult.builder()
-                                .message("進行分析時沒有 commit 的紀錄")
+                                .message("分析時，此資料沒有 commit 的紀錄")
                                 .status(GitStatus.ANALYSIS_FAILED)
                                 .build();
             }
@@ -123,7 +123,7 @@ public class GitDiffAnalyzer {
                 log.warn("No files were analyzed in the repository: {}", repoPath);
                 return GitResult.builder()
                                 .status(GitStatus.CLONE_SUCCESS)
-                                .message("No files were analyzed in the repository: " + repoPath + " 可能是沒有 method 可以分類")
+                                .message("在 " + repoPath + " 未出現可分析方法，可能是沒有分法可以分類")
                                 .build();
             }
 
@@ -135,13 +135,13 @@ public class GitDiffAnalyzer {
             log.error("分析 commits 出現問題 {}", error.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("發生 " +  error)
+                            .message("分析時，發生 " + error)
                             .build();
         } catch (GitAPIException error) {
             log.error("嘗試使用 Git 出現問題 {}", error.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("發生 " +  error)
+                            .message("分析時，發生 " + error)
                             .build();
         }
     }
@@ -158,6 +158,10 @@ public class GitDiffAnalyzer {
             // 確保本地端有這個專案
             if (!gitDir.exists() || !gitDir.isDirectory()) {
                 log.error("The specified path does not contain a valid Git repository at {}", repoPath);
+                return GitResult.builder()
+                                .message("部分分析時，本地端沒有此檔案")
+                                .status(GitStatus.ANALYSIS_FAILED)
+                                .build();
             }
 
             // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
@@ -193,19 +197,19 @@ public class GitDiffAnalyzer {
 
             return GitResult.builder()
                             .status(GitStatus.PULL_SUCCESS)
-                            .message("Pull success")
+                            .message("成功 Pull 並更新資料")
                             .build();
         } catch (IOException e) {
             log.error("分析 part commits 出現問題 {}", e.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("發生 " +  e)
+                            .message("部分分析時，發生 " + e)
                             .build();
         } catch (GitAPIException e) {
             log.error("分析 part commits 時，嘗試使用 Git 出現問題 {}", e.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("發生 " +  e)
+                            .message("部分分析時，發生 " + e)
                             .build();
         }
     }
@@ -268,8 +272,7 @@ public class GitDiffAnalyzer {
                 }
             }
         } catch (IOException e) {
-            log.error("當獲取 {} 出現 {}", commit.getId()
-                                                 .getName(), e.getMessage());
+            log.error("當獲取 {} 出現 {}", commit.getId().getName(), e.getMessage());
             throw new IOException(e);
         }
     }
