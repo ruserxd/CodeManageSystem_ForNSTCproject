@@ -27,21 +27,22 @@ function CloneGit({ setTrigger }) {
 			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId, userId}));
 
 			const { status, message } = response.data;
-
+			console.log(response.data);
 			console.log(status);
+			console.log(message);
 			if (status === 'CLONE_SUCCESS' || status === 'PULL_SUCCESS') {
-				showNotification(status);
+				showNotification(status, message);
 				form.resetFields();
 
 				if (setTrigger) {
 					setTrigger();
 				}
 			} else if (status === 'ANALYSIS_FAILED') {
-				showNotification(message);
+				showNotification(status, message);
 			} else if (status === 'PULL_FAILED' || status === 'CLONE_FAILED') {
-				showNotification(status);
+				showNotification(status, message);
 			} else {
-				showNotification(status);
+				showNotification(status, message);
 			}
 		} catch (error) {
 			showNotification('FetchError', error);
