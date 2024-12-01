@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * 處理有關 Git clone 的操作
@@ -31,6 +30,7 @@ public class GitCloner {
     private final GitDiffAnalyzer gitDiffAnalyzer;
     private final GitPuller gitPuller;
     private final MyUserRepository myUserRepository;
+
     @Autowired
     public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, GitPuller gitPuller, MyUserRepository myUserRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
@@ -58,7 +58,7 @@ public class GitCloner {
             // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳 GitResult
             if (GitFunction.isCloned(repoINFO.localPath)) {
                 log.info("Repository already exists at: {}", repoINFO.localPath);
-                return gitPuller.renewLocalRepository(repoINFO);
+                return gitPuller.pullLocalRepository(repoINFO);
             }
 
             log.info("Cloning to {}", repoUrl);

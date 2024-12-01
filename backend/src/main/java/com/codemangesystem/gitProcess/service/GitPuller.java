@@ -33,7 +33,7 @@ public class GitPuller {
     /**
      * pull 更新本地端資料，並且更新本地端資料庫內容
      */
-    public GitResult renewLocalRepository(RepoINFO repoINFO) {
+    public GitResult pullLocalRepository(RepoINFO repoINFO) {
         try (Git git = Git.open(new File(repoINFO.localPath))) {
             log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
             PullResult pullResult = git.pull()
@@ -50,16 +50,11 @@ public class GitPuller {
 
             // 獲取前一次存放的 Revstr
             String previousHeadRevstr = getDataBse.getHeadRevstr(repoINFO.repoName);
-            gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
-
-            return GitResult.builder()
-                            .message("Success pull " + repoINFO.repoName)
-                            .status(GitStatus.PULL_SUCCESS)
-                            .build();
+            return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
         } catch (IOException | GitAPIException e) {
             log.error("Pull 發生 {}", String.valueOf(e));
             return GitResult.builder()
-                            .message("Error when pull")
+                            .message("Error when pull " + e)
                             .status(GitStatus.PULL_FAILED)
                             .build();
         }

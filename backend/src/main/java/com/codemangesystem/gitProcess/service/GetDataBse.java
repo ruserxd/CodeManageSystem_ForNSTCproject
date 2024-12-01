@@ -34,12 +34,12 @@ public class GetDataBse {
     }
 
     /**
-     * 獲取目前 User 資料庫內所有的 ProjectName
+     * 獲取目前 User 內所有的 ProjectName
      */
     public List<String> getUserProjects(String userId) {
         List<String> userProjectNames = projectRepository.findProjectNameByUserId(Long.valueOf(userId));
-        log.info("{} 獲得 {}",userId , userProjectNames);
-        return  userProjectNames;
+        log.info("{} 獲得 {}", userId, userProjectNames);
+        return userProjectNames;
     }
 
     /**

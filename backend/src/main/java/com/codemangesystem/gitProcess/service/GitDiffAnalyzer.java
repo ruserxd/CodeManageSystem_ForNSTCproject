@@ -42,8 +42,6 @@ import java.util.*;
 /**
  * 獲取 Git 每段 commit 的方法差異
  */
-// TODO: 當執行 git pull 時，我們應該先記錄下之前的 Head SHA-1 -> clone 更新 -> Head -> 前 Head SHA-1
-// TODO: 更新 analyzeCommit 兩個方法
 @Slf4j
 @Service
 public class GitDiffAnalyzer {
@@ -71,7 +69,7 @@ public class GitDiffAnalyzer {
                 log.error("The specified path does not contain a valid Git repository: {}", repoPath);
                 return GitResult.builder()
                                 .message("進行 pull 本地端沒有此檔案")
-                                .status(GitStatus.PULL_FAILED)
+                                .status(GitStatus.ANALYSIS_FAILED)
                                 .build();
             }
 
@@ -84,8 +82,8 @@ public class GitDiffAnalyzer {
             if (repository.resolve("HEAD") == null) {
                 log.error("Repository has no commits (No HEAD). Please make an initial commit.");
                 return GitResult.builder()
-                                .message("進行 pull 沒有 commit 的紀錄")
-                                .status(GitStatus.PULL_FAILED)
+                                .message("進行分析時沒有 commit 的紀錄")
+                                .status(GitStatus.ANALYSIS_FAILED)
                                 .build();
             }
 
@@ -135,10 +133,16 @@ public class GitDiffAnalyzer {
                             .build();
         } catch (IOException error) {
             log.error("分析 commits 出現問題 {}", error.getMessage());
-            throw new IOException(error);
+            return GitResult.builder()
+                            .status(GitStatus.ANALYSIS_FAILED)
+                            .message("發生 " +  error)
+                            .build();
         } catch (GitAPIException error) {
             log.error("嘗試使用 Git 出現問題 {}", error.getMessage());
-            throw new IllegalStateException(error);
+            return GitResult.builder()
+                            .status(GitStatus.ANALYSIS_FAILED)
+                            .message("發生 " +  error)
+                            .build();
         }
     }
 
@@ -146,7 +150,7 @@ public class GitDiffAnalyzer {
      * 如果執行 pull 只需要分析部分的 commit 即可
      */
     @Transactional
-    public void analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
+    public GitResult analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
         try {
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(repoPath, ".git");
@@ -186,12 +190,23 @@ public class GitDiffAnalyzer {
                     getCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
+
+            return GitResult.builder()
+                            .status(GitStatus.PULL_SUCCESS)
+                            .message("Pull success")
+                            .build();
         } catch (IOException e) {
-            log.error("分析 commits 出現問題 {}", e.getMessage());
-            throw new IOException(e);
+            log.error("分析 part commits 出現問題 {}", e.getMessage());
+            return GitResult.builder()
+                            .status(GitStatus.ANALYSIS_FAILED)
+                            .message("發生 " +  e)
+                            .build();
         } catch (GitAPIException e) {
-            log.error("嘗試使用 Git 出現問題 {}", e.getMessage());
-            throw new IllegalStateException(e);
+            log.error("分析 part commits 時，嘗試使用 Git 出現問題 {}", e.getMessage());
+            return GitResult.builder()
+                            .status(GitStatus.ANALYSIS_FAILED)
+                            .message("發生 " +  e)
+                            .build();
         }
     }
 
