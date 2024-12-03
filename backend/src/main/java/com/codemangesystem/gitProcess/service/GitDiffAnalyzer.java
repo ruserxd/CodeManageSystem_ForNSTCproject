@@ -110,7 +110,7 @@ public class GitDiffAnalyzer {
 
                     List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
-                    getCommitDiff(diffs, project, git, commit, previousCommit);
+                    setCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
 
@@ -171,6 +171,10 @@ public class GitDiffAnalyzer {
             String projectName = repoPath.substring(repoPath.lastIndexOf('/') + 1);
             Project project = projectRepository.findByProjectName(projectName);
 
+            // update user project git head
+            project.setHeadRevstr(getHeadSHA1(repository));
+            projectRepository.save(project);
+
             // Git 打開 repository
             try (Git git = new Git(repository)) {
                 log.info("開始獲取 [{}] 上的 commit 的差異資訊", repoPath);
@@ -191,7 +195,7 @@ public class GitDiffAnalyzer {
 
                     List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
-                    getCommitDiff(diffs, project, git, commit, previousCommit);
+                    setCommitDiff(diffs, project, git, commit, previousCommit);
                 }
             }
 
@@ -239,7 +243,7 @@ public class GitDiffAnalyzer {
      * 獲取 新版本, 舊版本的差異，並將 diff 資料放入 project 內
      * diffs -> 新版本, 舊版本的差異資訊
      */
-    public void getCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
+    public void setCommitDiff(List<DiffEntry> diffs, Project project, Git git, RevCommit commit, RevCommit previousCommit) throws IOException {
         try {
             // 完整執行此次 commit 檔案有 diff 的
             for (DiffEntry diff : diffs) {

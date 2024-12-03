@@ -72,6 +72,7 @@ public class GitCloner {
 
             log.info("Cloning to {}", repoUrl);
 
+            //TODO: 若本地端已經有存儲庫，那不再次進行 clone
             CloneCommand command = Git.cloneRepository()
                                       .setURI(repoUrl)
                                       .setDirectory(new File(repoINFO.localPath));
