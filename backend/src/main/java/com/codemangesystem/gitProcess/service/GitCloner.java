@@ -3,6 +3,7 @@ package com.codemangesystem.gitProcess.service;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
+import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * 處理有關 Git clone 的操作
@@ -28,18 +30,18 @@ public class GitCloner {
     private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
     private final GitDiffAnalyzer gitDiffAnalyzer;
-    private final GitPuller gitPuller;
     private final MyUserRepository myUserRepository;
+    private final ProjectRepository projectRepository;
 
     @Autowired
-    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, GitPuller gitPuller, MyUserRepository myUserRepository) {
+    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, ProjectRepository projectRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
-        this.gitPuller = gitPuller;
         this.myUserRepository = myUserRepository;
+        this.projectRepository = projectRepository;
     }
 
+    // TODO: 當出現同一個使用者要 clone 相同檔案的狀況處理
     // TODO: 使用者 GitHub 的權限
-    // TODO: 出現 pull + commitID
 
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
@@ -56,10 +58,16 @@ public class GitCloner {
 
         log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
-            // 如果本地資料夾已經存在， pull 更新本地端資料並且直接回傳 GitResult
-            if (GitFunction.isCloned(repoINFO.localPath)) {
-                log.info("Repository already exists at: {}", repoINFO.localPath);
-                return gitPuller.pullLocalRepository(repoINFO);
+            // 如果 user 資料庫內已經存在， 直接回傳 GitResult
+            List<String> projectNames = projectRepository.findProjectNameByUserId(userId);
+            for (String projectName : projectNames) {
+                if (projectName.equals(repoINFO.repoName)) {
+                    log.info("Repository already exists at: {}", repoINFO.localPath);
+                    return GitResult.builder()
+                                    .message("此帳戶已經有 clone 過 " + projectName)
+                                    .status(GitStatus.CLONE_FAILED)
+                                    .build();
+                }
             }
 
             log.info("Cloning to {}", repoUrl);

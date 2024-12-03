@@ -1,6 +1,6 @@
 import { App } from 'antd';
 import PropTypes from 'prop-types';
-import React, {useState } from 'react';
+import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
 import { useCookies } from 'react-cookie';
 import { Button, Form, Input, Space } from 'antd';
@@ -15,16 +15,20 @@ function CloneGit({ setTrigger }) {
 		notification.info({
 			message: `${status}`,
 			description: `${cookies.user.myUser.userName}  ${message}`,
-			placement: 'bottomLeft'
+			placement: 'bottomLeft',
+			showProgress: true
 		});
 	};
 
 	const handleFetchData = async (url, commitId) => {
 		setLoading(true);
 		try {
-			const userId =  cookies.user.myUser.userId;
+			const userId = cookies.user.myUser.userId;
 			console.log('Submitting UserID: ', userId);
-			const response = await api.post('/api/fetch-repo', new URLSearchParams({ url, commitId, userId}));
+			const response = await api.post(
+				'/api/fetch-repo',
+				new URLSearchParams({ url, commitId, userId })
+			);
 
 			const { status, message } = response.data;
 			console.log(response.data);

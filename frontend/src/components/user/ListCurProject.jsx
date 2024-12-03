@@ -9,7 +9,6 @@ import { useCookies } from 'react-cookie';
 function ListCurProject(trigger) {
 	const [cookies] = useCookies(['user']);
 
-
 	const { Title } = Typography;
 	const contentStyle = {
 		padding: 50,
@@ -72,7 +71,7 @@ function ListCurProject(trigger) {
 		}
 	};
 
-	const pullData = async(projectName) => {
+	const pullData = async (projectName) => {
 		try {
 			setSuccessDelete(false);
 			setLoading(true);
@@ -87,7 +86,7 @@ function ListCurProject(trigger) {
 			setLoading(false);
 			setSuccessDelete(true);
 		}
-	}
+	};
 
 	return (
 		<div>
@@ -102,23 +101,17 @@ function ListCurProject(trigger) {
 					renderItem={(projectName) => (
 						<List.Item
 							actions={[
-								<Button
-									key="pull"
-									onClick={() => pullData(projectName)}
-									loading={loading}
-								>
+								<Button key="pull" onClick={() => pullData(projectName)} loading={loading}>
 									Pull
 								</Button>,
 								<Button
 									key="delete"
 									onClick={() => deleteData(projectName)}
 									loading={loading}
-									danger
-								>
+									danger>
 									Delete
 								</Button>
-							]}
-						>
+							]}>
 							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
 						</List.Item>
 					)}

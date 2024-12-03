@@ -1,7 +1,5 @@
 package com.codemangesystem.loginProcess.model_user;
 
-import com.codemangesystem.gitProcess.model_Data.Files;
-import com.codemangesystem.gitProcess.model_Data.Method;
 import com.codemangesystem.gitProcess.model_Data.Project;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

@@ -82,8 +82,9 @@ public class ApiController {
      * 對當前的資料庫進行 pull
      */
     private static final String LOCAL_BASE_PATH = "src/cloneCode/";
+
     @GetMapping("/pullProject")
-    public ResponseEntity<?> pullByprojectName(@RequestParam("projectName") String projectName){
+    public ResponseEntity<?> pullByprojectName(@RequestParam("projectName") String projectName) {
         RepoINFO info = RepoINFO.builder()
                                 .repoName(projectName)
                                 .localPath(LOCAL_BASE_PATH + projectName)
@@ -91,7 +92,6 @@ public class ApiController {
         GitResult gitResult = gitPuller.pullLocalRepository(info);
         return new ResponseEntity<>(gitResult, HttpStatus.OK);
     }
-
 
     /**
      * 透過 ProjectName 獲取 Files 資料
