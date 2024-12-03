@@ -1,8 +1,11 @@
 package com.codemangesystem;
 
 import com.codemangesystem.gitProcess.model_Data.Files;
+import com.codemangesystem.gitProcess.model_Git.GitResult;
+import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
 import com.codemangesystem.gitProcess.service.GetDataBse;
 import com.codemangesystem.gitProcess.service.GitCloner;
+import com.codemangesystem.gitProcess.service.GitPuller;
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
 import com.codemangesystem.loginProcess.model_response.LoginResponse;
 import com.codemangesystem.loginProcess.model_response.RegisterResponse;
@@ -27,12 +30,14 @@ public class ApiController {
     private final GitCloner gitCloner;
     private final GetDataBse getDataBse;
     private final UserService userService;
+    private final GitPuller gitPuller;
 
     @Autowired
-    public ApiController(GitCloner gitCloner, GetDataBse getDataBse, UserService userService) {
+    public ApiController(GitCloner gitCloner, GetDataBse getDataBse, UserService userService, GitPuller gitPuller) {
         this.gitCloner = gitCloner;
         this.getDataBse = getDataBse;
         this.userService = userService;
+        this.gitPuller = gitPuller;
     }
 
     /* Git 資料處理
@@ -74,6 +79,21 @@ public class ApiController {
     }
 
     /**
+     * 對當前的資料庫進行 pull
+     */
+    private static final String LOCAL_BASE_PATH = "src/cloneCode/";
+    @GetMapping("/pullProject")
+    public ResponseEntity<?> pullByprojectName(@RequestParam("projectName") String projectName){
+        RepoINFO info = RepoINFO.builder()
+                                .repoName(projectName)
+                                .localPath(LOCAL_BASE_PATH + projectName)
+                                .build();
+        GitResult gitResult = gitPuller.pullLocalRepository(info);
+        return new ResponseEntity<>(gitResult, HttpStatus.OK);
+    }
+
+
+    /**
      * 透過 ProjectName 獲取 Files 資料
      */
     @PostMapping("/getData")
@@ -86,7 +106,7 @@ public class ApiController {
      * 刪除 by ProjectName 的資料
      */
     @GetMapping("/deleteData")
-    public String deleteDataByProjectName(@RequestParam("ProjectName") String projectName) {
+    public String deleteDataByProjectName(@RequestParam("projectName") String projectName) {
         return getDataBse.deleteDataByProjectName(projectName);
     }
 

@@ -21,7 +21,7 @@ function ListCurProject(trigger) {
 	const [fetchData, setFetchData] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [errorJudge, setErrorJudge] = useState(false);
-	const [successDelete, setSuccessDelete] = useState(false)
+	const [successDelete, setSuccessDelete] = useState(false);
 	const { message } = App.useApp();
 
 	// 獲取目前資料庫有的 ProjectNames
@@ -31,8 +31,8 @@ function ListCurProject(trigger) {
 				setLoading(true);
 
 				let Id = cookies.user.myUser.userId;
-				console.log("嘗試獲取 %s 的所有 ProjectName", Id);
-				const result = await api.get('/api/getProjectNames' , {
+				console.log('嘗試獲取 %s 的所有 ProjectName', Id);
+				const result = await api.get('/api/getProjectNames', {
 					params: {
 						userId: Id
 					}
@@ -58,10 +58,9 @@ function ListCurProject(trigger) {
 
 	const deleteData = async (projectName) => {
 		try {
-			setSuccessDelete(false)
+			setSuccessDelete(false);
 			setLoading(true);
-			await api.get('/api/deleteData', { params: { ProjectName: projectName }});
-
+			await api.get('/api/deleteData', { params: { projectName: projectName } });
 			message.success(`成功刪除 ${projectName}`);
 		} catch (err) {
 			message.error('Error during delete the ProjectNames: ', err);
@@ -69,7 +68,24 @@ function ListCurProject(trigger) {
 		} finally {
 			//設置 trigger 當刪除成功呼叫 getProjectName
 			setLoading(false);
-			setSuccessDelete(true)
+			setSuccessDelete(true);
+		}
+	};
+
+	const pullData = async(projectName) => {
+		try {
+			setSuccessDelete(false);
+			setLoading(true);
+			const result = await api.get('/api/pullProject', { params: { projectName: projectName } });
+			console.log(result);
+			message.success(result.data.message);
+		} catch (err) {
+			message.error('Error during pull the ProjectNames: ', err);
+			setErrorJudge(true);
+		} finally {
+			//設置 trigger 當刪除成功呼叫 getProjectName
+			setLoading(false);
+			setSuccessDelete(true);
 		}
 	}
 
@@ -84,12 +100,28 @@ function ListCurProject(trigger) {
 					bordered
 					dataSource={fetchData}
 					renderItem={(projectName) => (
-						<List.Item>
+						<List.Item
+							actions={[
+								<Button
+									key="pull"
+									onClick={() => pullData(projectName)}
+									loading={loading}
+								>
+									Pull
+								</Button>,
+								<Button
+									key="delete"
+									onClick={() => deleteData(projectName)}
+									loading={loading}
+									danger
+								>
+									Delete
+								</Button>
+							]}
+						>
 							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
-							<Button onClick={() => deleteData(projectName)} loading={loading}>Delete</Button>
 						</List.Item>
 					)}
-					// 讓使用者的體驗增加
 					loading={loading}
 				/>
 			)}
@@ -98,7 +130,7 @@ function ListCurProject(trigger) {
 }
 
 ListCurProject.propTypes = {
-	trigger: PropTypes.number.isRequired,
+	trigger: PropTypes.number.isRequired
 };
 
 export default ListCurProject;
