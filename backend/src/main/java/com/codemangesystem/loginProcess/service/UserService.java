@@ -41,7 +41,7 @@ public class UserService {
                               .userPassword("123")
                               .userAuthority(UserAuthority.ADMIN)
                               .build();
-        myUser.setUserPassword(passwordBcrypt.encryptPassword(myUser.getUserPassword()));
+        myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
 
         myUserRepository.save(myUser);
     }
@@ -56,8 +56,8 @@ public class UserService {
         if (testCurrentHave.isPresent()) {
             log.info("Account have {}", testCurrentHave);
 
-            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get()
-                                                                          .getUserPassword(), userINFO.getUserPassword())) {
+            if (!passwordBcrypt.isPasswordSame(testCurrentHave.get()
+                                                              .getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
                 return LoginResponse.builder()
@@ -114,7 +114,7 @@ public class UserService {
 
             // 都沒問題開始加入帳號進入資料庫
             // 為密碼加密處理 bcrypt
-            myUser.setUserPassword(passwordBcrypt.encryptPassword(myUser.getUserPassword()));
+            myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
             // 設定權限
             myUser.setUserAuthority(UserAuthority.OWNER);
 
