@@ -5,7 +5,6 @@ import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import com.codemangesystem.loginProcess.service.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -22,11 +21,10 @@ import static org.apache.tomcat.util.http.fileupload.FileUtils.deleteDirectory;
 public class MyPostConstruct {
     public static String path = "src/cloneCode";
 
-    ProjectRepository projectRepository;
-    UserService userService;
-    MyUserRepository myUserRepository;
+    private final ProjectRepository projectRepository;
+    private final UserService userService;
+    private final MyUserRepository myUserRepository;
 
-    @Autowired
     public MyPostConstruct(ProjectRepository projectRepository, UserService userService, MyUserRepository myUserRepository) {
         this.projectRepository = projectRepository;
         this.userService = userService;

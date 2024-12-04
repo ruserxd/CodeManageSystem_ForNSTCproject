@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -24,7 +23,6 @@ public class GitPuller {
     private final GetDataBse getDataBse;
     private final GitDiffAnalyzer gitDiffAnalyzer;
 
-    @Autowired
     public GitPuller(GetDataBse getDataBse, GitDiffAnalyzer gitDiffAnalyzer) {
         this.getDataBse = getDataBse;
         this.gitDiffAnalyzer = gitDiffAnalyzer;

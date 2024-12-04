@@ -7,7 +7,6 @@ import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.model_user.UserAuthority;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -19,7 +18,6 @@ public class UserService {
     private final MyUserRepository myUserRepository;
     private final PasswordBcrypt passwordBcrypt;
 
-    @Autowired
     public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt) {
         this.myUserRepository = myUserRepository;
         this.passwordBcrypt = passwordBcrypt;

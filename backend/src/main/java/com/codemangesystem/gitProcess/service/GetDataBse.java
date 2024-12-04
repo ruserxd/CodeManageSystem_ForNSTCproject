@@ -10,7 +10,6 @@ import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -28,7 +27,6 @@ public class GetDataBse {
 
     private final ProjectRepository projectRepository;
 
-    @Autowired
     private GetDataBse(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }

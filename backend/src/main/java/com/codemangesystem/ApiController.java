@@ -13,7 +13,6 @@ import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +31,6 @@ public class ApiController {
     private final UserService userService;
     private final GitPuller gitPuller;
 
-    @Autowired
     public ApiController(GitCloner gitCloner, GetDataBse getDataBse, UserService userService, GitPuller gitPuller) {
         this.gitCloner = gitCloner;
         this.getDataBse = getDataBse;

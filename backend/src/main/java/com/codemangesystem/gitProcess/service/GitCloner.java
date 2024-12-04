@@ -12,7 +12,6 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.RevisionSyntaxException;
 import org.eclipse.jgit.lib.ObjectId;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -33,7 +32,6 @@ public class GitCloner {
     private final MyUserRepository myUserRepository;
     private final ProjectRepository projectRepository;
 
-    @Autowired
     public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, ProjectRepository projectRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.myUserRepository = myUserRepository;
