@@ -74,9 +74,8 @@ public class GitDiffAnalyzer {
             }
 
             // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
-            Repository repository = new RepositoryBuilder()
-                    .setGitDir(gitDir)
-                    .build();
+            Repository repository = new RepositoryBuilder().setGitDir(gitDir)
+                                                           .build();
 
             // 確保至少有一次 commit 紀錄
             if (repository.resolve("HEAD") == null) {
