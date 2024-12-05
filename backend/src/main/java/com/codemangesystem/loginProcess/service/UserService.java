@@ -1,8 +1,7 @@
 package com.codemangesystem.loginProcess.service;
 
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.LoginResponse;
-import com.codemangesystem.loginProcess.model_response.RegisterResponse;
+import com.codemangesystem.loginProcess.model_response.sessionResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.model_user.UserAuthority;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
@@ -28,8 +27,8 @@ public class UserService {
      */
     public void addSuperAccount() {
         // 確定目前資料庫內沒有超級帳號
-        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount("123");
-        if (testCurrentHave.isPresent())
+        Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount("123");
+        if (myUserInDataBase.isPresent())
             return;
 
         MyUser myUser = MyUser.builder()
@@ -47,67 +46,75 @@ public class UserService {
     /**
      * 用於登入，檢查使用者資訊
      */
-    public LoginResponse checkUser(LoginINFO userINFO) {
-        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(userINFO.getUserAccount());
-        log.info(userINFO.getUserAccount());
+    public sessionResponse checkUser(LoginINFO userINFO) {
+        Optional<MyUser> myUser = myUserRepository.findByUserAccount(userINFO.getUserAccount());
 
-        if (testCurrentHave.isPresent()) {
-            log.info("Account have {}", testCurrentHave);
+        if (myUser.isPresent()) {
+            log.info("Account have {}", myUser);
 
-            if (!passwordBcrypt.isPasswordSame(testCurrentHave.get()
+            if (!passwordBcrypt.isPasswordSame(myUser.get()
                                                               .getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
-                return LoginResponse.builder()
-                                    .message("Email or Password Wrong")
-                                    .success(false)
-                                    .build();
+                return sessionResponse.builder()
+                                      .message("Email or Password Wrong")
+                                      .success(false)
+                                      .build();
             }
         } else {
             log.info("No this email");
 
-            return LoginResponse.builder()
-                                .message("Email or Password Wrong")
-                                .success(false)
-                                .build();
+            return sessionResponse.builder()
+                                  .message("Email or Password Wrong")
+                                  .success(false)
+                                  .build();
         }
 
-        return LoginResponse.builder()
-                            .message("Success")
-                            .success(true)
-                            .myUser(testCurrentHave.get())
-                            .build();
+        log.info("Check Success");
+        return sessionResponse.builder()
+                              .message("Success")
+                              .success(true)
+                              .myUser(myUser.get())
+                              .build();
     }
 
     /**
      * 新增 User
      */
-    public RegisterResponse userRegister(MyUser myUser) {
+    public sessionResponse userRegister(MyUser myUser) {
+        if (myUser == null) {
+            log.info("傳入資料為 null");
+            return sessionResponse.builder()
+                                  .success(false)
+                                  .message("User is null")
+                                  .build();
+        }
+
         try {
             boolean emailExist = ifEmailExist(myUser);
             boolean accountExist = ifAccountExist(myUser);
             // 判斷 email, account 有沒有存在
             if (emailExist && accountExist) {
-                log.info("email, account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
+                log.info("Email, Account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
 
-                return RegisterResponse.builder()
-                                       .success(false)
-                                       .message("email, account is taken")
-                                       .build();
+                return sessionResponse.builder()
+                                      .success(false)
+                                      .message("Email, Account is taken")
+                                      .build();
             } else if (emailExist) {
-                log.info("email is taken {}", myUser.getUserEmail());
+                log.info("Email is taken {}", myUser.getUserEmail());
 
-                return RegisterResponse.builder()
-                                       .success(false)
-                                       .message("email is taken")
-                                       .build();
+                return sessionResponse.builder()
+                                      .success(false)
+                                      .message("Email is taken")
+                                      .build();
             } else if (accountExist) {
-                log.info("account is taken {}", myUser.getUserAccount());
+                log.info("Account is taken {}", myUser.getUserAccount());
 
-                return RegisterResponse.builder()
-                                       .success(false)
-                                       .message("account is taken")
-                                       .build();
+                return sessionResponse.builder()
+                                      .success(false)
+                                      .message("Account is taken")
+                                      .build();
             }
 
             // 都沒問題開始加入帳號進入資料庫
@@ -119,17 +126,17 @@ public class UserService {
             myUserRepository.save(myUser);
             log.info("Register success");
 
-            return RegisterResponse.builder()
-                                   .success(true)
-                                   .message("success register")
-                                   .build();
+            return sessionResponse.builder()
+                                  .success(true)
+                                  .message("Success register")
+                                  .build();
         } catch (Exception e) {
             log.info("Register failed {}", e.getMessage());
 
-            return RegisterResponse.builder()
-                                   .success(false)
-                                   .message("Failed " + e.getMessage())
-                                   .build();
+            return sessionResponse.builder()
+                                  .success(false)
+                                  .message("Failed " + e.getMessage())
+                                  .build();
         }
     }
 
@@ -137,15 +144,15 @@ public class UserService {
      * 判斷是否有重複的 email
      */
     public boolean ifEmailExist(MyUser myUser) {
-        Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(myUser.getUserEmail());
-        return testCurrentHave.isPresent();
+        Optional<MyUser> myUserInDataBase = myUserRepository.findByUserEmail(myUser.getUserEmail());
+        return myUserInDataBase.isPresent();
     }
 
     /**
      * 判斷是否有重複的 account
      */
     public boolean ifAccountExist(MyUser myUser) {
-        Optional<MyUser> testCurrentHave = myUserRepository.findByUserAccount(myUser.getUserAccount());
-        return testCurrentHave.isPresent();
+        Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount(myUser.getUserAccount());
+        return myUserInDataBase.isPresent();
     }
 }

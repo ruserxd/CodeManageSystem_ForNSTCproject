@@ -7,8 +7,7 @@ import com.codemangesystem.gitProcess.service.GetDataBse;
 import com.codemangesystem.gitProcess.service.GitCloner;
 import com.codemangesystem.gitProcess.service.GitPuller;
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.LoginResponse;
-import com.codemangesystem.loginProcess.model_response.RegisterResponse;
+import com.codemangesystem.loginProcess.model_response.sessionResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +81,7 @@ public class ApiController {
     private static final String LOCAL_BASE_PATH = "src/cloneCode/";
 
     @GetMapping("/pullProject")
-    public ResponseEntity<?> pullByprojectName(@RequestParam("projectName") String projectName) {
+    public ResponseEntity<?> pullByProjectName(@RequestParam("projectName") String projectName) {
         RepoINFO info = RepoINFO.builder()
                                 .repoName(projectName)
                                 .localPath(LOCAL_BASE_PATH + projectName)
@@ -111,19 +110,19 @@ public class ApiController {
     /* 登入系統 */
     /* 登入 api */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginINFO loginINFO) {
+    public ResponseEntity<sessionResponse> login(@RequestBody LoginINFO loginINFO) {
         log.info("嘗試登入 使用者: {}", loginINFO);
-        LoginResponse loginResponse = userService.checkUser(loginINFO);
-        return new ResponseEntity<>(loginResponse, HttpStatus.OK);
+        sessionResponse sessionResponse = userService.checkUser(loginINFO);
+        return new ResponseEntity<>(sessionResponse, HttpStatus.OK);
     }
 
     /**
      * 註冊
      */
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody MyUser myUser) {
+    public ResponseEntity<sessionResponse> register(@RequestBody MyUser myUser) {
         log.info("嘗試註冊");
-        RegisterResponse registerResult = userService.userRegister(myUser);
+        sessionResponse registerResult = userService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 

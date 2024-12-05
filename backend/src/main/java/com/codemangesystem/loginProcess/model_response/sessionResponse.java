@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Builder
 @Data
-public class LoginResponse {
+public class sessionResponse {
     boolean success;
     String message;
     MyUser myUser;
