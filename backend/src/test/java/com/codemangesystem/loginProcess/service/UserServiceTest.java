@@ -29,11 +29,32 @@ class UserServiceTest {
         userService = new UserService(myUserRepository, passwordBcrypt);
     }
 
-    @Test
-    @DisplayName("測試加入超級帳號")
-    void addSuperAccountTest() {
-        userService.addSuperAccount();
+    @Nested
+    @DisplayName("測試 addSuperAccount()")
+    class addSuperAccountTest {
+        @Test
+        @DisplayName("測試加入超級帳號")
+        void addAccountTest() {
+            userService.addSuperAccount();
+        }
+
+        @Test
+        @DisplayName("已存在超級帳號")
+        void isSuperAccountExistTest() {
+            MyUser superAccount = MyUser.builder()
+                                        .userEmail("zz@gmail.com")
+                                        .userName("Admin")
+                                        .userAccount("123")
+                                        .userPassword("123")
+                                        .userAuthority(UserAuthority.ADMIN)
+                                        .build();
+            Mockito.when(myUserRepository.findByUserAccount("123"))
+                   .thenReturn(Optional.ofNullable(superAccount));
+
+            userService.addSuperAccount();
+        }
     }
+
 
     @Nested
     @DisplayName("測試 checkUser()")
@@ -132,8 +153,8 @@ class UserServiceTest {
         void accountAndEmailExistTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
-                    .thenReturn(Optional.ofNullable(myUser));
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+                   .thenReturn(Optional.ofNullable(myUser));
 
             sessionResponse result = userService.userRegister(myUser);
             sessionResponse except = sessionResponse.builder()
@@ -148,7 +169,7 @@ class UserServiceTest {
         void emailExistTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.ofNullable(myUser));
 
             sessionResponse result = userService.userRegister(myUser);
@@ -164,7 +185,7 @@ class UserServiceTest {
         void AccountExistTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             sessionResponse result = userService.userRegister(myUser);
@@ -180,7 +201,7 @@ class UserServiceTest {
         void successRegisterTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             sessionResponse result = userService.userRegister(myUser);
@@ -196,7 +217,7 @@ class UserServiceTest {
         void muUserIsNullTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             myUser = null;
@@ -213,7 +234,7 @@ class UserServiceTest {
         void myUserRepositoryReturnNullTest() {
             Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(null);
-            Mockito.when( myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             sessionResponse result = userService.userRegister(myUser);

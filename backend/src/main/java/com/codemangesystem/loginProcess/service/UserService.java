@@ -28,8 +28,10 @@ public class UserService {
     public void addSuperAccount() {
         // 確定目前資料庫內沒有超級帳號
         Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount("123");
-        if (myUserInDataBase.isPresent())
+        if (myUserInDataBase.isPresent()) {
+            log.info("已存在超級帳號 {}", myUserInDataBase);
             return;
+        }
 
         MyUser myUser = MyUser.builder()
                               .userEmail("zz@gmail.com")
@@ -41,6 +43,7 @@ public class UserService {
         myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
 
         myUserRepository.save(myUser);
+        log.info("成功加入超級帳號");
     }
 
     /**
