@@ -14,12 +14,13 @@ class PasswordBcryptTest {
         passwordBcrypt = new PasswordBcrypt();
     }
 
+    /** 測試產出的 Hash 能夠驗證原始的密碼為正確 */
     @Test
     @DisplayName("測試 Bcrypt 加密和密碼驗證")
     void test() {
         String password = "password123@";
-        String encryptPassword = passwordBcrypt.encryptText(password);
+        String hashed = passwordBcrypt.encryptText(password);
 
-        assertTrue(passwordBcrypt.isPasswordSame(encryptPassword, password));
+        assertTrue(passwordBcrypt.isPasswordSame(hashed, password));
     }
 }

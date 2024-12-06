@@ -14,15 +14,15 @@ public class PasswordBcrypt {
      * 對原始密碼加密並回傳
      */
     public String encryptText(String plainText) {
-        String encryptPassword = BCrypt.hashpw(plainText, BCrypt.gensalt());
-        log.info("加密後的密碼 {}", encryptPassword);
-        return encryptPassword;
+        String hashed = BCrypt.hashpw(plainText, BCrypt.gensalt());
+        log.info("加密後的密碼 {}", hashed);
+        return hashed;
     }
 
     /**
      * 確定輸入的密碼與資料庫的密碼是否相同
      */
-    public boolean isPasswordSame(String encryptPassword, String userInputPassword) {
-        return BCrypt.checkpw(userInputPassword, encryptPassword);
+    public boolean isPasswordSame(String hashed, String userInputPassword) {
+        return BCrypt.checkpw(userInputPassword, hashed);
     }
 }

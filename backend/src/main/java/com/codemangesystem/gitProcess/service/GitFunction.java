@@ -1,10 +1,13 @@
 package com.codemangesystem.gitProcess.service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 
 /**
  * Git 部分經常使用的 static 方法
  */
+@Slf4j
 public class GitFunction {
     /**
      * 從儲存庫 URL 中取得專案名稱

@@ -1,6 +1,6 @@
 package com.codemangesystem;
 
-import com.codemangesystem.gitProcess.model_Data.Files;
+import com.codemangesystem.gitProcess.model_DataBase.Files;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
 import com.codemangesystem.gitProcess.service.GetDataBse;

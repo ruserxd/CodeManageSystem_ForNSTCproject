@@ -3,7 +3,7 @@ package com.codemangesystem.gitProcess.service;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
-import com.codemangesystem.gitProcess.repository.ProjectRepository;
+import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -30,12 +30,14 @@ public class GitCloner {
 
     private final GitDiffAnalyzer gitDiffAnalyzer;
     private final MyUserRepository myUserRepository;
-    private final ProjectRepository projectRepository;
+    private final GitPuller gitPuller;
+    private final PersonalRepository personalRepository;
 
-    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, ProjectRepository projectRepository) {
+    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, GitPuller gitPuller, PersonalRepository personalRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.myUserRepository = myUserRepository;
-        this.projectRepository = projectRepository;
+        this.gitPuller = gitPuller;
+        this.personalRepository = personalRepository;
     }
 
     // TODO: 當出現同一個使用者要 clone 相同檔案的狀況處理
@@ -57,7 +59,7 @@ public class GitCloner {
         log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
             // 如果 user 資料庫內已經存在， 直接回傳 GitResult
-            List<String> projectNames = projectRepository.findProjectNameByUserId(userId);
+            List<String> projectNames = personalRepository.findProjectNameByUserId(userId);
             for (String projectName : projectNames) {
                 if (projectName.equals(repoINFO.repoName)) {
                     log.info("Repository already exists at: {}", repoINFO.localPath);
@@ -70,15 +72,24 @@ public class GitCloner {
 
             log.info("Cloning to {}", repoUrl);
 
-            //TODO: 若本地端已經有存儲庫，那不再次進行 clone
-            CloneCommand command = Git.cloneRepository()
-                                      .setURI(repoUrl)
-                                      .setDirectory(new File(repoINFO.localPath));
+            // 當本地端有該儲存庫的處理
+            if (GitFunction.isCloned(repoINFO.localPath)) {
+                log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
+                log.info("改執行 pull");
+                GitResult result = gitPuller.pullLocalRepository(repoINFO);
+                if (result.getStatus() == GitStatus.PULL_SUCCESS)
+                    result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+                return result;
+            }
+
             // 未來會用到的使用者資訊加入
             // UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(login, password);
             // clone.setCredentialsProvider(user);
             // clone.call()
 
+            CloneCommand command = Git.cloneRepository()
+                                      .setURI(repoUrl)
+                                      .setDirectory(new File(repoINFO.localPath));
             // 將資料 clone 下來，try 達到 close
             // 只是要透過 Git 物件將資料 clone 下來
             // clone 成功接續將資料分類存入資料庫內
@@ -104,7 +115,7 @@ public class GitCloner {
         }
     }
 
-    // 切換到指定的 commitId，遇上問題會直接拋出例外
+    // 切換到指定的 commitId
     public void checkToCommitId(Git git, String commitId) throws RevisionSyntaxException, IOException, GitAPIException {
         ObjectId specifyCommit = git.getRepository()
                                     .resolve(commitId);

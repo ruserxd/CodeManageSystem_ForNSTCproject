@@ -1,4 +1,4 @@
-package com.codemangesystem.gitProcess.model_Data;
+package com.codemangesystem.gitProcess.model_DataBase;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;

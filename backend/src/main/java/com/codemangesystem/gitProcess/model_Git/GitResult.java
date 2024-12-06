@@ -10,5 +10,5 @@ import lombok.Data;
 @Data
 public class GitResult {
     private final GitStatus status;
-    private final String message;
+    private String message;
 }

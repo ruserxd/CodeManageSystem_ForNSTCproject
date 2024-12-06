@@ -1,11 +1,9 @@
 package com.codemangesystem.gitProcess.service;
 
-import com.codemangesystem.gitProcess.model_Data.DiffInfo;
-import com.codemangesystem.gitProcess.model_Data.Files;
-import com.codemangesystem.gitProcess.model_Data.Method;
-import com.codemangesystem.gitProcess.model_Data.Project;
+import com.codemangesystem.gitProcess.model_DataBase.*;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
+import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.github.difflib.DiffUtils;
@@ -46,10 +44,12 @@ import java.util.*;
 @Service
 public class GitDiffAnalyzer {
     private final ProjectRepository projectRepository;
+    private final PersonalRepository personalRepository;
 
     @Autowired
-    public GitDiffAnalyzer(ProjectRepository projectRepository) {
+    public GitDiffAnalyzer(ProjectRepository projectRepository, PersonalRepository personalRepository) {
         this.projectRepository = projectRepository;
+        this.personalRepository = personalRepository;
     }
 
     /**
@@ -91,8 +91,10 @@ public class GitDiffAnalyzer {
                                      .projectName(repoPath.substring(repoPath.lastIndexOf('/') + 1))
                                      .files(new ArrayList<>())
                                      .headRevstr(getHeadSHA1(repository))
-                                     .user(user)
                                      .build();
+
+            // Head 的 headRevstr
+            String firstCommitSHA = "";
 
             // Git 打開 repository
             try (Git git = new Git(repository)) {
@@ -101,9 +103,16 @@ public class GitDiffAnalyzer {
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log()
                                                  .call();
+                for (RevCommit commit : commits) {
+                    firstCommitSHA = commit.getName();
+                    break;
+                }
 
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
+                    String message = commit.getFullMessage();
+                    log.info(message);
+
                     // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
@@ -114,7 +123,16 @@ public class GitDiffAnalyzer {
             }
 
             log.info("成功獲取所有 commit diff 的資訊");
+            log.info("將資料存入 Project 資料庫內");
             projectRepository.save(project);
+
+            log.info("將資料存入 personal_repository 資料庫內");
+            PersonalINFO personalINFO = PersonalINFO.builder()
+                                                    .user(user)
+                                                    .project(project)
+                                                    .headRevstr(firstCommitSHA)
+                                                    .build();
+            personalRepository.save(personalINFO);
 
             log.info("成功將資料分類完成");
             // 這不代表是錯誤，可能是專案非 Java 檔案
@@ -122,7 +140,7 @@ public class GitDiffAnalyzer {
                 log.warn("No files were analyzed in the repository: {}", repoPath);
                 return GitResult.builder()
                                 .status(GitStatus.CLONE_SUCCESS)
-                                .message("在 " + repoPath + " 未出現可分析方法，可能是沒有分法可以分類")
+                                .message("在 " + repoPath + " 未出現可分析方法，可能是沒有方法可以分類")
                                 .build();
             }
 

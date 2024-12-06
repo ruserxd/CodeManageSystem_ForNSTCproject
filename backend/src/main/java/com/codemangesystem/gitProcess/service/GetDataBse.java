@@ -1,7 +1,8 @@
 package com.codemangesystem.gitProcess.service;
 
-import com.codemangesystem.gitProcess.model_Data.Files;
-import com.codemangesystem.gitProcess.model_Data.Project;
+import com.codemangesystem.gitProcess.model_DataBase.Files;
+import com.codemangesystem.gitProcess.model_DataBase.Project;
+import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
@@ -26,16 +27,22 @@ public class GetDataBse {
     private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
     private final ProjectRepository projectRepository;
+    private final PersonalRepository personalRepository;
 
-    private GetDataBse(ProjectRepository projectRepository) {
+    private GetDataBse(ProjectRepository projectRepository, PersonalRepository personalRepository) {
         this.projectRepository = projectRepository;
+        this.personalRepository = personalRepository;
     }
 
     /**
      * 獲取目前 User 內所有的 ProjectName
      */
     public List<String> getUserProjects(String userId) {
-        List<String> userProjectNames = projectRepository.findProjectNameByUserId(Long.valueOf(userId));
+        List<Long> projectId = personalRepository.findProjectIdByUserId(Long.valueOf(userId));
+        List<String> userProjectNames = new ArrayList<>();
+        for (Long id : projectId) {
+            userProjectNames.add(projectRepository.findProjectNameByProjectId(id));
+        }
         log.info("{} 獲得 {}", userId, userProjectNames);
         return userProjectNames;
     }
@@ -70,7 +77,9 @@ public class GetDataBse {
             }
 
             projectRepository.delete(project);
-            deleteGitRepository(CLONE_LOCAL_BASE_PATH + projectName);
+
+            // TODO: 刪除資料夾的條件必須為沒有任何一個使用者需要這份檔案
+            //deleteGitRepository(CLONE_LOCAL_BASE_PATH + projectName);
             log.info("刪除資料夾 {}", projectName);
             return "Success delete";
         } catch (Exception e) {

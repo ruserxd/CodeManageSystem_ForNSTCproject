@@ -7,6 +7,7 @@ import com.codemangesystem.loginProcess.model_user.UserAuthority;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -48,15 +49,17 @@ public class UserService {
 
     /**
      * 用於登入，檢查使用者資訊
+     * 加入 @Transactional(readOnly = true)
+     * 避免 Lazy 的設定，導致讀取完後，JPA 自動關閉 session 的情況
      */
+    @Transactional(readOnly = true)
     public sessionResponse checkUser(LoginINFO userINFO) {
         Optional<MyUser> myUser = myUserRepository.findByUserAccount(userINFO.getUserAccount());
 
         if (myUser.isPresent()) {
-            log.info("Account have {}", myUser);
+            log.info("Account have {}", myUser.get());
 
-            if (!passwordBcrypt.isPasswordSame(myUser.get()
-                                                              .getUserPassword(), userINFO.getUserPassword())) {
+            if (!passwordBcrypt.isPasswordSame(myUser.get().getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
                 return sessionResponse.builder()
