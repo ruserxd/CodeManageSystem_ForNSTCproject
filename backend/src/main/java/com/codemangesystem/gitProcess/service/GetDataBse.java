@@ -1,6 +1,7 @@
 package com.codemangesystem.gitProcess.service;
 
 import com.codemangesystem.gitProcess.model_DataBase.Files;
+import com.codemangesystem.gitProcess.model_DataBase.PersonalINFO;
 import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
@@ -64,23 +65,37 @@ public class GetDataBse {
     }
 
     /**
-     * 透過 ProjectName 刪除 Project 的相關資料
+     * 透過 ProjectName , userId 刪除 personalRepository 使用者 Project 的相關資料
+     * 且若無使用者使用該 Project 本地端的也進行刪除
      */
-    public String deleteDataByProjectName(String projectName) {
+    public String deleteDataByProjectName(String projectName, String userId) {
         try {
-            Project project = projectRepository.findByProjectName(projectName);
+            PersonalINFO personalINFO = personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId))
+                                                          .orElse(null);
 
             // 沒找到相對應的 ProjectName 情況
-            if (project == null) {
-                log.warn("No project found with name: {}", projectName);
-                return "No project found to delete";
+            if (personalINFO == null) {
+                log.warn("No  personalINFO found with name: {}", projectName);
+                return "No personalINFO found to delete";
             }
 
-            projectRepository.delete(project);
+            Project project = personalINFO.getProject();
 
-            // TODO: 刪除資料夾的條件必須為沒有任何一個使用者需要這份檔案
-            //deleteGitRepository(CLONE_LOCAL_BASE_PATH + projectName);
-            log.info("刪除資料夾 {}", projectName);
+            // 刪除 user 與該 project 的關係
+            personalRepository.delete(personalINFO);
+
+            // 刪除資料夾的條件必須為沒有任何一個使用者需要這份檔案
+            List<Long> userIds = personalRepository.findProjectIdByProjectName(projectName);
+            log.info("目前使用此專案的有 {}", userIds);
+            if (userIds.isEmpty()) {
+                // 刪除 Project 資料表的
+                projectRepository.delete(project);
+
+                // 刪除本地端的資料夾
+                deleteGitRepository(CLONE_LOCAL_BASE_PATH + projectName);
+                log.info("刪除資料夾 {}", projectName);
+            }
+
             return "Success delete";
         } catch (Exception e) {
             log.error("delete 發生 : {}", String.valueOf(e));

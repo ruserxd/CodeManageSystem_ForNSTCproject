@@ -2,7 +2,7 @@ package com.codemangesystem;
 
 import com.codemangesystem.gitProcess.model_DataBase.Files;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
-import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
+import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
 import com.codemangesystem.gitProcess.service.GetDataBse;
 import com.codemangesystem.gitProcess.service.GitCloner;
 import com.codemangesystem.gitProcess.service.GitPuller;
@@ -82,10 +82,10 @@ public class ApiController {
 
     @GetMapping("/pullProject")
     public ResponseEntity<?> pullByProjectName(@RequestParam("projectName") String projectName) {
-        RepoINFO info = RepoINFO.builder()
-                                .repoName(projectName)
-                                .localPath(LOCAL_BASE_PATH + projectName)
-                                .build();
+        RepositoryINFO info = RepositoryINFO.builder()
+                                            .repoName(projectName)
+                                            .localPath(LOCAL_BASE_PATH + projectName)
+                                            .build();
         GitResult gitResult = gitPuller.pullLocalRepository(info);
         return new ResponseEntity<>(gitResult, HttpStatus.OK);
     }
@@ -103,8 +103,8 @@ public class ApiController {
      * 刪除 by ProjectName 的資料
      */
     @GetMapping("/deleteData")
-    public String deleteDataByProjectName(@RequestParam("projectName") String projectName) {
-        return getDataBse.deleteDataByProjectName(projectName);
+    public String deleteDataByProjectName(@RequestParam("projectName") String projectName, @RequestParam("userId") String userId) {
+        return getDataBse.deleteDataByProjectName(projectName, userId);
     }
 
     /* 登入系統 */

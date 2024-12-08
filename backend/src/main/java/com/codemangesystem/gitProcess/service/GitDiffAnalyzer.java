@@ -169,6 +169,8 @@ public class GitDiffAnalyzer {
     @Transactional
     public GitResult analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
         try {
+            log.info("部分分析 {} {}", repoPath, oldHeadRevstr);
+
             // 路徑上該專案的 .git 檔案
             File gitDir = new File(repoPath, ".git");
 
@@ -202,10 +204,14 @@ public class GitDiffAnalyzer {
 
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
+                    String message = commit.getFullMessage();
+                    String name = commit.getName();
+                    log.info("{} {}", message, name);
+
                     // 當 commit 走過，break 發生
-                    if (commit.getName()
-                              .equals(oldHeadRevstr))
+                    if (commit.getName().equals(oldHeadRevstr)) {
                         break;
+                    }
 
                     // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;

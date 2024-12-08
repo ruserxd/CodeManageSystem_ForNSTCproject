@@ -1,9 +1,12 @@
 package com.codemangesystem.gitProcess.service;
 
+import com.codemangesystem.gitProcess.model_DataBase.PersonalINFO;
+import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
-import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
+import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
 import com.codemangesystem.gitProcess.repository.PersonalRepository;
+import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -11,12 +14,16 @@ import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.RevisionSyntaxException;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 處理有關 Git clone 的操作
@@ -32,12 +39,14 @@ public class GitCloner {
     private final MyUserRepository myUserRepository;
     private final GitPuller gitPuller;
     private final PersonalRepository personalRepository;
+    private final ProjectRepository projectRepository;
 
-    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, GitPuller gitPuller, PersonalRepository personalRepository) {
+    public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository, GitPuller gitPuller, PersonalRepository personalRepository, ProjectRepository projectRepository) {
         this.gitDiffAnalyzer = gitDiffAnalyzer;
         this.myUserRepository = myUserRepository;
         this.gitPuller = gitPuller;
         this.personalRepository = personalRepository;
+        this.projectRepository = projectRepository;
     }
 
     // TODO: 當出現同一個使用者要 clone 相同檔案的狀況處理
@@ -48,10 +57,10 @@ public class GitCloner {
      */
     public GitResult cloneRepository(String repoUrl, String commitId, Long userId) throws GitAPIException, IOException {
         log.info("Clone by {} {} {}", repoUrl, commitId, userId);
-        RepoINFO repoINFO = RepoINFO.builder()
-                                    .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
-                                    .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
-                                    .build();
+        RepositoryINFO repoINFO = RepositoryINFO.builder()
+                                                .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
+                                                .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
+                                                .build();
 
         MyUser user = myUserRepository.findByUserId(userId)
                                       .orElse(null);
@@ -79,7 +88,45 @@ public class GitCloner {
                 GitResult result = gitPuller.pullLocalRepository(repoINFO);
                 if (result.getStatus() == GitStatus.PULL_SUCCESS)
                     result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
-                return result;
+
+                Project project = projectRepository.findByProjectName(repoINFO.repoName);
+                PersonalINFO personalINFO = PersonalINFO.builder()
+                                                        .user(user)
+                                                        .project(project)
+                                                        .build();
+                try {
+                    // 加入 HeadRevstr
+                    try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
+                        ObjectId objectId = null;
+
+                        log.info("獲取 SHA1 by {}", commitId);
+                        if (Objects.equals(commitId, "HEAD")) {
+                            objectId = repo.resolve(Constants.HEAD);
+                        } else {
+                            objectId = repo.resolve(commitId);
+                        }
+
+                        if (objectId == null) {
+                            log.error("無法解析 commit ID: {}", commitId);
+                            return GitResult.builder()
+                                            .status(GitStatus.CLONE_FAILED)
+                                            .message("無法獲取正確的 commit reference")
+                                            .build();
+                        }
+
+                        String headRevstr = objectId.getName();
+                        personalINFO.setHeadRevstr(headRevstr);
+                        personalRepository.save(personalINFO);
+
+                        return result;
+                    }
+                } catch (IOException e) {
+                    log.error("讀取 repository 時發生錯誤: {}", e.getMessage());
+                    return GitResult.builder()
+                                    .status(GitStatus.CLONE_FAILED)
+                                    .message("讀取 repository 時發生錯誤: " + e.getMessage())
+                                    .build();
+                }
             }
 
             // 未來會用到的使用者資訊加入

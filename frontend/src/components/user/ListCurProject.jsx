@@ -59,7 +59,7 @@ function ListCurProject(trigger) {
 		try {
 			setSuccessDelete(false);
 			setLoading(true);
-			await api.get('/api/deleteData', { params: { projectName: projectName } });
+			await api.get('/api/deleteData', { params: { projectName: projectName , userId: cookies.user.myUser.userId} });
 			message.success(`成功刪除 ${projectName}`);
 		} catch (err) {
 			message.error('Error during delete the ProjectNames: ', err);

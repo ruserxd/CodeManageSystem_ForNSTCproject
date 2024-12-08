@@ -2,7 +2,7 @@ package com.codemangesystem.gitProcess.service;
 
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
-import com.codemangesystem.gitProcess.model_Repo.RepoINFO;
+import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
@@ -31,7 +31,7 @@ public class GitPuller {
     /**
      * pull 更新本地端資料，並且更新本地端資料庫內容
      */
-    public GitResult pullLocalRepository(RepoINFO repoINFO) {
+    public GitResult pullLocalRepository(RepositoryINFO repoINFO) {
         try (Git git = Git.open(new File(repoINFO.localPath))) {
             log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
             PullResult pullResult = git.pull()
@@ -39,6 +39,7 @@ public class GitPuller {
                                        .setRemoteBranchName(DEFAULT_BRANCH)
                                        .call();
 
+            // 如果 pull 的操作失敗
             if (!pullResult.isSuccessful()) {
                 return GitResult.builder()
                                 .message("發生不可預期 Failed pull " + repoINFO.repoName)

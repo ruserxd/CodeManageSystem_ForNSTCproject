@@ -59,6 +59,7 @@ public class UserService {
         if (myUser.isPresent()) {
             log.info("Account have {}", myUser.get());
 
+            // 密碼錯誤
             if (!passwordBcrypt.isPasswordSame(myUser.get().getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
