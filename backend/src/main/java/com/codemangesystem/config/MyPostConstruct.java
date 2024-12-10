@@ -36,7 +36,7 @@ public class MyPostConstruct {
      * 包含：刪除 clone 檔案、清空 Project 相關資料、建立超級帳號
      */
     @PostConstruct
-    public void initialSettings() {
+    public void initialSettings() throws IllegalAccessException {
         log.info("系統的初始化設定");
 
         try {
@@ -49,9 +49,12 @@ public class MyPostConstruct {
             // 如果需要新增超級帳號
             addSuperAccount();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("發生讀取錯誤");
+            throw new IllegalAccessException("發生讀取錯誤");
+        } catch (NullPointerException nullError) {
+            log.error("路徑錯誤");
+            throw new IllegalAccessException("路徑錯誤");
         }
-
     }
 
     /**
