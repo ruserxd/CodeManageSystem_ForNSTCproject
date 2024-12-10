@@ -64,12 +64,6 @@ function MainLayout({ user }) {
 				<Menu selectedKeys={[selectedKey]} mode="inline" items={items} theme="dark" />
 			</Sider>
 			<Layout>
-				<Header
-					style={{
-						padding: 0,
-						background: colorBgContainer
-					}}
-				/>
 				<Content
 					style={{
 						margin: '0 16px'

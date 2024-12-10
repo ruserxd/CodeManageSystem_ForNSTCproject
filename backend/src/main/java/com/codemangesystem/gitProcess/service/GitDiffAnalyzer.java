@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+// TODO: 單純方法間的比較，那變數, 初始化該如何處理
 /**
  * 獲取 Git 每段 commit 的方法差異
  */
@@ -344,13 +345,16 @@ public class GitDiffAnalyzer {
         PersonIdent author = commit.getAuthorIdent();
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
+        String headRevstr = commit.getName();
+        int timeStamp = commit.getCommitTime();
 
         return DiffInfo.builder()
                        .author(author.getName())
                        .authorEmail(author.getEmailAddress())
                        .commitMessage(commitMessage)
-                       .timestamp(commit.getCommitTime())
+                       .timestamp(timeStamp)
                        .commitTime(commitTime)
+                        .headRevstr(headRevstr)
                        .build();
     }
 

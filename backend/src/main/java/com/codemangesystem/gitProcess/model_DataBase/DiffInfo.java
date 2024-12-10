@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
+//TODO: 新增 Revstr 的資料進入
 @Data
 @Builder
 @Entity
@@ -39,6 +40,9 @@ public class DiffInfo {
 
     @Column(name = "diff_code", columnDefinition = "TEXT")   // 將列類型為 TEXT
     private String diffCode;
+
+    @Column(name = "head_revstr")
+    private String headRevstr;
 
     @JsonIgnore
     @JsonBackReference

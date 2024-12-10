@@ -90,7 +90,7 @@ function ListCurProject(trigger) {
 
 	return (
 		<div>
-			<Title level={2}>Cur Project Names</Title>
+			<Title level={2}>Project Names</Title>
 			{errorJudge ? (
 				<Spin tip="Loading">{content}</Spin>
 			) : (
