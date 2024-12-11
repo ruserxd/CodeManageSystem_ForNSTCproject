@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Form, Input, App } from 'antd';
 import api from '../../api/axiosConfig';
+import { useNavigate } from 'react-router-dom';
 
 const formItemLayout = {
 	labelCol: {
@@ -37,6 +38,7 @@ const Register = () => {
 	const { message } = App.useApp();
 	const [form] = Form.useForm();
 	const [loading, setloading] = useState(false);
+	const navigate = useNavigate();
 
 	const handleSubmit = async (values) => {
 		setloading(true);
@@ -53,6 +55,9 @@ const Register = () => {
 			if (result.data.success) {
 				message.success('註冊成功');
 				form.resetFields();
+
+				// 註冊成功後，直接導向 userPage
+				navigate('/UserPage');
 			} else {
 				message.error(`註冊失敗: ${result.data.message || '未知錯誤'}`);
 			}

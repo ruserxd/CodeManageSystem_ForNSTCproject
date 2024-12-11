@@ -28,14 +28,15 @@ function ListCurProject(trigger) {
 		const getProjectNames = async () => {
 			try {
 				setLoading(true);
-
-				let Id = cookies.user.myUser.userId;
+				console.log("getProjectName by" + JSON.stringify(cookies.user));
+				let Id = cookies.user.userId;
 				console.log('嘗試獲取 %s 的所有 ProjectName', Id);
 				const result = await api.get('/api/getProjectNames', {
 					params: {
 						userId: Id
 					}
 				});
+				console.log('getProjectNames 獲得 ' + JSON.stringify(result.data));
 
 				if (result.data && result.data.length > 0) {
 					setFetchData(result.data);
@@ -44,8 +45,16 @@ function ListCurProject(trigger) {
 					setFetchData([]);
 				}
 			} catch (err) {
-				message.error('Error during fetch the ProjectNames: ', err);
+				message.error('Error during fetch the ProjectNames');
 				setErrorJudge(true);
+
+				// 2秒後重新嘗試
+				let timer = setTimeout(() => {
+					getProjectNames();
+				}, 5000);
+
+				// 清理 timeout，防止內存洩漏
+				return () => clearTimeout(timer);
 			} finally {
 				setLoading(false);
 			}
@@ -59,7 +68,7 @@ function ListCurProject(trigger) {
 		try {
 			setSuccessDelete(false);
 			setLoading(true);
-			await api.get('/api/deleteData', { params: { projectName: projectName , userId: cookies.user.myUser.userId} });
+			await api.get('/api/deleteData', { params: { projectName: projectName , userId: cookies.user.userId} });
 			message.success(`成功刪除 ${projectName}`);
 		} catch (err) {
 			message.error('Error during delete the ProjectNames: ', err);

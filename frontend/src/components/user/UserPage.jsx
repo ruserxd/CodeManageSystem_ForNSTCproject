@@ -18,7 +18,6 @@ function UserPage({ onLogout }) {
 	}
 
 	const handleSubmit = () => {
-		console.log('登出' + cookies.user);
 		onLogout();
 		navigate('/login');
 	};
@@ -32,7 +31,7 @@ function UserPage({ onLogout }) {
 			<Title>
 				歡迎，
 				<UserOutlined />
-				{cookies.user.myUser.userName}
+				{cookies.user.userName}
 			</Title>
 			<br />
 			<ListCurProject trigger={trigger} />

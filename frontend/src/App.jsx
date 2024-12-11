@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ShowMethodDiff from './components/diff/ShowMethodDiff';
 import Login from './components/auth/Login';
@@ -10,7 +10,7 @@ import About from './components/Basic/About';
 import UserPage from './components/user/UserPage';
 
 import 'antd/dist/reset.css';
-import { ConfigProvider, App as AntApp } from 'antd';
+import { ConfigProvider, App as AntApp, message } from 'antd';
 import { useCookies } from 'react-cookie';
 
 function App() {
@@ -20,14 +20,23 @@ function App() {
 
 	// 處理登入，設置 user 到 cookie 上去
 	const handleLogin = (user) => {
-		console.log('success or not ' + JSON.stringify(user.myUser, null, 2));
+		console.log('success or not ' + JSON.stringify(user, null, 2));
 		setCookie('user', user, { path: '/' });
 	};
 
 	// 將 user 移除 cookie
 	const handleLogout = () => {
+		console.log("登出 " + cookies.user.userName);
 		removeCookie('user', { path: '/' });
 	};
+
+	// Global 配置 message
+	useEffect(() => {
+		message.config({
+			duration: 1,
+			maxCount: 2
+		});
+	}, []);
 
 	return (
 		<div className="App">

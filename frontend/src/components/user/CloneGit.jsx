@@ -14,7 +14,7 @@ function CloneGit({ setTrigger }) {
 	const showNotification = (status, message) => {
 		notification.info({
 			message: `${status}`,
-			description: `${cookies.user.myUser.userName}  ${message}`,
+			description: `${cookies.user.userName}  ${message}`,
 			placement: 'bottomLeft',
 			showProgress: true
 		});
@@ -23,7 +23,7 @@ function CloneGit({ setTrigger }) {
 	const handleFetchData = async (url, commitId) => {
 		setLoading(true);
 		try {
-			const userId = cookies.user.myUser.userId;
+			const userId = cookies.user.userId;
 			console.log('Submitting UserID: ', userId);
 			console.log(`透過 ${url} and ${commitId} 獲得`);
 			const response = await api.post(
