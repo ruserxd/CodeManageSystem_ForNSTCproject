@@ -25,11 +25,11 @@ function CloneGit({ setTrigger }) {
 		try {
 			const userId = cookies.user.myUser.userId;
 			console.log('Submitting UserID: ', userId);
+			console.log(`透過 ${url} and ${commitId} 獲得`);
 			const response = await api.post(
 				'/api/fetch-repo',
 				new URLSearchParams({ url, commitId, userId })
 			);
-
 			const { status, message } = response.data;
 			console.log(response.data);
 			console.log(status);

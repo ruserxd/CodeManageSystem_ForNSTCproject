@@ -104,15 +104,13 @@ public class GitDiffAnalyzer {
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log()
                                                  .call();
-                for (RevCommit commit : commits) {
-                    firstCommitSHA = commit.getName();
-                    break;
-                }
-
+                int counterDiffence = 0;
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
+                    if (counterDiffence == 0)
+                        firstCommitSHA = commit.getName();
                     String message = commit.getFullMessage();
-                    log.info(message);
+                    log.info("本次的 Commit Message : {}", message);
 
                     // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
                     RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
@@ -120,7 +118,9 @@ public class GitDiffAnalyzer {
                     List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
                     setCommitDiff(diffs, project, git, commit, previousCommit);
+                    counterDiffence++;
                 }
+                log.info("共有 {} 個差異", counterDiffence);
             }
 
             log.info("成功獲取所有 commit diff 的資訊");
