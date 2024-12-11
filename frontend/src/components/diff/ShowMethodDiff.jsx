@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Tree, Typography } from 'antd';
+import { Card, Tree, TreeSelect, Typography } from 'antd';
 import { FileOutlined, CodeOutlined } from '@ant-design/icons';
 import api from '../../api/axiosConfig';
 import HighlightedCode from './HighlightedCode';
@@ -12,6 +12,13 @@ const ShowMethodDiff = () => {
 	const [treeData, setTreeData] = useState([]);
 	const [projectName, setProjectName] = useState('');
 	const [error, setError] = useState(null);
+	const [value, setValue] = useState();
+	const onChange = (newValue) => {
+		setValue(newValue);
+	};
+	const onPopupScroll = (e) => {
+		console.log('onPopupScroll', e);
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -34,18 +41,25 @@ const ShowMethodDiff = () => {
 		}
 	}, [urlParam]);
 
+	// TODO: 樹狀圖的修改
 	const transformData = (data) => {
 		return data.map((item) => ({
 			title: item.fileName,
+			label: item.fileName,
 			key: item.filePath,
+			value: item.filePath,
 			icon: <FileOutlined />,
 			children: item.methods.map((method, methodIndex) => ({
 				title: method.methodName,
+				label: method.methodName,
 				key: `${item.filePath}-${methodIndex}`,
+				value: `${item.filePath}-${methodIndex}`,
 				icon: <CodeOutlined />,
 				children: method.diffInfoList.map((diff, diffIndex) => ({
 					title: `Diff ${diffIndex + 1}`,
+					label: `Diff ${diffIndex + 1}`,
 					key: `${item.filePath}-${methodIndex}-${diffIndex}`,
+					value: `${item.filePath}-${methodIndex}-${diffIndex}`,
 					icon: <CodeOutlined />,
 					diffInfo: diff
 				}))
@@ -79,6 +93,22 @@ const ShowMethodDiff = () => {
 	return (
 		<div>
 			<Title level={2}>{projectName} 的方法差異資訊</Title>
+			<TreeSelect
+				showSearch
+				style={{
+					width: '35%',
+				}}
+				value={value}
+				dropdownStyle={{
+					maxHeight: 400,
+					overflow: 'auto',
+				}}
+				placeholder="Please select"
+				allowClear
+				onChange={onChange}
+				treeData={treeData}
+				onPopupScroll={onPopupScroll}
+			/>
 			<Tree
 				treeData={treeData}
 				defaultExpandAll
