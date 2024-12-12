@@ -1,18 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { TreeSelect, Typography } from 'antd';
+import { Tree, TreeSelect, Typography } from 'antd';
 import api from '../../api/axiosConfig';
 import PropTypes from 'prop-types';
+import DiffCard from './DiffCard';
+import { DownOutlined } from '@ant-design/icons';
+import '../../css/showMethodDiff.css';
 
 const { Title } = Typography;
 
+// TODO: 透過搜尋的方式顯示資料
 const ShowMethodDiff = () => {
 	const { '*': urlParam } = useParams();
+	const [selectedTreeData, setSelectedTreeData] = useState([]);
 	const [treeData, setTreeData] = useState([]);
 	const [projectName, setProjectName] = useState('');
 	const [error, setError] = useState(null);
 	const [value, setValue] = useState();
 
+	// 獲取此專案的 DiffInfo
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -22,8 +28,10 @@ const ShowMethodDiff = () => {
 					new URLSearchParams({ ProjectName: urlParam })
 				);
 
-				const tmp = transformData(response.data);
-				setTreeData(tmp);
+				const tmp = transformToSelectedTreeData(response.data);
+				setSelectedTreeData(tmp);
+
+				initialTreeData(response.data);
 				// 設定 Project 為網域的最後一個 Param
 				setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
 			} catch (error) {
@@ -34,13 +42,8 @@ const ShowMethodDiff = () => {
 		void fetchData();
 	}, [urlParam]);
 
-	// 日後當透過 selectTree 選擇是直接將資料修該為該路徑
-	const treeSelectOnChange = (newValue) => {
-		console.log(newValue);
-	};
-
-	// 將 JSon 格式修改成 antd treeSelect 需求
-	const transformData = (data) => {
+	// 產生 selected，將 JSon 格式修改成 antd treeSelect 需求
+	const transformToSelectedTreeData = (data) => {
 		return [
 			{
 				value: `project_${data.projectId}`,
@@ -65,6 +68,42 @@ const ShowMethodDiff = () => {
 		];
 	};
 
+	// 初始化 TreeData
+	const initialTreeData = (data) => {
+		const tmp = [
+			{
+				value: `project_${data.projectId}`,
+				title: data.projectName,
+				label: data.projectName,
+				key: `project_${data.projectId}`,
+				children: data.files.map((file, index) => ({
+					value: `project_${data.projectId}_${file.filesId}`,
+					title: file.fileName,
+					label: file.fileName,
+					key: `project_${data.projectId}_${file.filesId}`,
+					children: file.methods.map((method, methodIndex) => ({
+						value: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
+						title: method.methodName,
+						label: method.methodName,
+						key: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
+						children: method.diffInfoList.map((diff, diffIndex) => ({
+							value: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`,
+							title: <DiffCard diff={diff} />,
+							label: diff.commitMessage,
+							key: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`
+						}))
+					}))
+				}))
+			}
+		];
+		setTreeData(tmp);
+	};
+
+	// 透過 selectTree 選擇直接將資料修該為該路徑
+	const treeSelectOnChange = (newValue) => {
+		console.log(newValue);
+	};
+
 	return (
 		<>
 			{error ? (
@@ -85,8 +124,9 @@ const ShowMethodDiff = () => {
 						placeholder="Select"
 						allowClear
 						onChange={treeSelectOnChange}
-						treeData={treeData}
+						treeData={selectedTreeData}
 					/>
+					<Tree treeData={treeData} showLine switcherIcon={<DownOutlined />} />
 				</div>
 			)}
 		</>
