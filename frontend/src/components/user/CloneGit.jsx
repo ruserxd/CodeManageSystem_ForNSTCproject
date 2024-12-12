@@ -86,11 +86,11 @@ function CloneGit({ setTrigger }) {
 				wrapperCol={{
 					flex: 1
 				}}
+				// 不要有冒號
 				colon={false}
 				style={{
 					maxWidth: 600
 				}}>
-				{' '}
 				<Form.Item
 					name="url"
 					label="URL"
@@ -101,10 +101,6 @@ function CloneGit({ setTrigger }) {
 						{
 							type: 'url',
 							warningOnly: true
-						},
-						{
-							type: 'string',
-							min: 6
 						}
 					]}>
 					<Input placeholder="GitHub repository url" />
@@ -118,7 +114,8 @@ function CloneGit({ setTrigger }) {
 						},
 						{
 							type: 'string',
-							min: 6
+							// git commitId 最少也要 8 個
+							min: 8
 						}
 					]}>
 					<Input placeholder="GitHub commitId" />

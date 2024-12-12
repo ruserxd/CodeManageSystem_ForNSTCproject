@@ -4,14 +4,16 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { DesktopOutlined, PieChartOutlined, UserOutlined, HomeOutlined } from '@ant-design/icons';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
 
-const { Header, Content, Footer, Sider } = Layout;
+// const { Header, Content, Footer, Sider } = Layout;
+const { Content, Footer, Sider } = Layout;
 
 function getItem(label, key, icon, children) {
 	return {
 		key,
 		icon,
 		children,
-		label
+		label,
+		type: 'item'
 	};
 }
 
@@ -22,9 +24,9 @@ function MainLayout({ user }) {
 	} = theme.useToken();
 
 	// 當前的網址
-	const curLocation = useLocation();
+	let curLocation = useLocation();
 
-	// 避免重新渲染太多元件 userMemo
+	// 避免重新渲染太多次元件 userMemo
 	const items = useMemo(
 		() => [
 			getItem(<Link to="/">主頁</Link>, '主頁', <PieChartOutlined />),
@@ -32,6 +34,7 @@ function MainLayout({ user }) {
 				getItem(<Link to="/Contact">聯絡</Link>, '聯絡'),
 				getItem(<Link to="/About">關於</Link>, '關於')
 			]),
+			// 當使用者登入成功時重新渲染
 			user
 				? getItem(<Link to="/UserPage">使用者</Link>, '使用者', <UserOutlined />)
 				: getItem('使用者', 'sub2', <UserOutlined />, [

@@ -1,4 +1,5 @@
 import { Typography } from 'antd';
+
 const { Title } = Typography;
 
 function MainPage() {
@@ -9,4 +10,5 @@ function MainPage() {
 		</div>
 	);
 }
+
 export default MainPage;

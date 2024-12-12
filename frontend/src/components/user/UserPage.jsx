@@ -6,6 +6,7 @@ import { useCookies } from 'react-cookie';
 import { Button, Typography } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+
 const { Title } = Typography;
 
 function UserPage({ onLogout }) {

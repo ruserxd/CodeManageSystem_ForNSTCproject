@@ -16,17 +16,20 @@ import { useCookies } from 'react-cookie';
 function App() {
 	// 利用 cookies 將使用者資料存下來
 	// 具體的 path 都設置為 '/' 各個網域皆可使用
+	// cookies.user.
 	const [cookies, setCookie, removeCookie] = useCookies(['user']);
 
 	// 處理登入，設置 user 到 cookie 上去
 	const handleLogin = (user) => {
 		console.log('success or not ' + JSON.stringify(user, null, 2));
-		setCookie('user', user, { path: '/' });
+		setCookie('user', user, {
+			path: '/'
+		});
 	};
 
 	// 將 user 移除 cookie
 	const handleLogout = () => {
-		console.log("登出 " + cookies.user.userName);
+		console.log('登出 ' + cookies.user.userName);
 		removeCookie('user', { path: '/' });
 	};
 
@@ -46,7 +49,6 @@ function App() {
 				<ConfigProvider
 					theme={{
 						token: {
-							// Primary
 							colorPrimary: '#5680E9',
 							borderRadius: 2
 						}
@@ -67,4 +69,5 @@ function App() {
 		</div>
 	);
 }
+
 export default App;
