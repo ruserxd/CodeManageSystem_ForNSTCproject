@@ -1,9 +1,8 @@
-import { App } from 'antd';
+import { App, Button, Form, Input, Space } from 'antd';
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 import api from '../../api/axiosConfig';
 import { useCookies } from 'react-cookie';
-import { Button, Form, Input, Space } from 'antd';
 
 function CloneGit({ setTrigger }) {
 	const [form] = Form.useForm();

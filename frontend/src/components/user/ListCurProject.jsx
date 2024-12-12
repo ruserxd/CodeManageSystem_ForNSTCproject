@@ -1,9 +1,8 @@
-import { App, Button } from 'antd';
+import { App, Button, List, Spin, Typography } from 'antd';
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import api from '../../api/axiosConfig';
 import { Link } from 'react-router-dom';
-import { Typography, List, Spin } from 'antd';
 import { useCookies } from 'react-cookie';
 
 function ListCurProject(trigger) {

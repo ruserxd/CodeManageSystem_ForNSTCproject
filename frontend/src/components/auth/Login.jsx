@@ -1,5 +1,5 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { App, Button, Checkbox, Form, Input, Flex } from 'antd';
+import { App, Button, Checkbox, Flex, Form, Input } from 'antd';
 import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';

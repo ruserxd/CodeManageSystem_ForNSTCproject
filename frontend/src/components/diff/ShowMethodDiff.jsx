@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Tree, TreeSelect, Typography } from 'antd';
-import { FileOutlined, CodeOutlined } from '@ant-design/icons';
+import { CodeOutlined, FileOutlined } from '@ant-design/icons';
 import api from '../../api/axiosConfig';
 import HighlightedCode from './HighlightedCode';
 

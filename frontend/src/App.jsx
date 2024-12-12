@@ -10,7 +10,7 @@ import About from './components/Basic/About';
 import UserPage from './components/user/UserPage';
 
 import 'antd/dist/reset.css';
-import { ConfigProvider, App as AntApp, message } from 'antd';
+import { App as AntApp, ConfigProvider, message } from 'antd';
 import { useCookies } from 'react-cookie';
 
 function App() {
