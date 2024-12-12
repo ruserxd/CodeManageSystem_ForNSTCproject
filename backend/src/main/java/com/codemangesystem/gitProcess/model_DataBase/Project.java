@@ -1,14 +1,13 @@
 package com.codemangesystem.gitProcess.model_DataBase;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Data
+@ToString(exclude = {"files", "personalInfos"})
 @Builder
 @Entity
 @NoArgsConstructor
@@ -34,6 +33,7 @@ public class Project {
     )
     private List<Files> files;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<PersonalINFO> personalInfos;
 }

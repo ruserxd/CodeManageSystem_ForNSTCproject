@@ -1,6 +1,6 @@
 package com.codemangesystem;
 
-import com.codemangesystem.gitProcess.model_DataBase.Files;
+import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
 import com.codemangesystem.gitProcess.service.GetDataBse;
@@ -92,12 +92,14 @@ public class ApiController {
 
     // TODO: 修改成針對使用者去做獲取資料
     /**
-     * 透過 ProjectName 獲取 Files 資料
+     * 透過 ProjectName 獲取 Project 資料
      */
     @PostMapping("/getData")
-    public ResponseEntity<List<Files>> getFileDataByProjectName(@RequestParam("ProjectName") String projectName) {
+    public ResponseEntity<Project> getFileDataByProjectName(@RequestParam("ProjectName") String projectName) {
         log.info("嘗試抓取 Data by {}", projectName);
-        return new ResponseEntity<>(getDataBse.getFilesByProjectName(projectName), HttpStatus.OK);
+        Project project = getDataBse.getProjectByProjectName(projectName);
+        log.info("getData \n {}", project);
+        return new ResponseEntity<>(project, HttpStatus.OK);
     }
 
     /**

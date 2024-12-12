@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Tree, TreeSelect, Typography } from 'antd';
-import { CodeOutlined, FileOutlined } from '@ant-design/icons';
+import { TreeSelect, Typography } from 'antd';
 import api from '../../api/axiosConfig';
-import HighlightedCode from './HighlightedCode';
+import PropTypes from 'prop-types';
 
 const { Title } = Typography;
 
@@ -13,24 +12,18 @@ const ShowMethodDiff = () => {
 	const [projectName, setProjectName] = useState('');
 	const [error, setError] = useState(null);
 	const [value, setValue] = useState();
-	const [showMethodDiff, setShowMethodDiff] = useState([]);
-	const onPopupScroll = (e) => {
-		// console.log('onPopupScroll', e);
-	};
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				console.log(`嘗試 fetch ${urlParam}`);
-				const result = await api.post(
+				const response = await api.post(
 					`/api/getData`,
 					new URLSearchParams({ ProjectName: urlParam })
 				);
-				console.log('轉成樹狀圖 result.data\n' + JSON.stringify(result.data));
 
-				const transformedData = setTreeData(transformData(result.data));
-				console.log('轉成樹狀圖 treeData\n' + JSON.stringify(transformedData));
-
+				const tmp = transformData(response.data);
+				setTreeData(tmp);
 				// 設定 Project 為網域的最後一個 Param
 				setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
 			} catch (error) {
@@ -41,61 +34,36 @@ const ShowMethodDiff = () => {
 		void fetchData();
 	}, [urlParam]);
 
-	// (避免異步狀態的處理) 當 treeData 更改時，才去執行 setShowMethodDiff
-	useEffect(() => {
-		console.log('轉成樹狀圖 showMethodDiff\n' + JSON.stringify(treeData));
-		setShowMethodDiff(treeData);
-	}, [treeData]);
-
+	// 日後當透過 selectTree 選擇是直接將資料修該為該路徑
 	const treeSelectOnChange = (newValue) => {
-		setValue(newValue);
 		console.log(newValue);
 	};
 
-	// TODO: 樹狀圖的修改
-	// 進入時會執行一遍
+	// 將 JSon 格式修改成 antd treeSelect 需求
 	const transformData = (data) => {
-		return data.map((item) => ({
-			title: item.fileName,
-			label: item.fileName,
-			key: item.fileName,
-			value: item.fileName,
-			icon: <FileOutlined />,
-			children: item.methods.map((method, methodIndex) => ({
-				title: method.methodName,
-				label: method.methodName,
-				key: `${item.fileName}_${methodIndex}`,
-				value: `${item.fileName}_${methodIndex}`,
-				icon: <CodeOutlined />,
-				children: method.diffInfoList.map((diff, diffIndex) => ({
-					title: `Diff ${diffIndex + 1}`,
-					label: `Diff ${diffIndex + 1}`,
-					key: `${item.fileName}_${methodIndex}_${diffIndex}`,
-					value: `${item.fileName}_${methodIndex}_${diffIndex}`,
-					icon: <CodeOutlined />,
-					diffInfo: diff
+		return [
+			{
+				value: `project_${data.projectId}`,
+				title: data.projectName,
+				label: data.projectName,
+				children: data.files.map((file, index) => ({
+					value: `project_${data.projectId}_${file.filesId}`,
+					title: file.fileName,
+					label: file.fileName,
+					children: file.methods.map((method, methodIndex) => ({
+						value: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
+						title: method.methodName,
+						label: method.methodName,
+						children: method.diffInfoList.map((diff, diffIndex) => ({
+							value: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`,
+							title: diff.commitMessage,
+							label: diff.commitMessage
+						}))
+					}))
 				}))
-			}))
-		}));
+			}
+		];
 	};
-
-	const renderDiffInfo = (title, diffInfo) => (
-		<div className="diffINFO">
-			<Card
-				title={title}
-				bordered={false}
-				style={{
-					width: 500
-				}}>
-				<p>Author: {diffInfo.author}</p>
-				<p>Author Email: {diffInfo.authorEmail}</p>
-				<p>Commit Message: {diffInfo.commitMessage}</p>
-				<p>Commit Time: {diffInfo.commitTime}</p>
-				<p>HeadRevstr: {diffInfo.headRevstr}</p>
-				<HighlightedCode language="diff" codeString={diffInfo.diffCode} className="diffCode" />
-			</Card>
-		</div>
-	);
 
 	return (
 		<>
@@ -118,18 +86,6 @@ const ShowMethodDiff = () => {
 						allowClear
 						onChange={treeSelectOnChange}
 						treeData={treeData}
-						onPopupScroll={onPopupScroll}
-					/>
-					<Tree
-						treeData={showMethodDiff}
-						defaultExpandAll
-						showIcon
-						titleRender={(nodeData) => {
-							if (nodeData.diffInfo) {
-								return <div>{renderDiffInfo(nodeData.title, nodeData.diffInfo)}</div>;
-							}
-							return <span>{nodeData.title}</span>;
-						}}
 					/>
 				</div>
 			)}
@@ -137,4 +93,36 @@ const ShowMethodDiff = () => {
 	);
 };
 
+ShowMethodDiff.propTypes = {
+	gotData: PropTypes.shape({
+		projectId: PropTypes.number.isRequired,
+		projectName: PropTypes.string.isRequired,
+		headRevstr: PropTypes.string.isRequired,
+		files: PropTypes.arrayOf(
+			PropTypes.shape({
+				filesId: PropTypes.number.isRequired,
+				fileName: PropTypes.string.isRequired,
+				filePath: PropTypes.string.isRequired,
+				methods: PropTypes.arrayOf(
+					PropTypes.shape({
+						methodId: PropTypes.number.isRequired,
+						methodName: PropTypes.string.isRequired,
+						diffInfoList: PropTypes.arrayOf(
+							PropTypes.shape({
+								diffInfoId: PropTypes.number.isRequired,
+								author: PropTypes.string.isRequired,
+								authorEmail: PropTypes.string.isRequired,
+								commitMessage: PropTypes.string.isRequired,
+								timestamp: PropTypes.string.isRequired,
+								commitTime: PropTypes.number.isRequired,
+								diffCode: PropTypes.string.isRequired,
+								headRevstr: PropTypes.string
+							})
+						)
+					})
+				)
+			})
+		)
+	})
+};
 export default ShowMethodDiff;
