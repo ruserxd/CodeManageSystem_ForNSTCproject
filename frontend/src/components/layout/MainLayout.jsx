@@ -108,16 +108,12 @@ function MainLayout({ user }) {
 // user 可能為空因此未設置 required
 MainLayout.propTypes = {
 	user: PropTypes.shape({
-		success: PropTypes.bool.isRequired,
-		message: PropTypes.string.isRequired,
-		myUser: PropTypes.shape({
-			user_id: PropTypes.number.isRequired,
+			userId: PropTypes.number.isRequired,
 			userName: PropTypes.string.isRequired,
 			userEmail: PropTypes.string.isRequired,
 			userAccount: PropTypes.string.isRequired,
 			userPassword: PropTypes.string.isRequired,
 			userAuthority: PropTypes.string.isRequired
 		}).isRequired
-	})
 };
 export default MainLayout;
