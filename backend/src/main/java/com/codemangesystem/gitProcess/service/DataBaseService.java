@@ -23,13 +23,13 @@ import java.util.List;
  */
 @Slf4j
 @Service
-public class GetDataBse {
+public class DataBaseService {
     private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
     private final ProjectRepository projectRepository;
     private final PersonalRepository personalRepository;
 
-    private GetDataBse(ProjectRepository projectRepository, PersonalRepository personalRepository) {
+    private DataBaseService(ProjectRepository projectRepository, PersonalRepository personalRepository) {
         this.projectRepository = projectRepository;
         this.personalRepository = personalRepository;
     }

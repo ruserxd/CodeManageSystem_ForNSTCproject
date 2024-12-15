@@ -20,11 +20,11 @@ import java.io.IOException;
 public class GitPuller {
     private static final String DEFAULT_REMOTE = "origin";
     private static final String DEFAULT_BRANCH = "main";
-    private final GetDataBse getDataBse;
+    private final DataBaseService dataBaseService;
     private final GitDiffAnalyzer gitDiffAnalyzer;
 
-    public GitPuller(GetDataBse getDataBse, GitDiffAnalyzer gitDiffAnalyzer) {
-        this.getDataBse = getDataBse;
+    public GitPuller(DataBaseService dataBaseService, GitDiffAnalyzer gitDiffAnalyzer) {
+        this.dataBaseService = dataBaseService;
         this.gitDiffAnalyzer = gitDiffAnalyzer;
     }
 
@@ -48,7 +48,7 @@ public class GitPuller {
             }
 
             // 獲取前一次存放的 Revstr
-            String previousHeadRevstr = getDataBse.getHeadRevstr(repoINFO.repoName);
+            String previousHeadRevstr = dataBaseService.getHeadRevstr(repoINFO.repoName);
             return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
         } catch (IOException | GitAPIException error) {
             log.error("Pull 發生 {}", String.valueOf(error));

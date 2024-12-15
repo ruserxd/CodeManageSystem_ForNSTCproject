@@ -3,7 +3,7 @@ package com.codemangesystem;
 import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
-import com.codemangesystem.gitProcess.service.GetDataBse;
+import com.codemangesystem.gitProcess.service.DataBaseService;
 import com.codemangesystem.gitProcess.service.GitCloner;
 import com.codemangesystem.gitProcess.service.GitPuller;
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
@@ -26,13 +26,13 @@ import java.util.List;
 public class ApiController {
 
     private final GitCloner gitCloner;
-    private final GetDataBse getDataBse;
+    private final DataBaseService dataBaseService;
     private final UserService userService;
     private final GitPuller gitPuller;
 
-    public ApiController(GitCloner gitCloner, GetDataBse getDataBse, UserService userService, GitPuller gitPuller) {
+    public ApiController(GitCloner gitCloner, DataBaseService dataBaseService, UserService userService, GitPuller gitPuller) {
         this.gitCloner = gitCloner;
-        this.getDataBse = getDataBse;
+        this.dataBaseService = dataBaseService;
         this.userService = userService;
         this.gitPuller = gitPuller;
     }
@@ -62,7 +62,7 @@ public class ApiController {
     public ResponseEntity<?> getProjectNames(@RequestParam("userId") String userId) {
         try {
             log.info("嘗試獲取 userId:{} 的所有 ProjectName", userId);
-            List<String> listNames = getDataBse.getUserProjects(userId);
+            List<String> listNames = dataBaseService.getUserProjects(userId);
 
             log.info("目前有 {}", userId);
             for (String listName : listNames) {
@@ -97,7 +97,7 @@ public class ApiController {
     @PostMapping("/getData")
     public ResponseEntity<Project> getFileDataByProjectName(@RequestParam("ProjectName") String projectName) {
         log.info("嘗試抓取 Data by {}", projectName);
-        Project project = getDataBse.getProjectByProjectName(projectName);
+        Project project = dataBaseService.getProjectByProjectName(projectName);
         log.info("getData \n {}", project);
         return new ResponseEntity<>(project, HttpStatus.OK);
     }
@@ -107,7 +107,7 @@ public class ApiController {
      */
     @GetMapping("/deleteData")
     public String deleteDataByProjectName(@RequestParam("projectName") String projectName, @RequestParam("userId") String userId) {
-        return getDataBse.deleteDataByProjectName(projectName, userId);
+        return dataBaseService.deleteDataByProjectName(projectName, userId);
     }
 
     /* 登入系統 */
