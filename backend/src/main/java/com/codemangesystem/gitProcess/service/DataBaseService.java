@@ -29,7 +29,7 @@ public class DataBaseService {
     private final ProjectRepository projectRepository;
     private final PersonalRepository personalRepository;
 
-    private DataBaseService(ProjectRepository projectRepository, PersonalRepository personalRepository) {
+    public DataBaseService(ProjectRepository projectRepository, PersonalRepository personalRepository) {
         this.projectRepository = projectRepository;
         this.personalRepository = personalRepository;
     }
