@@ -1,7 +1,7 @@
 package com.codemangesystem.loginProcess.service;
 
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.sessionResponse;
+import com.codemangesystem.loginProcess.model_response.SessionResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.model_user.UserAuthority;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
@@ -88,8 +88,8 @@ class UserServiceTest {
             Mockito.when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
                    .thenReturn(false);
 
-            sessionResponse result = userService.checkUser(userINFO);
-            sessionResponse excepted = sessionResponse.builder()
+            SessionResponse result = userService.checkUser(userINFO);
+            SessionResponse excepted = SessionResponse.builder()
                                                       .message("Email or Password Wrong")
                                                       .success(false)
                                                       .build();
@@ -104,8 +104,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
                    .thenReturn(Optional.empty());
 
-            sessionResponse result = userService.checkUser(userINFO);
-            sessionResponse excepted = sessionResponse.builder()
+            SessionResponse result = userService.checkUser(userINFO);
+            SessionResponse excepted = SessionResponse.builder()
                                                       .message("Email or Password Wrong")
                                                       .success(false)
                                                       .build();
@@ -121,8 +121,8 @@ class UserServiceTest {
             Mockito.when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
                    .thenReturn(true);
 
-            sessionResponse result = userService.checkUser(userINFO);
-            sessionResponse excepted = sessionResponse.builder()
+            SessionResponse result = userService.checkUser(userINFO);
+            SessionResponse excepted = SessionResponse.builder()
                                                       .message("Success")
                                                       .success(true)
                                                       .myUser(myUser)
@@ -156,8 +156,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.ofNullable(myUser));
 
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(false)
                                                     .message("Email, Account is taken")
                                                     .build();
@@ -172,8 +172,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.ofNullable(myUser));
 
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(false)
                                                     .message("Email is taken")
                                                     .build();
@@ -188,8 +188,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(false)
                                                     .message("Account is taken")
                                                     .build();
@@ -204,8 +204,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(true)
                                                     .message("Success register")
                                                     .build();
@@ -221,8 +221,8 @@ class UserServiceTest {
                    .thenReturn(Optional.empty());
 
             myUser = null;
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(false)
                                                     .message("User is null")
                                                     .build();
@@ -237,8 +237,8 @@ class UserServiceTest {
             Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
-            sessionResponse result = userService.userRegister(myUser);
-            sessionResponse except = sessionResponse.builder()
+            SessionResponse result = userService.userRegister(myUser);
+            SessionResponse except = SessionResponse.builder()
                                                     .success(false)
                                                     .message("Failed Cannot invoke \"java.util.Optional.isPresent()\" because \"myUserInDataBase\" is null")
                                                     .build();

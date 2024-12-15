@@ -1,7 +1,7 @@
 package com.codemangesystem.loginProcess.service;
 
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.sessionResponse;
+import com.codemangesystem.loginProcess.model_response.SessionResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.model_user.UserAuthority;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
@@ -53,7 +53,7 @@ public class UserService {
      * 避免 Lazy 的設定，導致讀取完後，JPA 自動關閉 session 的情況
      */
     @Transactional(readOnly = true)
-    public sessionResponse checkUser(LoginINFO userINFO) {
+    public SessionResponse checkUser(LoginINFO userINFO) {
         Optional<MyUser> myUser = myUserRepository.findByUserAccount(userINFO.getUserAccount());
 
         if (myUser.isPresent()) {
@@ -63,7 +63,7 @@ public class UserService {
             if (!passwordBcrypt.isPasswordSame(myUser.get().getUserPassword(), userINFO.getUserPassword())) {
                 log.info("Has this email but the password wrong");
 
-                return sessionResponse.builder()
+                return SessionResponse.builder()
                                       .message("Email or Password Wrong")
                                       .success(false)
                                       .build();
@@ -71,14 +71,14 @@ public class UserService {
         } else {
             log.info("No this email");
 
-            return sessionResponse.builder()
+            return SessionResponse.builder()
                                   .message("Email or Password Wrong")
                                   .success(false)
                                   .build();
         }
 
         log.info("Check Success");
-        return sessionResponse.builder()
+        return SessionResponse.builder()
                               .message("Success")
                               .success(true)
                               .myUser(myUser.get())
@@ -88,10 +88,10 @@ public class UserService {
     /**
      * 新增 User
      */
-    public sessionResponse userRegister(MyUser myUser) {
+    public SessionResponse userRegister(MyUser myUser) {
         if (myUser == null) {
             log.info("傳入資料為 null");
-            return sessionResponse.builder()
+            return SessionResponse.builder()
                                   .success(false)
                                   .message("User is null")
                                   .build();
@@ -104,21 +104,21 @@ public class UserService {
             if (emailExist && accountExist) {
                 log.info("Email, Account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
 
-                return sessionResponse.builder()
+                return SessionResponse.builder()
                                       .success(false)
                                       .message("Email, Account is taken")
                                       .build();
             } else if (emailExist) {
                 log.info("Email is taken {}", myUser.getUserEmail());
 
-                return sessionResponse.builder()
+                return SessionResponse.builder()
                                       .success(false)
                                       .message("Email is taken")
                                       .build();
             } else if (accountExist) {
                 log.info("Account is taken {}", myUser.getUserAccount());
 
-                return sessionResponse.builder()
+                return SessionResponse.builder()
                                       .success(false)
                                       .message("Account is taken")
                                       .build();
@@ -133,14 +133,14 @@ public class UserService {
             myUserRepository.save(myUser);
             log.info("Register success");
 
-            return sessionResponse.builder()
+            return SessionResponse.builder()
                                   .success(true)
                                   .message("Success register")
                                   .build();
         } catch (Exception e) {
             log.info("Register failed {}", e.getMessage());
 
-            return sessionResponse.builder()
+            return SessionResponse.builder()
                                   .success(false)
                                   .message("Failed " + e.getMessage())
                                   .build();

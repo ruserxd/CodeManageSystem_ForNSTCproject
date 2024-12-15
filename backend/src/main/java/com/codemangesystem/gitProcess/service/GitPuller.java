@@ -18,7 +18,7 @@ import java.io.IOException;
 @Slf4j
 @Service
 public class GitPuller {
-    private static final String DEFAULT_Remote = "origin";
+    private static final String DEFAULT_REMOTE = "origin";
     private static final String DEFAULT_BRANCH = "main";
     private final GetDataBse getDataBse;
     private final GitDiffAnalyzer gitDiffAnalyzer;
@@ -35,7 +35,7 @@ public class GitPuller {
         try (Git git = Git.open(new File(repoINFO.localPath))) {
             log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
             PullResult pullResult = git.pull()
-                                       .setRemote(DEFAULT_Remote)
+                                       .setRemote(DEFAULT_REMOTE)
                                        .setRemoteBranchName(DEFAULT_BRANCH)
                                        .call();
 

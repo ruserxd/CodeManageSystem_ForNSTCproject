@@ -7,7 +7,7 @@ import com.codemangesystem.gitProcess.service.GetDataBse;
 import com.codemangesystem.gitProcess.service.GitCloner;
 import com.codemangesystem.gitProcess.service.GitPuller;
 import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.sessionResponse;
+import com.codemangesystem.loginProcess.model_response.SessionResponse;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -113,9 +113,9 @@ public class ApiController {
     /* 登入系統 */
     /* 登入 api */
     @PostMapping("/login")
-    public ResponseEntity<sessionResponse> login(@RequestBody LoginINFO loginINFO) {
+    public ResponseEntity<SessionResponse> login(@RequestBody LoginINFO loginINFO) {
         log.info("嘗試登入 使用者: {}", loginINFO);
-        sessionResponse sessionResponse = userService.checkUser(loginINFO);
+        SessionResponse sessionResponse = userService.checkUser(loginINFO);
         return new ResponseEntity<>(sessionResponse, HttpStatus.OK);
     }
 
@@ -123,9 +123,9 @@ public class ApiController {
      * 註冊
      */
     @PostMapping("/register")
-    public ResponseEntity<sessionResponse> register(@RequestBody MyUser myUser) {
+    public ResponseEntity<SessionResponse> register(@RequestBody MyUser myUser) {
         log.info("嘗試註冊");
-        sessionResponse registerResult = userService.userRegister(myUser);
+        SessionResponse registerResult = userService.userRegister(myUser);
         return new ResponseEntity<>(registerResult, HttpStatus.OK);
     }
 
