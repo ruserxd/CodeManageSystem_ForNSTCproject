@@ -52,13 +52,13 @@ public class DataBaseService {
      */
     public Project getProjectByProjectName(String projectName) {
         try {
-            return projectRepository.findByProjectName(projectName);
+            Project project = projectRepository.findByProjectName(projectName);
+            log.info("完成獲得 {}'s Data", projectName);
+            return project;
         } catch (Exception error) {
             // 如果在 jpa 的部分執行時發生錯誤，回傳一個空的陣列，避免後續可能出現 null 的情況
             log.error(error.getMessage());
             return new Project();
-        } finally {
-            log.info("完成獲得 {}'s Data", projectName);
         }
     }
 
