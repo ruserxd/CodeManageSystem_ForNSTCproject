@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -158,7 +157,7 @@ class DataBaseServiceTest {
 
         @Test
         @DisplayName("測試 deleteDataByProjectName() 有該 PersonalINFO, userIds 也還有存在的")
-        void deleteDataByProjectName_PersonalINFO_userIdsHave_Test(){
+        void deleteDataByProjectName_PersonalINFO_userIdsHave_Test() {
             // 設定要傳入的資料
             String projectName = "test";
             String userId = "1";

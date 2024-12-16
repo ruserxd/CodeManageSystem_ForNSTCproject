@@ -88,7 +88,9 @@ class MyPostConstructTest {
     @DisplayName("測試 initialSetting() 發生 {路徑錯誤}")
     void initialSettingThrowTest() {
         MyPostConstruct.path = "/errorPath";
-        IllegalAccessException exception = assertThrows(IllegalAccessException.class, () -> {myPostConstruct.initialSettings();});
+        IllegalAccessException exception = assertThrows(IllegalAccessException.class, () -> {
+            myPostConstruct.initialSettings();
+        });
         assertEquals(exception.getMessage(), "路徑錯誤");
         MyPostConstruct.path = "src/cloneCode";
     }

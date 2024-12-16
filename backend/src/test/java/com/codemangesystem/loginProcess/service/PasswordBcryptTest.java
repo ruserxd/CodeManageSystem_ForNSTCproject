@@ -14,7 +14,9 @@ class PasswordBcryptTest {
         passwordBcrypt = new PasswordBcrypt();
     }
 
-    /** 測試產出的 Hash 能夠驗證原始的密碼為正確 */
+    /**
+     * 測試產出的 Hash 能夠驗證原始的密碼為正確
+     */
     @Test
     @DisplayName("測試 Bcrypt 加密和密碼驗證")
     void test() {
