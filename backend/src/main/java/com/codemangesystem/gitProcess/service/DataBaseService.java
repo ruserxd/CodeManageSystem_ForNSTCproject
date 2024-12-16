@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 獲取 ProjectRepository 的相關資料，(新增、獲取、刪除)
@@ -52,9 +53,13 @@ public class DataBaseService {
      */
     public Project getProjectByProjectName(String projectName) {
         try {
-            Project project = projectRepository.findByProjectName(projectName);
-            log.info("完成獲得 {}'s Data", projectName);
-            return project;
+            Optional<Project> project = projectRepository.findByProjectName(projectName);
+            if (project.isPresent()) {
+                log.info("完成獲得 {}'s Data", projectName);
+            } else {
+                log.warn("未完成獲得 {}'s Data", projectName);
+            }
+            return project.orElse(null);
         } catch (Exception error) {
             // 如果在 jpa 的部分執行時發生錯誤，回傳一個空的陣列，避免後續可能出現 null 的情況
             log.error(error.getMessage());
@@ -73,7 +78,7 @@ public class DataBaseService {
 
             // 沒找到相對應的 ProjectName 情況
             if (personalINFO == null) {
-                log.warn("No  personalINFO found with name: {}", projectName);
+                log.warn("No personalINFO found with name: {}", projectName);
                 return "No personalINFO found to delete";
             }
 

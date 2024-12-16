@@ -92,7 +92,13 @@ public class GitCloner {
                     result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
                 }
 
-                Project project = projectRepository.findByProjectName(repoINFO.repoName);
+                Project project = projectRepository.findByProjectName(repoINFO.repoName).orElse(null);
+                if (project != null) {
+                    log.info("成功獲取 {}", repoINFO.repoName);
+                } else {
+                    log.warn("獲取 {} 失敗", repoINFO.repoName);
+                }
+
                 PersonalINFO personalINFO = PersonalINFO.builder()
                                                         .user(user)
                                                         .project(project)

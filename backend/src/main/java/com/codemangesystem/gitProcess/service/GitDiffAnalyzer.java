@@ -190,7 +190,16 @@ public class GitDiffAnalyzer {
                     .setGitDir(gitDir)
                     .build();
             String projectName = repoPath.substring(repoPath.lastIndexOf('/') + 1);
-            Project project = projectRepository.findByProjectName(projectName);
+            Project project = projectRepository.findByProjectName(projectName).orElse(null);
+            if (project != null) {
+                log.warn("成功獲取 {}", projectName);
+            } else {
+                log.warn("獲取 {} 失敗", projectName);
+                return GitResult.builder()
+                                .message("資料庫沒有此檔案")
+                                .status(GitStatus.ANALYSIS_FAILED)
+                                .build();
+            }
 
             // update user project git head
             project.setHeadRevstr(getHeadSHA1(repository));

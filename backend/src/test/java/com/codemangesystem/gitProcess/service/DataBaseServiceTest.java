@@ -1,5 +1,6 @@
 package com.codemangesystem.gitProcess.service;
 
+import com.codemangesystem.gitProcess.model_DataBase.PersonalINFO;
 import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
@@ -15,6 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+//TODO: 拋出例外的測試
 @Slf4j
 class DataBaseServiceTest {
     private ProjectRepository projectRepository;
@@ -54,12 +56,17 @@ class DataBaseServiceTest {
     @Test
     @DisplayName("測試 getProjectByProjectName")
     void getProjectByProjectNameTest() {
+        // 設定要傳入的資料
         String projectName = "test";
+
+        // 模擬預期結果
         Project except = Project.builder()
                                 .projectName(projectName)
                                 .build();
-        Mockito.when(projectRepository.findByProjectName("test")).thenReturn(except);
+        Mockito.when(projectRepository.findByProjectName("test"))
+               .thenReturn(Optional.ofNullable(except));
 
+        // 確定
         Project actual = dataBaseService.getProjectByProjectName(projectName);
         log.info("getProjectByProjectNameTest(): Except: {}, Actual: {}", except, actual);
         assertEquals(except, actual);
@@ -68,30 +75,101 @@ class DataBaseServiceTest {
     @Test
     @DisplayName("測試 deleteDataByProjectName() 沒有找到對應的 PersonalInfo")
     void deleteDataByProjectName_no_personalINFO_Test() {
+        // 設定要傳入的資料
         String projectName = "test";
         String userId = "1";
 
-
+        // 模擬預期結果
         Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
                .thenReturn(Optional.empty());
 
+        // 確定
         String actual = dataBaseService.deleteDataByProjectName(projectName, userId);
+        PersonalINFO personalINFO = null;
         assertEquals("No personalINFO found to delete", actual);
 
+        // 確定沒有執行到後面的程式碼
+        Mockito.verify(personalRepository, Mockito.times(0)).delete(personalINFO);
+        Mockito.verify(personalRepository, Mockito.times(0)).findProjectIdByProjectName(projectName);
     }
 
     @Test
-    @DisplayName("測試 deleteDataByProjectName()")
-    void deleteDataByProjectName_Test() {
+    @DisplayName("測試 deleteDataByProjectName() 有該 PersonalINFO, userIds 是 empty")
+    void deleteDataByProjectName_PersonalINFO_userIdsEmpty_Test() {
+        // 設定要傳入的資料
         String projectName = "test";
         String userId = "1";
 
-
+        // 模擬預期結果
+        Project project = Project.builder()
+                                 .projectName("test")
+                                 .build();
+        PersonalINFO personalINFO = PersonalINFO.builder()
+                                                .project(project)
+                                                .build();
         Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
-               .thenReturn(Optional.empty());
+               .thenReturn(Optional.ofNullable(personalINFO));
+        List<Long> list = new ArrayList<>();
+        Mockito.when(personalRepository.findProjectIdByProjectName(projectName))
+               .thenReturn(list);
 
+        // 忽略 delete 操作
+        Mockito.doNothing().when(projectRepository).delete(project);
+
+        // 確定
         String actual = dataBaseService.deleteDataByProjectName(projectName, userId);
-        assertEquals("No personalINFO found to delete", actual);
+        assertEquals("Success delete", actual);
 
+        // 確定是否有執行到後面的程式碼
+        Mockito.verify(personalRepository, Mockito.times(1)).delete(personalINFO);
+        Mockito.verify(personalRepository, Mockito.times(1)).findProjectIdByProjectName(projectName);
+        Mockito.verify(projectRepository, Mockito.times(1)).delete(project);
+    }
+
+    @Test
+    @DisplayName("測試 deleteDataByProjectName() 有該 PersonalINFO, userIds 也還有存在的")
+    void deleteDataByProjectName_PersonalINFO_userIdsHave_Test() {
+        // 設定要傳入的資料
+        String projectName = "test";
+        String userId = "1";
+
+        // 模擬預期結果
+        Project project = Project.builder()
+                                 .projectName("test")
+                                 .build();
+        PersonalINFO personalINFO = PersonalINFO.builder()
+                                                .project(project)
+                                                .build();
+        Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
+               .thenReturn(Optional.ofNullable(personalINFO));
+        List<Long> list = new ArrayList<>();
+        // 有加入 id
+        list.add(1L);
+        Mockito.when(personalRepository.findProjectIdByProjectName(projectName))
+               .thenReturn(list);
+
+        // 確定
+        String actual = dataBaseService.deleteDataByProjectName(projectName, userId);
+        assertEquals("Success delete", actual);
+
+        // 確定是否有執行到後面的程式碼
+        Mockito.verify(personalRepository, Mockito.times(1)).delete(personalINFO);
+        Mockito.verify(personalRepository, Mockito.times(1)).findProjectIdByProjectName(projectName);
+        Mockito.verify(projectRepository, Mockito.times(0)).delete(project);
+    }
+
+    @Test
+    @DisplayName("測試 getHeadRevstr()")
+    void getHeadRevstrTest() {
+        // 傳入資料
+        String projectName = "test";
+
+        // 模擬預期結果
+        Mockito.when(projectRepository.findHeadRevstrByProjectName(projectName))
+                .thenReturn("testHead");
+
+        // 確定
+        String actual = dataBaseService.getHeadRevstr("test");
+        assertEquals("testHead", actual);
     }
 }
