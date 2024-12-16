@@ -87,8 +87,10 @@ public class GitCloner {
                 log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
                 log.info("改執行 pull");
                 GitResult result = gitPuller.pullLocalRepository(repoINFO);
-                if (result.getStatus() == GitStatus.PULL_SUCCESS)
+
+                if (result.isPullSuccess()) {
                     result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+                }
 
                 Project project = projectRepository.findByProjectName(repoINFO.repoName);
                 PersonalINFO personalINFO = PersonalINFO.builder()
