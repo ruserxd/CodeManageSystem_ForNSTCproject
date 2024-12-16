@@ -1,5 +1,6 @@
 package com.codemangesystem.gitProcess.service;
 
+import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +30,7 @@ class DataBaseServiceTest {
 
     @Test
     @DisplayName("測試 getUserProjects")
-    void testGetUserProjects() {
+    void getUserProjectsTest() {
         final int TIME = 5;
         // 設定 Repository 回傳資料
         List<Long> exceptProjectId = new ArrayList<>();
@@ -42,9 +44,54 @@ class DataBaseServiceTest {
         List<String>except = dataBaseService.getUserProjects("1");
 
         // 確認
+        log.info("getUserProjectsTest():");
         for (int i = 0; i < TIME; i++) {
             log.info("Except: {}, Actual: {}", "Name" + i, except.get(i));
             assertEquals("Name" + i, except.get(i));
         }
+    }
+
+    @Test
+    @DisplayName("測試 getProjectByProjectName")
+    void getProjectByProjectNameTest() {
+        String projectName = "test";
+        Project except = Project.builder()
+                                .projectName(projectName)
+                                .build();
+        Mockito.when(projectRepository.findByProjectName("test")).thenReturn(except);
+
+        Project actual = dataBaseService.getProjectByProjectName(projectName);
+        log.info("getProjectByProjectNameTest(): Except: {}, Actual: {}", except, actual);
+        assertEquals(except, actual);
+    }
+
+    @Test
+    @DisplayName("測試 deleteDataByProjectName() 沒有找到對應的 PersonalInfo")
+    void deleteDataByProjectName_no_personalINFO_Test() {
+        String projectName = "test";
+        String userId = "1";
+
+
+        Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
+               .thenReturn(Optional.empty());
+
+        String actual = dataBaseService.deleteDataByProjectName(projectName, userId);
+        assertEquals("No personalINFO found to delete", actual);
+
+    }
+
+    @Test
+    @DisplayName("測試 deleteDataByProjectName()")
+    void deleteDataByProjectName_Test() {
+        String projectName = "test";
+        String userId = "1";
+
+
+        Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
+               .thenReturn(Optional.empty());
+
+        String actual = dataBaseService.deleteDataByProjectName(projectName, userId);
+        assertEquals("No personalINFO found to delete", actual);
+
     }
 }
