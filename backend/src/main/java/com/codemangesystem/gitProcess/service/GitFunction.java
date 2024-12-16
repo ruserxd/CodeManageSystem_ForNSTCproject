@@ -17,10 +17,10 @@ public class GitFunction {
         String[] parts = repoUrl.split("/");
 
         // 抓取最後面的專案名稱
-        String repoNameWithExtension = parts[parts.length - 1];
+        String repoName = parts[parts.length - 1];
 
         // .git 的部分換成 ""
-        return repoNameWithExtension.replace(".git", "");
+        return repoName.replace(".git", "");
     }
 
     /**

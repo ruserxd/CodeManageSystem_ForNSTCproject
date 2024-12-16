@@ -24,7 +24,8 @@ public interface PersonalRepository extends JpaRepository<PersonalINFO, Long> {
     List<Long> findProjectIdByProjectName(@Param("projectName") String projectName);
 
     /**
-     * 查詢 userId, ProjectName*/
+     * 查詢 userId, ProjectName
+     */
     @Query("SELECT pi FROM PersonalINFO pi WHERE pi.project.projectName = :projectName AND pi.user.userId = :userId")
     Optional<PersonalINFO> findProjectByUserIdAndProjectName(@Param("projectName") String projectName, @Param("userId") Long userId);
 }

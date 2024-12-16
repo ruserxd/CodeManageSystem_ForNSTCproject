@@ -100,7 +100,7 @@ public class GitCloner {
                 try {
                     // 加入 HeadRevstr
                     try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
-                        ObjectId objectId = null;
+                        ObjectId objectId;
 
                         log.info("獲取 SHA1 by {}", commitId);
                         if (Objects.equals(commitId, "HEAD")) {
@@ -132,17 +132,21 @@ public class GitCloner {
                 }
             }
 
-            // 未來會用到的使用者資訊加入
-            // UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(login, password);
-            // clone.setCredentialsProvider(user);
-            // clone.call()
+            /*
+             未來會用到的使用者資訊加入
+             UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(login, password);
+             clone.setCredentialsProvider(user);
+             clone.call()
+            */
 
             CloneCommand command = Git.cloneRepository()
                                       .setURI(repoUrl)
                                       .setDirectory(new File(repoINFO.localPath));
-            // 將資料 clone 下來，try 達到 close
-            // 只是要透過 Git 物件將資料 clone 下來
-            // clone 成功接續將資料分類存入資料庫內
+            /*
+             將資料 clone 下來，try 達到 close
+             只是要透過 Git 物件將資料 clone 下來
+             clone 成功接續將資料分類存入資料庫內
+            */
             try (Git git = command.call()) {
 
                 // 當有指定的 commitId

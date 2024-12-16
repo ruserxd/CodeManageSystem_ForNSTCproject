@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 // TODO: 單純方法間的比較，那變數, 初始化該如何處理
+
 /**
  * 獲取 Git 每段 commit 的方法差異
  */
@@ -354,7 +355,7 @@ public class GitDiffAnalyzer {
                        .commitMessage(commitMessage)
                        .timestamp(timeStamp)
                        .commitTime(commitTime)
-                        .headRevstr(headRevstr)
+                       .headRevstr(headRevstr)
                        .build();
     }
 
@@ -406,8 +407,8 @@ public class GitDiffAnalyzer {
         return differences;
     }
 
-    /* 獲取這個文件內的 HashMap<方法, 方法內容>
-     *
+    /*
+     * 獲取這個文件內的 HashMap<方法, 方法內容>
      * */
     public Map<String, String> getContentMethod(String content) {
         try {
@@ -421,20 +422,20 @@ public class GitDiffAnalyzer {
             JavaParser javaParser = new JavaParser(parserConfiguration);
 
             // 獲取程式碼的語法樹的頭節點
-            CompilationUnit cu = javaParser.parse(content)
-                                           .getResult()
-                                           .filter(result -> result.findCompilationUnit()
-                                                                   .isPresent())
-                                           .flatMap(Node::findCompilationUnit)
-                                           .orElse(null);
+            CompilationUnit cuNode = javaParser.parse(content)
+                                               .getResult()
+                                               .filter(result -> result.findCompilationUnit()
+                                                                       .isPresent())
+                                               .flatMap(Node::findCompilationUnit)
+                                               .orElse(null);
 
             log.info("本次的語法樹結構");
-            log.info(String.valueOf(cu));
+            log.info(String.valueOf(cuNode));
             // 確保 cu 不為 null
-            assert cu != null;
+            assert cuNode != null;
 
             // 找出所有的方法資訊，並存入 list 內
-            List<MethodDeclaration> methods = cu.findAll(MethodDeclaration.class);
+            List<MethodDeclaration> methods = cuNode.findAll(MethodDeclaration.class);
 
             // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
             Map<String, String> contentMethods = new HashMap<>();
@@ -446,7 +447,7 @@ public class GitDiffAnalyzer {
                 List<AnnotationExpr> annotations = method.getAnnotations();
                 for (AnnotationExpr annotation : annotations) {
                     methodContent.append(annotation.toString())
-                                 .append("\n");
+                                 .append('\n');
                 }
 
                 // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
@@ -454,7 +455,7 @@ public class GitDiffAnalyzer {
 
                 // 獲得方法的內容 { 方法內容 }
                 method.getBody()
-                      .ifPresent(body -> methodContent.append(" ")
+                      .ifPresent(body -> methodContent.append(' ')
                                                       .append(body));
 
                 contentMethods.put(method.getNameAsString(), methodContent.toString());
@@ -468,6 +469,8 @@ public class GitDiffAnalyzer {
 
     // 對比兩個方法，透過 java-diff-utils 去完成
     private static String generateGitDiff(String oldMethod, String newMethod) {
+        final int nonSelectedLines = 2;
+
         List<String> oldLines = List.of(oldMethod.split("\n"));
         List<String> newLines = List.of(newMethod.split("\n"));
 
@@ -477,8 +480,10 @@ public class GitDiffAnalyzer {
                 "NewVersionMethod.java", oldLines, patch, 3);       //上下文的差異數量
 
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
-        if (unifiedDiff.size() > 2) unifiedDiff.subList(0, 2)
-                                               .clear();
+        if (unifiedDiff.size() > nonSelectedLines) {
+            unifiedDiff.subList(0, nonSelectedLines)
+                       .clear();
+        }
 
         // 把 list 透過 \n 拆成一個 String
         return String.join("\n", unifiedDiff);

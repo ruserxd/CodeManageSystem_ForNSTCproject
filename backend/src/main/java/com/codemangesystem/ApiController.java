@@ -29,6 +29,7 @@ public class ApiController {
     private final DataBaseService dataBaseService;
     private final UserService userService;
     private final GitPuller gitPuller;
+    private static final String LOCAL_BASE_PATH = "src/cloneCode/";
 
     public ApiController(GitCloner gitCloner, DataBaseService dataBaseService, UserService userService, GitPuller gitPuller) {
         this.gitCloner = gitCloner;
@@ -78,8 +79,6 @@ public class ApiController {
     /**
      * 對當前的資料庫進行 pull
      */
-    private static final String LOCAL_BASE_PATH = "src/cloneCode/";
-
     @GetMapping("/pullProject")
     public ResponseEntity<?> pullByProjectName(@RequestParam("projectName") String projectName) {
         RepositoryINFO info = RepositoryINFO.builder()
@@ -91,6 +90,7 @@ public class ApiController {
     }
 
     // TODO: 修改成針對使用者去做獲取資料
+
     /**
      * 透過 ProjectName 獲取 Project 資料
      */

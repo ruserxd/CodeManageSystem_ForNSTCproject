@@ -115,6 +115,10 @@ public class DataBaseService {
         Git git = new Git(repo);
         git.getRepository().close();
 
+        // 關閉 JGit
+        repo.close();
+        git.close();
+
         // JGit 的 Bug
         // false 時使用 malloc()+read()
         // 重新設置 JGit 在 JVM 中如何處理 Git 文件的緩存
