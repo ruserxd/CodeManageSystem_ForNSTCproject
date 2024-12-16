@@ -9,6 +9,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * PersonalINFO 代表著 MyUser 與 Project 間的關係
+ * MyUser 有著哪些 Project 以及是甚麼的版本
+ */
 @Data
 @Builder
 @Entity

@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * 使用者的資料
+ */
 @Data
 @Builder
 @Entity

@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 使用者和 Project 間相關的 Repository
+ */
 @Repository
 public interface PersonalRepository extends JpaRepository<PersonalINFO, Long> {
     @Query("SELECT p.project.projectId FROM PersonalINFO p WHERE p.user.userId = :userId")
