@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Files 代表著整個專案的各別 .java 檔案
+ * 接著以一對多的方式對應 Method (File 的每個 method)
+ */
 @Data
 @Builder
 @Entity

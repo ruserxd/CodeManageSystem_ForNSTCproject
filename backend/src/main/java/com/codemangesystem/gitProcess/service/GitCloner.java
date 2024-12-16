@@ -50,7 +50,6 @@ public class GitCloner {
         this.projectRepository = projectRepository;
     }
 
-    // TODO: 當出現同一個使用者要 clone 相同檔案的狀況處理
     // TODO: 使用者 GitHub 的權限
 
     /**
@@ -175,7 +174,9 @@ public class GitCloner {
         }
     }
 
-    // 切換到指定的 commitId
+    /**
+     * 切換到指定的 commitId
+     */
     public void checkToCommitId(Git git, String commitId) throws RevisionSyntaxException, IOException, GitAPIException {
         ObjectId specifyCommit = git.getRepository()
                                     .resolve(commitId);

@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Method 代表 file 的其中一個方法
+ * 接著以一對多的方式對應 DiffINFO (method 每個版本的差異)
+ */
 @Data
 @Builder
 @Entity

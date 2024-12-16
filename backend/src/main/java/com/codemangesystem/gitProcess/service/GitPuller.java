@@ -13,8 +13,9 @@ import java.io.File;
 import java.io.IOException;
 
 
-/*
- * 負責處理 git pull */
+/**
+ * 負責處理 git pull
+ */
 @Slf4j
 @Service
 public class GitPuller {

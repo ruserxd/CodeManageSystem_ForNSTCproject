@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
-//TODO: 新增 Revstr 的資料進入
+/**
+ * DiffInfo 代表 method 的其中一個版本差異資訊
+ */
 @Data
 @Builder
 @Entity

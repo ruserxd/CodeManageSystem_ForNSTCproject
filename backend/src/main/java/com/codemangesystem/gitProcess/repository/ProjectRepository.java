@@ -8,6 +8,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Project 相關的 Repository
+ */
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
     // 透過 projectName 找尋 Project 物件

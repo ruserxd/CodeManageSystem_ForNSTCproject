@@ -6,6 +6,10 @@ import lombok.*;
 
 import java.util.List;
 
+/**
+ * Project 代表著一整個 GitHub 下來的專案，有對應該 Repository 的相關資料
+ * 接著以一對多的方式對應 Files (專案的每個 .java 檔案)
+ */
 @Data
 @ToString(exclude = {"files", "personalInfos"})
 @Builder

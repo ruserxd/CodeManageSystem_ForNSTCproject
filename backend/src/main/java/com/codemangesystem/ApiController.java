@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * api 主要位置
+ */
 @Slf4j
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
