@@ -52,19 +52,13 @@ public class DataBaseService {
      * 透過 ProjectName 獲取有關的資料
      */
     public Project getProjectByProjectName(String projectName) {
-        try {
-            Optional<Project> project = projectRepository.findByProjectName(projectName);
-            if (project.isPresent()) {
-                log.info("完成獲得 {}'s Data", projectName);
-            } else {
-                log.warn("未完成獲得 {}'s Data", projectName);
-            }
-            return project.orElse(null);
-        } catch (Exception error) {
-            // 如果在 jpa 的部分執行時發生錯誤，回傳一個空的陣列，避免後續可能出現 null 的情況
-            log.error(error.getMessage());
-            return new Project();
+        Optional<Project> project = projectRepository.findByProjectName(projectName);
+        if (project.isPresent()) {
+            log.info("完成獲得 {}'s Data", projectName);
+        } else {
+            log.warn("未完成獲得 {}'s Data", projectName);
         }
+        return project.orElse(null);
     }
 
     /**
@@ -100,7 +94,7 @@ public class DataBaseService {
             }
 
             return "Success delete";
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error("delete 發生 : {}", String.valueOf(e));
             return "Failed delete";
         }

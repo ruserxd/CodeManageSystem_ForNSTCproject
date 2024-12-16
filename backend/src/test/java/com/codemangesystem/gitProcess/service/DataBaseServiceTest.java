@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.IOError;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -136,6 +138,7 @@ class DataBaseServiceTest {
                                                     .build();
             Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
                    .thenReturn(Optional.ofNullable(personalINFO));
+
             List<Long> list = new ArrayList<>();
             Mockito.when(personalRepository.findProjectIdByProjectName(projectName))
                    .thenReturn(list);
@@ -155,24 +158,26 @@ class DataBaseServiceTest {
 
         @Test
         @DisplayName("測試 deleteDataByProjectName() 有該 PersonalINFO, userIds 也還有存在的")
-        void deleteDataByProjectName_PersonalINFO_userIdsHave_Test() {
+        void deleteDataByProjectName_PersonalINFO_userIdsHave_Test(){
             // 設定要傳入的資料
             String projectName = "test";
             String userId = "1";
 
             // 模擬預期結果
             Project project = Project.builder()
+                                     .projectId(1L)
                                      .projectName("test")
+                                     .headRevstr("XXXXXXXX")
                                      .build();
             PersonalINFO personalINFO = PersonalINFO.builder()
                                                     .project(project)
                                                     .build();
+
             Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
                    .thenReturn(Optional.ofNullable(personalINFO));
-            List<Long> list = new ArrayList<>();
 
-            // 有加入 id
-            list.add(1L);
+            List<Long> list = new ArrayList<>();
+            list.add(2L);
             Mockito.when(personalRepository.findProjectIdByProjectName(projectName))
                    .thenReturn(list);
 
@@ -184,6 +189,44 @@ class DataBaseServiceTest {
             Mockito.verify(personalRepository, Mockito.times(1)).delete(personalINFO);
             Mockito.verify(personalRepository, Mockito.times(1)).findProjectIdByProjectName(projectName);
             Mockito.verify(projectRepository, Mockito.times(0)).delete(project);
+        }
+
+        @Test
+        @DisplayName("測試 deleteDataByProjectName() 刪除資料夾時拋出 IOException")
+        void deleteDataByProjectName_PersonalINFO_IOException_Test() throws IOException {
+            // 設定要傳入的資料
+            String projectName = "test";
+            String userId = "1";
+
+            // 將 dataBaseService 轉換為 spy ，因為這邊需要模擬相同 class 的拋出情況
+            DataBaseService spyService = Mockito.spy(dataBaseService);
+
+            // 模擬預期結果
+            Project project = Project.builder()
+                                     .projectName("test")
+                                     .build();
+            PersonalINFO personalINFO = PersonalINFO.builder()
+                                                    .project(project)
+                                                    .build();
+            Mockito.when(personalRepository.findProjectByUserIdAndProjectName(projectName, Long.parseLong(userId)))
+                   .thenReturn(Optional.ofNullable(personalINFO));
+
+            List<Long> list = new ArrayList<>();
+            Mockito.when(personalRepository.findProjectIdByProjectName(projectName))
+                   .thenReturn(list);
+
+            // deleteGitRepository 拋出例外
+            Mockito.doThrow(IOException.class).when(spyService)
+                   .deleteGitRepository(Mockito.anyString());
+
+            // 確定
+            String actual = spyService.deleteDataByProjectName(projectName, userId);
+            assertEquals("Failed delete", actual);
+
+            // 確定是否有執行到後面的程式碼
+            Mockito.verify(personalRepository, Mockito.times(1)).delete(personalINFO);
+            Mockito.verify(personalRepository, Mockito.times(1)).findProjectIdByProjectName(projectName);
+            Mockito.verify(projectRepository, Mockito.times(1)).delete(project);
         }
     }
 
