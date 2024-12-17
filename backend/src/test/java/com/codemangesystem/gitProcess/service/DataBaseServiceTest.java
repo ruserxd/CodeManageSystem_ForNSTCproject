@@ -19,7 +19,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-//TODO: 拋出例外的測試
 @Slf4j
 class DataBaseServiceTest {
     private ProjectRepository projectRepository;
