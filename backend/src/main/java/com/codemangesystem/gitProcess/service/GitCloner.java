@@ -68,7 +68,7 @@ public class GitCloner {
         log.info("當前 repoINFO path : {}  name : {}", repoINFO.localPath, repoINFO.repoName);
         try {
             // 如果 user 資料庫內已經存在， 直接回傳 GitResult
-            if (isUserCloned(userId, repoINFO)) {
+            if (GitFunction.isUserCloned(userId, repoINFO, personalRepository)) {
                 return GitResult.builder()
                                 .message("此帳戶已經有 clone 過 " + repoUrl)
                                 .status(GitStatus.CLONE_FAILED)
@@ -79,60 +79,7 @@ public class GitCloner {
 
             // 當本地端有該儲存庫的處理
             if (GitFunction.isLocalCloned(repoINFO.localPath)) {
-                log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
-                log.info("改執行 pull");
-                GitResult result = gitPuller.pullLocalRepository(repoINFO);
-
-                if (result.isPullSuccess()) {
-                    result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
-                }
-
-                Project project = projectRepository.findByProjectName(repoINFO.repoName).orElse(null);
-                if (project != null) {
-                    log.info("成功獲取 {}", repoINFO.repoName);
-                } else {
-                    log.warn("獲取 {} 失敗", repoINFO.repoName);
-                }
-
-                PersonalINFO personalINFO = PersonalINFO.builder()
-                                                        .user(user)
-                                                        .project(project)
-                                                        .build();
-
-                // pull 完後，進行資料庫的更新
-                try {
-                    // 加入 HeadRevstr
-                    try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
-                        ObjectId objectId;
-
-                        log.info("獲取 SHA1 by {}", commitId);
-                        if (Objects.equals(commitId, "HEAD")) {
-                            objectId = repo.resolve(Constants.HEAD);
-                        } else {
-                            objectId = repo.resolve(commitId);
-                        }
-
-                        if (objectId == null) {
-                            log.error("無法解析 commit ID: {}", commitId);
-                            return GitResult.builder()
-                                            .status(GitStatus.CLONE_FAILED)
-                                            .message("無法獲取正確的 commit reference")
-                                            .build();
-                        }
-
-                        String headRevstr = objectId.getName();
-                        personalINFO.setHeadRevstr(headRevstr);
-                        personalRepository.save(personalINFO);
-
-                        return result;
-                    }
-                } catch (IOException e) {
-                    log.error("讀取 repository 時發生錯誤: {}", e.getMessage());
-                    return GitResult.builder()
-                                    .status(GitStatus.CLONE_FAILED)
-                                    .message("讀取 repository 時發生錯誤: " + e.getMessage())
-                                    .build();
-                }
+                return pullAndUpdateDataBase(repoINFO, user, commitId);
             }
 
             /*
@@ -173,6 +120,65 @@ public class GitCloner {
     }
 
     /**
+     * clone 時若本地端有該 Repository 執行此*/
+    public GitResult pullAndUpdateDataBase(RepositoryINFO repoINFO, MyUser user, String commitId) {
+        log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
+        log.info("改執行 pull");
+        GitResult result = gitPuller.pullLocalRepository(repoINFO);
+
+        if (result.isPullSuccess()) {
+            result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+        }
+
+        Project project = projectRepository.findByProjectName(repoINFO.repoName).orElse(null);
+        if (project != null) {
+            log.info("成功獲取 {}", repoINFO.repoName);
+        } else {
+            log.warn("獲取 {} 失敗", repoINFO.repoName);
+        }
+
+        PersonalINFO personalINFO = PersonalINFO.builder()
+                                                .user(user)
+                                                .project(project)
+                                                .build();
+
+        // pull 完後，進行資料庫的更新
+        try {
+            // 加入 HeadRevstr
+            try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
+                ObjectId objectId;
+
+                log.info("獲取 SHA1 by {}", commitId);
+                if (Objects.equals(commitId, "HEAD")) {
+                    objectId = repo.resolve(Constants.HEAD);
+                } else {
+                    objectId = repo.resolve(commitId);
+                }
+
+                if (objectId == null) {
+                    log.error("無法解析 commit ID: {}", commitId);
+                    return GitResult.builder()
+                                    .status(GitStatus.CLONE_FAILED)
+                                    .message("無法獲取正確的 commit reference")
+                                    .build();
+                }
+
+                String headRevstr = objectId.getName();
+                personalINFO.setHeadRevstr(headRevstr);
+                personalRepository.save(personalINFO);
+
+                return result;
+            }
+        } catch (IOException e) {
+            log.error("讀取 repository 時發生錯誤: {}", e.getMessage());
+            return GitResult.builder()
+                            .status(GitStatus.CLONE_FAILED)
+                            .message("讀取 repository 時發生錯誤: " + e.getMessage())
+                            .build();
+        }
+    }
+
+    /**
      * 切換到指定的 commitId
      */
     public void checkToCommitId(Git git, String commitId) throws RevisionSyntaxException, IOException, GitAPIException {
@@ -188,19 +194,5 @@ public class GitCloner {
            .setName(specifyCommit.getName())
            .call();
         log.info("成功 checked out commit: {}", commitId);
-    }
-
-    /**
-     * 判斷是否使用者已經 clone 過
-     */
-    public boolean isUserCloned(Long userId, RepositoryINFO repoINFO) {
-        List<String> projectNames = personalRepository.findProjectNameByUserId(userId);
-        for (String projectName : projectNames) {
-            if (projectName.equals(repoINFO.repoName)) {
-                log.info("Repository already exists at: {}", repoINFO.localPath);
-                return true;
-            }
-        }
-        return false;
     }
 }

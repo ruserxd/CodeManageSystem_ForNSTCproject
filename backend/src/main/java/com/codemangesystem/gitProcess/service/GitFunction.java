@@ -1,8 +1,11 @@
 package com.codemangesystem.gitProcess.service;
 
+import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
+import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import java.util.List;
 
 /**
  * Git 部分經常使用的 static 方法
@@ -29,5 +32,19 @@ public class GitFunction {
     public static boolean isLocalCloned(String localPath) {
         File gitDir = new File(localPath, ".git");
         return gitDir.exists();
+    }
+
+    /**
+     * 判斷是否使用者已經 clone 過
+     */
+    public static boolean isUserCloned(Long userId, RepositoryINFO repoINFO, PersonalRepository personalRepository) {
+        List<String> projectNames = personalRepository.findProjectNameByUserId(userId);
+        for (String projectName : projectNames) {
+            if (projectName.equals(repoINFO.repoName)) {
+                log.info("Repository already exists at: {}", repoINFO.localPath);
+                return true;
+            }
+        }
+        return false;
     }
 }
