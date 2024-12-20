@@ -51,7 +51,6 @@ public class GitCloner {
     }
 
     // TODO: 使用者 GitHub 的權限
-
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
@@ -181,7 +180,7 @@ public class GitCloner {
     /**
      * 切換到指定的 commitId
      */
-    public void checkToCommitId(Git git, String commitId) throws RevisionSyntaxException, IOException, GitAPIException {
+    public void checkToCommitId(Git git, String commitId) throws IOException, GitAPIException, IllegalArgumentException {
         ObjectId specifyCommit = git.getRepository()
                                     .resolve(commitId);
         // 指定的 commitId 不存在
