@@ -72,6 +72,24 @@ class GitClonerTest {
             }
         }
 
+        @Test
+        @DisplayName("測試")
+        void isCommitIdWrong () throws GitAPIException, IOException{
+            try (MockedStatic<GitFunction> mockedStatic = Mockito.mockStatic(GitFunction.class)) {
+                mockedStatic.when(() -> GitFunction.isUserCloned(Mockito.anyLong(),               // userId
+                                    Mockito.any(RepositoryINFO.class),  // repoINFO
+                                    Mockito.any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(Mockito.anyString()))
+                            .thenReturn(true);
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+                // TODO: 未完成
+
+                GitResult excepted = null;
+                assertEquals(excepted,result);
+            }
+        }
     }
 
     @Nested
