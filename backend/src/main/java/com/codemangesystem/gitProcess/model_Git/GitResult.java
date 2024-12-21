@@ -12,7 +12,7 @@ public class GitResult {
     private final GitStatus status;
     private String message;
 
-    public boolean isPullSuccess() {
-        return this.status == GitStatus.PULL_SUCCESS;
+    public boolean isPullFailed() {
+        return this.status != GitStatus.PULL_SUCCESS;
     }
 }

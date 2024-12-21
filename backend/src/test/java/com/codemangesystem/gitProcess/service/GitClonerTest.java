@@ -1,5 +1,6 @@
 package com.codemangesystem.gitProcess.service;
 
+import com.codemangesystem.gitProcess.model_DataBase.Project;
 import com.codemangesystem.gitProcess.model_Git.GitResult;
 import com.codemangesystem.gitProcess.model_Git.GitStatus;
 import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
@@ -8,17 +9,22 @@ import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class GitClonerTest {
     // clone 存放的檔案位置
@@ -33,14 +39,17 @@ class GitClonerTest {
 
     @BeforeEach
     void setUp() {
-        this.gitDiffAnalyzer = Mockito.mock(GitDiffAnalyzer.class);
-        this.myUserRepository = Mockito.mock(MyUserRepository.class);
-        this.gitPuller = Mockito.mock(GitPuller.class);
-        this.personalRepository = Mockito.mock(PersonalRepository.class);
-        this.projectRepository = Mockito.mock(ProjectRepository.class);
+        this.gitDiffAnalyzer = mock(GitDiffAnalyzer.class);
+        this.myUserRepository = mock(MyUserRepository.class);
+        this.gitPuller = mock(GitPuller.class);
+        this.personalRepository = mock(PersonalRepository.class);
+        this.projectRepository = mock(ProjectRepository.class);
 
+        // 先建立出實體，在 spy
         this.gitCloner = new GitCloner(gitDiffAnalyzer, myUserRepository, gitPuller, personalRepository, projectRepository);
+        this.gitCloner = spy(gitCloner);
     }
+
     @Nested
     class cloneRepositoryTest {
         String repoUrl = "https://github.com/ruserxd/test.git";
@@ -49,45 +58,278 @@ class GitClonerTest {
 
         @BeforeEach
         void setUp() {
-            Mockito.when(myUserRepository.findByUserId(userId))
-                   .thenReturn(Optional.ofNullable(MyUser.builder()
-                                                         .userId(1L)
-                                                         .build()));
+            repoUrl = "https://github.com/ruserxd/test.git";
+            commitId = "587a0e12610554a97b3aea6d6126ed92fb010865";
+            userId = 1L;
+            when(myUserRepository.findByUserId(userId))
+                    .thenReturn(Optional.ofNullable(MyUser.builder()
+                                                          .userId(1L)
+                                                          .build()));
         }
 
         @Test
         @DisplayName("測試拋出 user 已經有 clone 過的例外")
-        void isUserClonedTest() throws GitAPIException, IOException {
-            try (MockedStatic<GitFunction> mockedStatic = Mockito.mockStatic(GitFunction.class)) {
-                mockedStatic.when(() -> GitFunction.isUserCloned(Mockito.anyLong(),               // userId
-                                                           Mockito.any(RepositoryINFO.class),  // repoINFO
-                                                           Mockito.any(PersonalRepository.class)))
+        void userHadClonedTest() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class)) {
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),  // repoINFO
+                                    any(PersonalRepository.class)))
                             .thenReturn(true);
                 GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
                 GitResult excepted = GitResult.builder()
                                               .message("此帳戶已經有 clone 過 " + repoUrl)
                                               .status(GitStatus.CLONE_FAILED)
                                               .build();
-                assertEquals(excepted,result);
+                assertEquals(excepted, result);
             }
         }
 
         @Test
-        @DisplayName("測試")
-        void isCommitIdWrong () throws GitAPIException, IOException{
-            try (MockedStatic<GitFunction> mockedStatic = Mockito.mockStatic(GitFunction.class)) {
-                mockedStatic.when(() -> GitFunction.isUserCloned(Mockito.anyLong(),               // userId
-                                    Mockito.any(RepositoryINFO.class),  // repoINFO
-                                    Mockito.any(PersonalRepository.class)))
+        @DisplayName("測試本地端有該存儲庫，但 pull 失敗的情況")
+        void getPullWrong() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class)) {
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),  // repoINFO
+                                    any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(Mockito.anyString()))
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
                             .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_FAILED)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
                 // 跑到 pullAndUpdateDataBase
                 GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
-                // TODO: 未完成
 
-                GitResult excepted = null;
-                assertEquals(excepted,result);
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.PULL_FAILED)
+                                              .build();
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端有該存儲庫，但獲取資料庫的 Project 失敗的情況")
+        void getDataBaseWrong() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class)) {
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),  // repoINFO
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_SUCCESS)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
+                when(projectRepository.findByProjectName(anyString()))
+                        .thenReturn(Optional.empty());
+
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.DATABASE_FAILED)
+                                              .message("資料庫獲取 project 時失敗")
+                                              .build();
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端有該存儲庫，但讀取 repository 時發生錯誤")
+        void getLocalRepoWrong() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
+                 // 攔截建構
+                 MockedConstruction<FileRepository> fileRepoMock = Mockito.mockConstruction(
+                         FileRepository.class,
+                         (mock, context) -> {
+                             // 當呼叫 .resolve 時，拋出例外
+                             when(mock.resolve(anyString()))
+                                     .thenThrow(new IOException("Repository path does not exist"));
+                         }
+                 )) {
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),  // repoINFO
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_SUCCESS)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
+                Project project = Project.builder()
+                                         .projectName("test")
+                                         .build();
+                when(projectRepository.findByProjectName(anyString()))
+                        .thenReturn(Optional.ofNullable(project));
+
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_FAILED)
+                                              .message("讀取 repository 時發生錯誤: Repository path does not exist")
+                                              .build();
+
+                assertEquals(excepted, result);
+            }
+        }
+
+
+        @Test
+        @DisplayName("測試本地端有該存儲庫，但讀取 objectId 時出現 NULL")
+        void getObjectIdWrong() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
+                 MockedConstruction<FileRepository> fileRepoMock = Mockito.mockConstruction(
+                         FileRepository.class,
+                         (mock, context) -> {
+                             // 當呼叫 resolve 時回傳 null
+                             when(mock.resolve(anyString()))
+                                     .thenReturn(null);
+                         }
+                 )) {
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_SUCCESS)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
+                Project project = Project.builder()
+                                         .projectName("test")
+                                         .build();
+                when(projectRepository.findByProjectName(anyString()))
+                        .thenReturn(Optional.ofNullable(project));
+
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_FAILED)
+                                              .message("無法獲取正確的 commit SHA1")
+                                              .build();
+
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端有該存儲庫，正確的更新資料庫")
+        void pullAndUpdateDataBase() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
+                 MockedConstruction<FileRepository> fileRepoMock = mockConstruction(
+                         FileRepository.class,
+                         (mock, context) -> {
+                             when(mock.resolve(anyString()))
+                                     .thenReturn(ObjectId.fromString("1234567890123456789012345678901234567890"));
+                         }
+                 )) {
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_SUCCESS)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
+                Project project = Project.builder()
+                                         .projectName("test")
+                                         .build();
+                when(projectRepository.findByProjectName(anyString()))
+                        .thenReturn(Optional.ofNullable(project));
+
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.PULL_SUCCESS)
+                                              .message("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料")
+                                              .build();
+
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端有該存儲庫，正確的更新資料庫，commitID 為 HEAD")
+        void commitIDisHEAD() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
+                 MockedConstruction<FileRepository> mocked = mockConstruction(
+                         FileRepository.class,
+                         (mock, context) -> {
+                             when(mock.resolve(anyString()))
+                                     .thenReturn(ObjectId.fromString("1234567890123456789012345678901234567890"));
+                         }
+                 )) {
+                commitId = "HEAD";
+                mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(true);
+
+                GitResult gitResult = GitResult.builder()
+                                               .status(GitStatus.PULL_SUCCESS)
+                                               .build();
+                when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+                        .thenReturn(gitResult);
+
+                Project project = Project.builder()
+                                         .projectName("test")
+                                         .build();
+                when(projectRepository.findByProjectName(anyString()))
+                        .thenReturn(Optional.ofNullable(project));
+
+                // 跑到 pullAndUpdateDataBase
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.PULL_SUCCESS)
+                                              .message("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料")
+                                              .build();
+
+                assertEquals(excepted, result);
             }
         }
     }

@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -51,6 +50,7 @@ public class GitCloner {
     }
 
     // TODO: 使用者 GitHub 的權限
+
     /**
      * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
      */
@@ -119,23 +119,30 @@ public class GitCloner {
     }
 
     /**
-     * clone 時若本地端有該 Repository 執行此*/
+     * clone 時若本地端有該 Repository 執行此
+     */
     public GitResult pullAndUpdateDataBase(RepositoryINFO repoINFO, MyUser user, String commitId) {
         log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
         log.info("改執行 pull");
 
         // 執行 puller 並拿取一個 GitResult
         GitResult result = gitPuller.pullLocalRepository(repoINFO);
-        if (result.isPullSuccess()) {
-            result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+        if (result.isPullFailed()) {
+            log.error("本地端有該存儲庫，但 pull 失敗無法更新");
+            return result;
         }
+        log.info("本地端有該存儲庫，pull 成功");
 
-        Project project = projectRepository.findByProjectName(repoINFO.repoName).orElse(null);
-        if (project != null) {
-            log.info("成功獲取 {}", repoINFO.repoName);
-        } else {
-            log.warn("獲取 {} 失敗", repoINFO.repoName);
+        Project project = projectRepository.findByProjectName(repoINFO.repoName)
+                                           .orElse(null);
+        if (project == null) {
+            log.warn("獲取 {} project 失敗", repoINFO.repoName);
+            return GitResult.builder()
+                            .status(GitStatus.DATABASE_FAILED)
+                            .message("資料庫獲取 project 時失敗")
+                            .build();
         }
+        log.info("成功獲取 {}", repoINFO.repoName);
 
         PersonalINFO personalINFO = PersonalINFO.builder()
                                                 .user(user)
@@ -143,32 +150,32 @@ public class GitCloner {
                                                 .build();
 
         // pull 完後，進行資料庫的更新
-        try {
-            // 加入 HeadRevstr
-            try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
-                ObjectId objectId;
+        // 加入 HeadRevstr
+        try (Repository repo = new FileRepository(repoINFO.localPath + "/.git")) {
+            ObjectId objectId;
 
-                log.info("獲取 SHA1 by {}", commitId);
-                if (Objects.equals(commitId, "HEAD")) {
-                    objectId = repo.resolve(Constants.HEAD);
-                } else {
-                    objectId = repo.resolve(commitId);
-                }
-
-                if (objectId == null) {
-                    log.error("無法解析 commit ID: {}", commitId);
-                    return GitResult.builder()
-                                    .status(GitStatus.CLONE_FAILED)
-                                    .message("無法獲取正確的 commit reference")
-                                    .build();
-                }
-
-                String headRevstr = objectId.getName();
-                personalINFO.setHeadRevstr(headRevstr);
-                personalRepository.save(personalINFO);
-
-                return result;
+            log.info("獲取 SHA1 by {}", commitId);
+            if (Objects.equals(commitId, "HEAD")) {
+                objectId = repo.resolve(Constants.HEAD);
+            } else {
+                objectId = repo.resolve(commitId);
             }
+            log.info("objectId : {}", objectId);
+            if (objectId == null) {
+                log.error("因為 objectId {}, 無法解析 commit ID: {}", null, commitId);
+                return GitResult.builder()
+                                .status(GitStatus.CLONE_FAILED)
+                                .message("無法獲取正確的 commit SHA1")
+                                .build();
+            }
+
+            String headRevstr = objectId.getName();
+            personalINFO.setHeadRevstr(headRevstr);
+            personalRepository.save(personalINFO);
+            result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+
+            return result;
+
         } catch (IOException e) {
             log.error("讀取 repository 時發生錯誤: {}", e.getMessage());
             return GitResult.builder()
@@ -177,6 +184,7 @@ public class GitCloner {
                             .build();
         }
     }
+
 
     /**
      * 切換到指定的 commitId
