@@ -96,24 +96,29 @@ public class GitCloner {
              只是要透過 Git 物件將資料 clone 下來
              clone 成功接續將資料分類存入資料庫內
             */
-            try (Git git = command.call()) {
+            log.info("Try to clone {}", repoUrl);
+            Git git = command.call();
 
-                // 當有指定的 commitId
-                if (!commitId.equals("HEAD")) {
-                    checkToCommitId(git, commitId);
-                }
-
-                log.info("成功 clone: {}", repoINFO.localPath);
-                log.info("嘗試分類 -> gitDiffAnalyzer");
-
-                // 執行分析專案
-                return gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath, user);
+            // 當有指定的 commitId
+            if (!commitId.equals("HEAD")) {
+                log.info("Check to {}", commitId);
+                checkToCommitId(git, commitId);
             }
+
+            log.info("成功 clone: {}", repoINFO.localPath);
+            log.info("嘗試分類 -> gitDiffAnalyzer");
+
+            // 避免多個 try-catch 的出現，手動關閉 git
+            git.close();
+
+            // 執行分析專案
+            return gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath, user);
+
         } catch (GitAPIException | RevisionSyntaxException | IOException e) {
             log.error("Failed clone to {}", repoUrl, e);
             return GitResult.builder()
                             .status(GitStatus.CLONE_FAILED)
-                            .message("Clone 發生 " + e)
+                            .message("Clone 發生 " + e.getMessage())
                             .build();
         }
     }
@@ -189,13 +194,13 @@ public class GitCloner {
     /**
      * 切換到指定的 commitId
      */
-    public void checkToCommitId(Git git, String commitId) throws IOException, GitAPIException, IllegalArgumentException {
+    public void checkToCommitId(Git git, String commitId) throws IOException, GitAPIException, RevisionSyntaxException{
         ObjectId specifyCommit = git.getRepository()
                                     .resolve(commitId);
         // 指定的 commitId 不存在
         if (specifyCommit == null) {
             log.error("Commit {} not found in repository", commitId);
-            throw new IllegalArgumentException("指定的 commitId 不存在");
+            throw new RevisionSyntaxException("");
         }
 
         git.checkout()

@@ -8,9 +8,14 @@ import com.codemangesystem.gitProcess.repository.PersonalRepository;
 import com.codemangesystem.gitProcess.repository.ProjectRepository;
 import com.codemangesystem.loginProcess.model_user.MyUser;
 import com.codemangesystem.loginProcess.repository.MyUserRepository;
+import org.eclipse.jgit.api.CheckoutCommand;
+import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.RevisionSyntaxException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,17 +24,15 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class GitClonerTest {
-    // clone 存放的檔案位置
-    private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
-
     private GitDiffAnalyzer gitDiffAnalyzer;
     private MyUserRepository myUserRepository;
     private GitPuller gitPuller;
@@ -332,15 +335,226 @@ class GitClonerTest {
                 assertEquals(excepted, result);
             }
         }
-    }
 
-    @Nested
-    class pullAndUpdateDataBaseTest {
+        @Test
+        @DisplayName("測試本地端未有該存儲庫，clone並成功分析檔案")
+        void cloneAndAnalyzedIsHEAD() throws GitAPIException, IOException {
+            commitId = "HEAD";
+            try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
+                 MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
+                // 模擬 GitFunction
+                gitFunctionMocked.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                            .thenReturn("test");
+
+                gitFunctionMocked.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                    any(RepositoryINFO.class),  // repoINFO
+                                    any(PersonalRepository.class)))
+                            .thenReturn(false);
+                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                            .thenReturn(false);
+
+                // 模擬 Git
+                Git mockGit = mock(Git.class);
+                CloneCommand mockCloneCommand = mock(CloneCommand.class);
+                when(mockCloneCommand.setURI(anyString())).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.setDirectory(any(File.class))).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.call()).thenReturn(mockGit);
+
+                when(Git.cloneRepository()).thenReturn(mockCloneCommand);
+
+                // 執行分析並獲取回傳資料
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_SUCCESS)
+                                              .message("Test Success")
+                                              .build();
+                when(gitDiffAnalyzer.analyzeAllCommits(anyString(), any(MyUser.class)))
+                        .thenReturn(excepted);
+
+                // 執行測試
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端未有該存儲庫，clone並成功分析檔案 (commitId 非 HEAD)")
+        void cloneAndAnalyzedNotHEAD() throws GitAPIException, IOException {
+            commitId = "HEAD";
+            try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
+                 MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
+                // 模擬 GitFunction
+                gitFunctionMocked.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                                 .thenReturn("test");
+
+                gitFunctionMocked.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                         any(RepositoryINFO.class),  // repoINFO
+                                         any(PersonalRepository.class)))
+                                 .thenReturn(false);
+                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                                 .thenReturn(false);
+
+                // 模擬 Git
+                Git mockGit = mock(Git.class);
+                CloneCommand mockCloneCommand = mock(CloneCommand.class);
+                when(mockCloneCommand.setURI(anyString())).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.setDirectory(any(File.class))).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.call()).thenReturn(mockGit);
+
+                when(Git.cloneRepository()).thenReturn(mockCloneCommand);
+
+                // 跳過 checkToCommitId
+                doNothing().when(gitCloner).checkToCommitId(any(Git.class), anyString());
+
+                // 執行分析並獲取回傳資料
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_SUCCESS)
+                                              .message("Test Success")
+                                              .build();
+                when(gitDiffAnalyzer.analyzeAllCommits(anyString(), any(MyUser.class)))
+                        .thenReturn(excepted);
+
+                // 執行測試
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端未有該存儲庫，command.call()拋出例外")
+        void commandCallExceptionTest() throws GitAPIException, IOException {
+            commitId = "HEAD";
+            try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
+                 MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
+                // 模擬 GitFunction
+                gitFunctionMocked.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                                 .thenReturn("test");
+
+                gitFunctionMocked.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                         any(RepositoryINFO.class),  // repoINFO
+                                         any(PersonalRepository.class)))
+                                 .thenReturn(false);
+                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                                 .thenReturn(false);
+
+                // 模擬 Git
+                Git mockGit = mock(Git.class);
+                CloneCommand mockCloneCommand = mock(CloneCommand.class);
+                when(mockCloneCommand.setURI(anyString())).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.setDirectory(any(File.class))).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.call()).thenThrow(new GitAPIException("clone failed") {});
+
+                when(Git.cloneRepository()).thenReturn(mockCloneCommand);
+
+                // 跳過 checkToCommitId
+                doNothing().when(gitCloner).checkToCommitId(any(Git.class), anyString());
+
+                // 執行測試
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_FAILED)
+                                              .message("Clone 發生 clone failed")
+                                              .build();
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+                assertEquals(excepted, result);
+            }
+        }
+
+        @Test
+        @DisplayName("測試本地端未有該存儲庫，執行 checkToCommitId，commitId 格式不對拋出 RevisionSyntaxException")
+        void commitIdWrong() throws GitAPIException, IOException {
+            try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
+                 MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
+                // 模擬 GitFunction
+                gitFunctionMocked.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+                                 .thenReturn("test");
+
+                gitFunctionMocked.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
+                                         any(RepositoryINFO.class),  // repoINFO
+                                         any(PersonalRepository.class)))
+                                 .thenReturn(false);
+                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                                 .thenReturn(false);
+
+                // 模擬 Git
+                Git mockGit = mock(Git.class);
+                CloneCommand mockCloneCommand = mock(CloneCommand.class);
+                when(mockCloneCommand.setURI(anyString())).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.setDirectory(any(File.class))).thenReturn(mockCloneCommand);
+                when(mockCloneCommand.call()).thenReturn(mockGit);
+
+                when(Git.cloneRepository()).thenReturn(mockCloneCommand);
+
+                // checkToCommitId 拋例外
+                RevisionSyntaxException exception = new RevisionSyntaxException("error");
+                doThrow(exception)
+                        .when(gitCloner).checkToCommitId(any(Git.class), anyString());
+
+                // 執行分析並獲取回傳資料
+                String res = "Clone 發生 " + exception.getMessage();
+                GitResult excepted = GitResult.builder()
+                                              .status(GitStatus.CLONE_FAILED)
+                                              .message(res)
+                                              .build();
+                when(gitDiffAnalyzer.analyzeAllCommits(anyString(), any(MyUser.class)))
+                        .thenReturn(excepted);
+
+                // 執行測試
+                GitResult result = gitCloner.cloneRepository(repoUrl, commitId, userId);
+
+                assertEquals(excepted, result);
+            }
+        }
     }
 
     @Nested
     class checkToCommitIdTest {
+        Git git;
+        Repository repository;
+        String commitId;
 
+        @BeforeEach
+        void setUo() {
+            git = mock(Git.class);
+            repository = mock(Repository.class);
+            commitId = "587a0e12610554a97b3aea6d6126ed92fb010865";
+        }
+
+        @Test
+        @DisplayName("測試當獲取 commitId 發生錯誤的拋出")
+        void throwGitAPIException() throws IOException {
+            when(git.getRepository()).thenReturn(repository);
+            when(repository.resolve(anyString()))
+                    .thenThrow(new IOException("路徑錯誤"));
+            IOException accurate = assertThrows(IOException.class, () -> gitCloner.checkToCommitId(git, commitId));
+            assertEquals("路徑錯誤", accurate.getMessage());
+        }
+
+        @Test
+        @DisplayName("測試當獲取 commitId 為 null 的拋出")
+        void getCommitIsNull() throws IOException {
+            when(git.getRepository()).thenReturn(repository);
+            when(repository.resolve(anyString()))
+                    .thenReturn(null);
+            RevisionSyntaxException accurate = assertThrows(RevisionSyntaxException.class, () -> gitCloner.checkToCommitId(git, commitId));
+            assertNull(accurate.getMessage());
+        }
+
+        @Test
+        @DisplayName("測試正常的切換 commitId")
+        void checkCommitIdTest() throws IOException, GitAPIException {
+            when(git.getRepository()).thenReturn(repository);
+            when(repository.resolve(anyString()))
+                    .thenReturn(ObjectId.fromString("1234567890123456789012345678901234567890"));
+            CheckoutCommand checkoutCommand = mock(CheckoutCommand.class);
+
+            // Method Chaining 方法鏈
+            when(git.checkout()).thenReturn(checkoutCommand);
+            when(checkoutCommand.setName(anyString())).thenReturn(checkoutCommand);
+            when(checkoutCommand.call()).thenReturn(null);
+
+            gitCloner.checkToCommitId(git, commitId);
+        }
     }
 
 }
