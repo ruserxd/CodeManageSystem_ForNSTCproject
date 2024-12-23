@@ -89,7 +89,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，但 pull 失敗的情況")
-        void getPullWrong() throws GitAPIException, IOException {
+        void pullWrongTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class)) {
                 mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
                             .thenReturn("test");
@@ -119,7 +119,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，但獲取資料庫的 Project 失敗的情況")
-        void getDataBaseWrong() throws GitAPIException, IOException {
+        void dataBaseWrongTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class)) {
                 mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
                             .thenReturn("test");
@@ -153,7 +153,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，但讀取 repository 時發生錯誤")
-        void getLocalRepoWrong() throws GitAPIException, IOException {
+        void getLocalRepoWrongTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
                  // 攔截建構
                  MockedConstruction<FileRepository> fileRepoMock = Mockito.mockConstruction(
@@ -201,7 +201,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，但讀取 objectId 時出現 NULL")
-        void getObjectIdWrong() throws GitAPIException, IOException {
+        void getObjectIdWrongTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
                  MockedConstruction<FileRepository> fileRepoMock = Mockito.mockConstruction(
                          FileRepository.class,
@@ -247,7 +247,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，正確的更新資料庫")
-        void pullAndUpdateDataBase() throws GitAPIException, IOException {
+        void pullAndUpdateDataBaseTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
                  MockedConstruction<FileRepository> fileRepoMock = mockConstruction(
                          FileRepository.class,
@@ -292,7 +292,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端有該存儲庫，正確的更新資料庫，commitID 為 HEAD")
-        void commitIDisHEAD() throws GitAPIException, IOException {
+        void commitIDisHEADTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
                  MockedConstruction<FileRepository> mocked = mockConstruction(
                          FileRepository.class,
@@ -338,7 +338,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端未有該存儲庫，clone並成功分析檔案")
-        void cloneAndAnalyzedIsHEAD() throws GitAPIException, IOException {
+        void cloneAndAnalyzedIsHEADTest() throws GitAPIException, IOException {
             commitId = "HEAD";
             try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
                  MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
@@ -379,7 +379,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端未有該存儲庫，clone並成功分析檔案 (commitId 非 HEAD)")
-        void cloneAndAnalyzedNotHEAD() throws GitAPIException, IOException {
+        void cloneAndAnalyzedNotHEADTest() throws GitAPIException, IOException {
             commitId = "HEAD";
             try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
                  MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
@@ -422,7 +422,7 @@ class GitClonerTest {
         }
 
         @Test
-        @DisplayName("測試本地端未有該存儲庫，command.call()拋出例外")
+        @DisplayName("測試本地端未有該存儲庫，command.call()拋出 GitAPIException")
         void commandCallExceptionTest() throws GitAPIException, IOException {
             commitId = "HEAD";
             try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
@@ -462,7 +462,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試本地端未有該存儲庫，執行 checkToCommitId，commitId 格式不對拋出 RevisionSyntaxException")
-        void commitIdWrong() throws GitAPIException, IOException {
+        void commitIdWrongTest() throws GitAPIException, IOException {
             try (MockedStatic<GitFunction> gitFunctionMocked = mockStatic(GitFunction.class);
                  MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
                 // 模擬 GitFunction
@@ -514,7 +514,7 @@ class GitClonerTest {
         String commitId;
 
         @BeforeEach
-        void setUo() {
+        void setUp() {
             git = mock(Git.class);
             repository = mock(Repository.class);
             commitId = "587a0e12610554a97b3aea6d6126ed92fb010865";
@@ -522,7 +522,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試當獲取 commitId 發生錯誤的拋出")
-        void throwGitAPIException() throws IOException {
+        void throwGitAPIExceptionTest() throws IOException {
             when(git.getRepository()).thenReturn(repository);
             when(repository.resolve(anyString()))
                     .thenThrow(new IOException("路徑錯誤"));
@@ -532,7 +532,7 @@ class GitClonerTest {
 
         @Test
         @DisplayName("測試當獲取 commitId 為 null 的拋出")
-        void getCommitIsNull() throws IOException {
+        void getCommitIsNullTest() throws IOException {
             when(git.getRepository()).thenReturn(repository);
             when(repository.resolve(anyString()))
                     .thenReturn(null);

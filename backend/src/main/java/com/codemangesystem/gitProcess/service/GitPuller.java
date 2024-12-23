@@ -52,9 +52,9 @@ public class GitPuller {
             String previousHeadRevstr = dataBaseService.getHeadRevstr(repoINFO.repoName);
             return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
         } catch (IOException | GitAPIException error) {
-            log.error("Pull 發生 {}", String.valueOf(error));
+            log.error("Pull 發生 {}", error.getMessage());
             return GitResult.builder()
-                            .message("Pull 發生 " + error)
+                            .message("Pull 發生 " + error.getMessage())
                             .status(GitStatus.PULL_FAILED)
                             .build();
         }
