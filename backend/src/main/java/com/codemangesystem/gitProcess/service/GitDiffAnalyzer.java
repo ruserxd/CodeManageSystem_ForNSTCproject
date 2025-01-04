@@ -154,13 +154,13 @@ public class GitDiffAnalyzer {
             log.error("分析 commits 出現問題 {}", error.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("分析時，發生 " + error)
+                            .message("分析時，發生 " + error.getMessage())
                             .build();
         } catch (GitAPIException error) {
             log.error("嘗試使用 Git 出現問題 {}", error.getMessage());
             return GitResult.builder()
                             .status(GitStatus.ANALYSIS_FAILED)
-                            .message("分析時，發生 " + error)
+                            .message("分析時，發生 " + error.getMessage())
                             .build();
         }
     }
@@ -513,6 +513,7 @@ public class GitDiffAnalyzer {
 
         // 未找到創立一個新的 file 並放入 project 內
         if (file == null) {
+            log.info("創立新的 file {}", fileName);
             file = Files.builder()
                         .fileName(fileName)
                         .filePath(filePath)
@@ -536,12 +537,14 @@ public class GitDiffAnalyzer {
             }
         }
 
+        log.info("創立新的 method {}", methodName);
         // 未找到先創立一個新的 method，接著存放 diffInfo，最後將 method 放入 methods 內
         Method newMethod = Method.builder()
                                  .methodName(methodName)
                                  .files(file)
                                  .diffInfoList(new ArrayList<>())
                                  .build();
+        log.info("method : {}", newMethod);
         diffInfo.setMethod(newMethod);
 
         newMethod.getDiffInfoList()
