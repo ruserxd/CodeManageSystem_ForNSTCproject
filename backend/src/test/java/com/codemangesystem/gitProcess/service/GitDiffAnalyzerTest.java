@@ -204,8 +204,8 @@ class GitDiffAnalyzerTest {
 
         @BeforeEach
         void setUp() {
-            oldMethod = read("src/test/resources/oldMethod.txt");
-            newMethod = read("src/test/resources/newMethod.txt");
+            oldMethod = read("src/test/resources/generateGitDiffData/oldMethod.txt");
+            newMethod = read("src/test/resources/generateGitDiffData/newMethod.txt");
         }
 
         @Test
@@ -216,7 +216,7 @@ class GitDiffAnalyzerTest {
             log.info("\n{}", actual);
 
             // 驗證
-            String except = read("src/test/resources/diffResult.txt");
+            String except = read("src/test/resources/generateGitDiffData/diffResult.txt");
 
             String[] actualLines = actual.split("\n");
             String[] exceptLines = except.split("\n");
@@ -226,14 +226,14 @@ class GitDiffAnalyzerTest {
         @Test
         @DisplayName("一樣的 code 進行 diff")
         void noDiffTest() {
-            newMethod = read("src/test/resources/oldMethod.txt");
+            newMethod = read("src/test/resources/generateGitDiffData/oldMethod.txt");
 
             // 測試
             String actual = GitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
             log.info("\n{}", actual);
 
             // 驗證
-            String except = read("src/test/resources/noDiffResult.txt");
+            String except = read("src/test/resources/generateGitDiffData/noDiffResult.txt");
 
             String[] actualLines = actual.split("\n");
             String[] exceptLines = except.split("\n");

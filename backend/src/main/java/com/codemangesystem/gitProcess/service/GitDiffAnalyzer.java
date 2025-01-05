@@ -385,8 +385,8 @@ public class GitDiffAnalyzer {
     public List<Pair<String, String>> compareTwoContent(String newContent, String oldContent) {
         List<Pair<String, String>> differences = new ArrayList<>();
 
-        Map<String, String> newMethods = getContentMethod(newContent);
-        Map<String, String> oldMethods = getContentMethod(oldContent);
+        Map<String, String> newMethods = getMethodByContent(newContent);
+        Map<String, String> oldMethods = getMethodByContent(oldContent);
 
         // 新版本與舊版本的對照
         for (Map.Entry<String, String> newMethod : newMethods.entrySet()) {
@@ -419,7 +419,7 @@ public class GitDiffAnalyzer {
     /*
      * 獲取這個文件內的 HashMap<方法, 方法內容>
      * */
-    public Map<String, String> getContentMethod(String content) {
+    public Map<String, String> getMethodByContent(String content) {
         try {
             /* 不使用 staticJavaParser(Java 3.0.0)
              * 為了避免掉版本不相容的問題
@@ -480,13 +480,18 @@ public class GitDiffAnalyzer {
     public static String generateGitDiff(String oldMethod, String newMethod) {
         // difflib 前面幾行不用
         final int nonSelectedLines = 2;
+
         // 把方法每行轉 list
         List<String> oldLines = List.of(oldMethod.split("\n"));
         List<String> newLines = List.of(newMethod.split("\n"));
+
         // java diff 使用
         Patch<String> patch = DiffUtils.diff(oldLines, newLines);
+
+        // 3 代表上下文非差異的程式碼行數
         List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff("OldVersionMethod.java",
-                "NewVersionMethod.java", oldLines, patch, 3);       //上下文的差異數量
+                "NewVersionMethod.java", oldLines, patch, 3);
+
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
         if (unifiedDiff.size() > nonSelectedLines) {
             unifiedDiff.subList(0, nonSelectedLines)
@@ -498,7 +503,6 @@ public class GitDiffAnalyzer {
 
     // 將資料放入 Project
     public void addDiffInfoInToProject(String filePath, String fileName, String methodName, DiffInfo diffInfo, Project project) {
-
         // 找尋 project 內相對應的 file
         Files file = null;
         for (Files projectFile : project.getFiles()) {
