@@ -20,6 +20,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -35,6 +36,34 @@ class GitDiffAnalyzerTest {
         projectRepository = mock(ProjectRepository.class);
         personalRepository = mock(PersonalRepository.class);
         gitDiffAnalyzer = new GitDiffAnalyzer(projectRepository, personalRepository);
+    }
+
+    public static String read(String filePath) {
+        FileReader fr = null;
+        StringBuilder fileINFO = new StringBuilder();
+        try {
+            fr = new FileReader(filePath);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        BufferedReader br = new BufferedReader(fr);
+        String tmp = null;
+
+        try {
+            while (((tmp = br.readLine()) != null)) {
+                fileINFO.append(tmp);
+                fileINFO.append("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return String.valueOf(fileINFO);
     }
 
     @Nested
@@ -165,42 +194,46 @@ class GitDiffAnalyzerTest {
     }
 
     @Nested
-    class getContentMethodTest {
+    class getMethodByContentTest {
+        String content;
 
+        @BeforeEach
+        void setUp() {
+
+        }
+
+        @Test
+        void sinTest() {
+            // 初始資料
+            content = read("src/test/resources/getMethodByContentData/content.txt");
+            String[] excepted = {"sin(double)", "sin(double, int)", "factorial(double)", "main(String[])"};
+
+            // 測試
+            Map<String, String> actualResult = gitDiffAnalyzer.getMethodByContent(content);
+            String[] actual = actualResult.keySet().toArray(new String[0]);
+            assertArrayEquals(excepted, actual);
+        }
+
+        @Test
+        void annotationTest() {
+            // 初始資料
+            content = read("src/test/resources/getMethodByContentData/havaAnnotationContent.txt");
+            String[] excepted = {"register(MyUser)", "fetchRepository(String, String, String)",
+                    "getProjectNames(String)", "deleteDataByProjectName(String, String)", "getFileDataByProjectName(String)"
+                    , "pullByProjectName(String)", "login(LoginINFO)", "addSuperAccount()"};
+
+            // 測試
+            Map<String, String> actualResult = gitDiffAnalyzer.getMethodByContent(content);
+            String[] actual = actualResult.keySet().toArray(new String[0]);
+            assertArrayEquals(excepted, actual);
+        }
+        // TODO : 新增更多測試
     }
 
     @Nested
     class generateGitDiffTest {
         String oldMethod;
         String newMethod;
-
-        public static String read(String fileName) {
-            FileReader fr = null;
-            StringBuilder fileINFO = new StringBuilder();
-            try {
-                fr = new FileReader(fileName);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            BufferedReader br = new BufferedReader(fr);
-            String tmp = null;
-
-            try {
-                while (((tmp = br.readLine()) != null)) {
-                    fileINFO.append(tmp);
-                    fileINFO.append("\n");
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return String.valueOf(fileINFO);
-        }
 
         @BeforeEach
         void setUp() {

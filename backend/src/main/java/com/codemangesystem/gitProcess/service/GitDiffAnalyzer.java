@@ -10,11 +10,11 @@ import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
 import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -416,64 +416,75 @@ public class GitDiffAnalyzer {
         return differences;
     }
 
+    // TODO : Constructor 沒有算在 method 內
     /*
      * 獲取這個文件內的 HashMap<方法, 方法內容>
      * */
     public Map<String, String> getMethodByContent(String content) {
-        try {
-            /* 不使用 staticJavaParser(Java 3.0.0)
-             * 為了避免掉版本不相容的問題
-             * 自訂 JavaParser 設定
-             * */
-            final ParserConfiguration parserConfiguration = new ParserConfiguration();
-            parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+        /* 不使用 staticJavaParser(Java 3.0.0)
+         * 為了避免掉版本不相容的問題
+         * 自訂 JavaParser 設定
+         * */
+        final ParserConfiguration parserConfiguration = new ParserConfiguration();
+        parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
 
-            JavaParser javaParser = new JavaParser(parserConfiguration);
+        JavaParser javaParser = new JavaParser(parserConfiguration);
 
-            // 獲取程式碼的語法樹的頭節點
-            CompilationUnit cuNode = javaParser.parse(content)
-                                               .getResult()
-                                               .filter(result -> result.findCompilationUnit()
-                                                                       .isPresent())
-                                               .flatMap(Node::findCompilationUnit)
-                                               .orElse(null);
+        // 獲取程式碼的語法樹的頭節點
+        CompilationUnit cuNode = javaParser.parse(content)
+                                           .getResult()
+                                           .filter(result -> result.findCompilationUnit()
+                                                                   .isPresent())
+                                           .flatMap(Node::findCompilationUnit)
+                                           .orElse(null);
 
-            log.info("本次的語法樹結構");
-            log.info(String.valueOf(cuNode));
-            // 確保 cu 不為 null
-            assert cuNode != null;
+        // 找出所有的方法資訊，並存入 list 內
+        List<MethodDeclaration> methods = cuNode.findAll(MethodDeclaration.class);
 
-            // 找出所有的方法資訊，並存入 list 內
-            List<MethodDeclaration> methods = cuNode.findAll(MethodDeclaration.class);
+        // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
+        Map<String, String> contentMethods = new HashMap<>();
+        for (MethodDeclaration method : methods) {
 
-            // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
-            Map<String, String> contentMethods = new HashMap<>();
-            for (MethodDeclaration method : methods) {
-                // 運用 StringBuilder 因為我們將大量對文件做相對應處理
-                StringBuilder methodContent = new StringBuilder(new StringBuilder());
+            // 運用 StringBuilder 因為我們將大量對文件做相對應處理
+            StringBuilder methodContent = new StringBuilder(new StringBuilder());
 
-                // 獲得註解的部分，e.g., @Service, @Controller etc.
-                List<AnnotationExpr> annotations = method.getAnnotations();
-                for (AnnotationExpr annotation : annotations) {
-                    methodContent.append(annotation.toString())
-                                 .append('\n');
-                }
-
-                // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
-                methodContent.append(method.getDeclarationAsString(true, true, true));
-
-                // 獲得方法的內容 { 方法內容 }
-                method.getBody()
-                      .ifPresent(body -> methodContent.append(' ')
-                                                      .append(body));
-
-                contentMethods.put(method.getNameAsString(), methodContent.toString());
+            // 獲得註解的部分，e.g., @Service, @Controller etc.
+            List<AnnotationExpr> annotations = method.getAnnotations();
+            for (AnnotationExpr annotation : annotations) {
+                methodContent.append(annotation.toString())
+                             .append('\n');
             }
-            return contentMethods;
-        } catch (ParseProblemException e) {
-            log.error("Parser文件時發生錯誤：{}", e.getMessage());
-            return new HashMap<>();
+
+            // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
+            methodContent.append(method.getDeclarationAsString(true, true, true));
+
+            // 獲得方法的內容 { 方法內容 }
+            method.getBody()
+                  .ifPresent(body -> methodContent.append(' ')
+                                                  .append(body));
+
+            String methodSignature = createMethodSignature(method);
+            log.info("本次的 method {}", methodSignature);
+            contentMethods.put(methodSignature, methodContent.toString());
         }
+        return contentMethods;
+    }
+
+    private String createMethodSignature(MethodDeclaration method) {
+        StringBuilder signature = new StringBuilder(method.getNameAsString());
+        signature.append('(');
+
+        // 加入參數類型
+        List<Parameter> parameters = method.getParameters();
+        for (int i = 0; i < parameters.size(); i++) {
+            if (i > 0) {
+                signature.append(", ");
+            }
+            signature.append(parameters.get(i).getType().asString());
+        }
+        signature.append(')');
+
+        return signature.toString();
     }
 
     // 對比兩個方法，透過 java-diff-utils 去完成
