@@ -194,7 +194,7 @@ public class GitCloner {
     /**
      * 切換到指定的 commitId
      */
-    public void checkToCommitId(Git git, String commitId) throws IOException, GitAPIException, RevisionSyntaxException{
+    public void checkToCommitId(Git git, String commitId) throws IOException, GitAPIException, RevisionSyntaxException {
         ObjectId specifyCommit = git.getRepository()
                                     .resolve(commitId);
         // 指定的 commitId 不存在

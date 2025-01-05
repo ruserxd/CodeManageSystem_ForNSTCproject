@@ -14,12 +14,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @Slf4j
@@ -130,7 +132,7 @@ class GitDiffAnalyzerTest {
         void successSetDiffTest() {
 
         }
-        
+
         @Test
         void throwIOExceptionTest() {
 
@@ -172,10 +174,70 @@ class GitDiffAnalyzerTest {
         String oldMethod;
         String newMethod;
 
+        public static String read(String fileName) {
+            FileReader fr = null;
+            StringBuilder fileINFO = new StringBuilder();
+            try {
+                fr = new FileReader(fileName);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            BufferedReader br = new BufferedReader(fr);
+            String tmp = null;
+
+            try {
+                while (((tmp = br.readLine()) != null)) {
+                    fileINFO.append(tmp);
+                    fileINFO.append("\n");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return String.valueOf(fileINFO);
+        }
+
         @BeforeEach
         void setUp() {
-            oldMethod = "";
-            newMethod = "";
+            oldMethod = read("src/test/resources/oldMethod.txt");
+            newMethod = read("src/test/resources/newMethod.txt");
+        }
+
+        @Test
+        @DisplayName("修改 hello world 比較測試")
+        void hellWorldDiffTest() {
+            // 測試
+            String actual = GitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
+            log.info("\n{}", actual);
+
+            // 驗證
+            String except = read("src/test/resources/diffResult.txt");
+
+            String[] actualLines = actual.split("\n");
+            String[] exceptLines = except.split("\n");
+            assertArrayEquals(actualLines, exceptLines);
+        }
+
+        @Test
+        @DisplayName("一樣的 code 進行 diff")
+        void noDiffTest() {
+            newMethod = read("src/test/resources/oldMethod.txt");
+
+            // 測試
+            String actual = GitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
+            log.info("\n{}", actual);
+
+            // 驗證
+            String except = read("src/test/resources/noDiffResult.txt");
+
+            String[] actualLines = actual.split("\n");
+            String[] exceptLines = except.split("\n");
+            assertArrayEquals(actualLines, exceptLines);
         }
     }
 
@@ -209,10 +271,10 @@ class GitDiffAnalyzerTest {
 
             // 預設的 files
             existingFile = Files.builder()
-                                      .fileName("Test.java")
-                                      .filePath("/Test")
-                                      .methods(new ArrayList<>())
-                                      .build();
+                                .fileName("Test.java")
+                                .filePath("/Test")
+                                .methods(new ArrayList<>())
+                                .build();
             project.getFiles().add(existingFile);
             project = spy(project);
         }
@@ -257,10 +319,10 @@ class GitDiffAnalyzerTest {
                                           .diffInfoList(new ArrayList<>())
                                           .build();
             Method existingMethod2 = Method.builder()
-                                          .methodId(1L)
-                                          .methodName(methodName)
-                                          .diffInfoList(new ArrayList<>())
-                                          .build();
+                                           .methodId(1L)
+                                           .methodName(methodName)
+                                           .diffInfoList(new ArrayList<>())
+                                           .build();
             existingFile.getMethods().add(existingMethod);
             existingFile.getMethods().add(existingMethod2);
 
@@ -283,7 +345,7 @@ class GitDiffAnalyzerTest {
                 }
             }
             assertNotNull(exceptFiles);
-            List<Method> methodList  = exceptFiles.getMethods();
+            List<Method> methodList = exceptFiles.getMethods();
 
             Method method = methodList.get(1);
             assertEquals(method.getMethodName(), "testMethod");
@@ -320,7 +382,7 @@ class GitDiffAnalyzerTest {
                 }
             }
             assertNotNull(exceptFiles);
-            List<Method> methodList  = exceptFiles.getMethods();
+            List<Method> methodList = exceptFiles.getMethods();
 
             Method method = methodList.get(0);
             assertEquals(method.getMethodName(), "testMethod");
@@ -329,7 +391,5 @@ class GitDiffAnalyzerTest {
             DiffInfo diffInfo = diffInfoList.get(0);
             assertEquals(diffInfo.getDiffCode(), "+ ssss");
         }
-     }
-
-
+    }
 }

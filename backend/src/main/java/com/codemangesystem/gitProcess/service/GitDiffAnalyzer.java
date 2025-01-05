@@ -477,23 +477,21 @@ public class GitDiffAnalyzer {
     }
 
     // 對比兩個方法，透過 java-diff-utils 去完成
-    private static String generateGitDiff(String oldMethod, String newMethod) {
+    public static String generateGitDiff(String oldMethod, String newMethod) {
+        // difflib 前面幾行不用
         final int nonSelectedLines = 2;
-
+        // 把方法每行轉 list
         List<String> oldLines = List.of(oldMethod.split("\n"));
         List<String> newLines = List.of(newMethod.split("\n"));
-
+        // java diff 使用
         Patch<String> patch = DiffUtils.diff(oldLines, newLines);
-
         List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff("OldVersionMethod.java",
                 "NewVersionMethod.java", oldLines, patch, 3);       //上下文的差異數量
-
         // 將 --OldVersionMethod.java ++NewVersionMethod.java 刪除因為我們這邊比較的是方法，檔案會一致
         if (unifiedDiff.size() > nonSelectedLines) {
             unifiedDiff.subList(0, nonSelectedLines)
                        .clear();
         }
-
         // 把 list 透過 \n 拆成一個 String
         return String.join("\n", unifiedDiff);
     }

@@ -344,14 +344,14 @@ class GitClonerTest {
                  MockedStatic<Git> gitMocked = mockStatic(Git.class)) {
                 // 模擬 GitFunction
                 gitFunctionMocked.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
-                            .thenReturn("test");
+                                 .thenReturn("test");
 
                 gitFunctionMocked.when(() -> GitFunction.isUserCloned(anyLong(),               // userId
-                                    any(RepositoryINFO.class),  // repoINFO
-                                    any(PersonalRepository.class)))
-                            .thenReturn(false);
+                                         any(RepositoryINFO.class),  // repoINFO
+                                         any(PersonalRepository.class)))
+                                 .thenReturn(false);
                 gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
-                            .thenReturn(false);
+                                 .thenReturn(false);
 
                 // 模擬 Git
                 Git mockGit = mock(Git.class);
@@ -443,7 +443,8 @@ class GitClonerTest {
                 CloneCommand mockCloneCommand = mock(CloneCommand.class);
                 when(mockCloneCommand.setURI(anyString())).thenReturn(mockCloneCommand);
                 when(mockCloneCommand.setDirectory(any(File.class))).thenReturn(mockCloneCommand);
-                when(mockCloneCommand.call()).thenThrow(new GitAPIException("clone failed") {});
+                when(mockCloneCommand.call()).thenThrow(new GitAPIException("clone failed") {
+                });
 
                 when(Git.cloneRepository()).thenReturn(mockCloneCommand);
 

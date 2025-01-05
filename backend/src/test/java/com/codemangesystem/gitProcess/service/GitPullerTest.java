@@ -44,8 +44,8 @@ class GitPullerTest {
         @DisplayName("測試 pull 失敗")
         void pullFailedTest() throws GitAPIException {
             Git git = mock(Git.class);
-            try (MockedStatic<Git> gitMock = mockStatic(Git.class)){
-                gitMock.when(()-> Git.open(any(File.class))).thenReturn(git);
+            try (MockedStatic<Git> gitMock = mockStatic(Git.class)) {
+                gitMock.when(() -> Git.open(any(File.class))).thenReturn(git);
 
                 PullCommand pullCommand = mock(PullCommand.class);
                 when(git.pull()).thenReturn(pullCommand);
@@ -74,8 +74,8 @@ class GitPullerTest {
         @DisplayName("測試 pull 成功")
         void pullSuccessTest() throws GitAPIException, IOException {
             Git git = mock(Git.class);
-            try (MockedStatic<Git> gitMock = mockStatic(Git.class)){
-                gitMock.when(()-> Git.open(any(File.class))).thenReturn(git);
+            try (MockedStatic<Git> gitMock = mockStatic(Git.class)) {
+                gitMock.when(() -> Git.open(any(File.class))).thenReturn(git);
 
                 PullCommand pullCommand = mock(PullCommand.class);
                 when(git.pull()).thenReturn(pullCommand);
@@ -109,8 +109,8 @@ class GitPullerTest {
         @DisplayName("測試 IOException")
         void throwIOExceptionTest() {
             Git git = mock(Git.class);
-            try (MockedStatic<Git> gitMock = mockStatic(Git.class)){
-                gitMock.when(()-> Git.open(any(File.class))).thenThrow(IOException.class);
+            try (MockedStatic<Git> gitMock = mockStatic(Git.class)) {
+                gitMock.when(() -> Git.open(any(File.class))).thenThrow(IOException.class);
 
                 // 分析完預計回傳
                 GitResult excepted = GitResult.builder()
@@ -127,10 +127,10 @@ class GitPullerTest {
 
         @Test
         @DisplayName("測試 GitAPIException")
-        void throwGitAPIExceptionTest() throws GitAPIException{
+        void throwGitAPIExceptionTest() throws GitAPIException {
             Git git = mock(Git.class);
-            try (MockedStatic<Git> gitMock = mockStatic(Git.class)){
-                gitMock.when(()-> Git.open(any(File.class))).thenReturn(git);
+            try (MockedStatic<Git> gitMock = mockStatic(Git.class)) {
+                gitMock.when(() -> Git.open(any(File.class))).thenReturn(git);
 
                 PullCommand pullCommand = mock(PullCommand.class);
                 when(git.pull()).thenReturn(pullCommand);
@@ -138,7 +138,8 @@ class GitPullerTest {
                 when(pullCommand.setRemoteBranchName(anyString())).thenReturn(pullCommand);
 
                 PullResult pullResult = mock(PullResult.class);
-                when(pullCommand.call()).thenThrow(new GitAPIException("pull failed"){});
+                when(pullCommand.call()).thenThrow(new GitAPIException("pull failed") {
+                });
 
                 // 分析完預計回傳
                 GitResult excepted = GitResult.builder()
