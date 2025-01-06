@@ -1,15 +1,15 @@
 package com.codemangesystem;
 
-import com.codemangesystem.gitProcess.model_DataBase.Project;
-import com.codemangesystem.gitProcess.model_Git.GitResult;
-import com.codemangesystem.gitProcess.model_Repo.RepositoryINFO;
-import com.codemangesystem.gitProcess.service.DataBaseService;
-import com.codemangesystem.gitProcess.service.GitCloner;
-import com.codemangesystem.gitProcess.service.GitPuller;
-import com.codemangesystem.loginProcess.model_response.LoginINFO;
-import com.codemangesystem.loginProcess.model_response.SessionResponse;
-import com.codemangesystem.loginProcess.model_user.MyUser;
-import com.codemangesystem.loginProcess.service.UserService;
+import com.codemangesystem.git_process.model_database.Project;
+import com.codemangesystem.git_process.model_git.GitResult;
+import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.service.DataBaseService;
+import com.codemangesystem.git_process.service.GitCloner;
+import com.codemangesystem.git_process.service.GitPuller;
+import com.codemangesystem.login_process.model_response.LoginINFO;
+import com.codemangesystem.login_process.model_response.SessionResponse;
+import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.http.HttpStatus;

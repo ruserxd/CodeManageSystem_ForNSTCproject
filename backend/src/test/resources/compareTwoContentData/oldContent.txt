@@ -1,0 +1,23 @@
+package org.entity;
+
+/**
+ * 遊戲角色*/
+public class Player {
+    String name;
+
+    public String getName() {
+        return "KUNWEIsoHandSome";
+    }
+
+    public void setName(String name) {
+        return;
+    }
+
+    /*歡迎使用者的加入*/
+    public void showWelcomeMessage() {
+    }
+
+    public void willDelete() {
+        // delete this function
+    }
+}

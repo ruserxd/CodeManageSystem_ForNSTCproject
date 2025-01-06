@@ -150,4 +150,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.23.0</version>
+                <configuration>
+                    <rulesets>
+                        <rulesert>src/main/resources/pmd/pmd-ruleset.xml</rulesert>
+                    </rulesets>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>

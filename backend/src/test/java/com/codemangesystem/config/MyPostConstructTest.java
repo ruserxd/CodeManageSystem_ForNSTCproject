@@ -1,10 +1,10 @@
 package com.codemangesystem.config;
 
-import com.codemangesystem.gitProcess.repository.ProjectRepository;
-import com.codemangesystem.loginProcess.model_user.MyUser;
-import com.codemangesystem.loginProcess.model_user.UserAuthority;
-import com.codemangesystem.loginProcess.repository.MyUserRepository;
-import com.codemangesystem.loginProcess.service.UserService;
+import com.codemangesystem.git_process.repository.ProjectRepository;
+import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model_user.UserAuthority;
+import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.login_process.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @Slf4j
 class MyPostConstructTest {
@@ -26,9 +27,9 @@ class MyPostConstructTest {
 
     @BeforeEach
     void initial() {
-        userService = Mockito.mock(UserService.class);
-        projectRepository = Mockito.mock(ProjectRepository.class);
-        myUserRepository = Mockito.mock(MyUserRepository.class);
+        userService = mock(UserService.class);
+        projectRepository = mock(ProjectRepository.class);
+        myUserRepository = mock(MyUserRepository.class);
         myPostConstruct = new MyPostConstruct(projectRepository, userService, myUserRepository);
     }
 
@@ -36,6 +37,15 @@ class MyPostConstructTest {
     @DisplayName("測試是否正常刪除資料夾")
     void deleteCloneFileTest() {
         try {
+            // 寫入 2 個檔案進行測試
+            String filePath = "src/cloneCode/test1";
+            File file = new File(filePath);
+            file.mkdir();
+
+            String filePath2 = "src/cloneCode/test2";
+            File file2 = new File(filePath);
+            file2.mkdir();
+
             myPostConstruct.deleteCloneFile();
         } catch (IOException e) {
             log.error("測試 deleteCloneFileTest() 發生 {}", e.getMessage());
@@ -46,7 +56,7 @@ class MyPostConstructTest {
         assertTrue(directory.isDirectory(), "發生錯誤，此路徑應該為一個資料夾");
 
         // 目錄下會存在一個 .gitKeep 因此預設為 1
-        assertTrue(directory.list().length == 1, "發生錯誤，此資料夾不該存在文件");
+        assertEquals(1, directory.list().length, "發生錯誤，此資料夾不該存在文件");
     }
 
     @Test
@@ -94,4 +104,20 @@ class MyPostConstructTest {
         assertEquals(exception.getMessage(), "路徑錯誤");
         MyPostConstruct.path = "src/cloneCode";
     }
+
+    @Test
+    @DisplayName("測試 initialSetting() 發生 {IOException}")
+    void initialSettingThrowIOExceptionTest() throws IOException {
+        MyPostConstruct.path = "/errorPath";
+        myPostConstruct = spy(myPostConstruct);
+        doThrow(new IOException("delete error")).when(myPostConstruct).deleteCloneFile();
+
+        IllegalAccessException exception = assertThrows(IllegalAccessException.class, () -> {
+            myPostConstruct.initialSettings();
+        });
+        assertEquals(exception.getMessage(), "發生讀取錯誤");
+        MyPostConstruct.path = "src/cloneCode";
+    }
+
+
 }

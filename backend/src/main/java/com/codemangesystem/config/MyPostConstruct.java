@@ -1,8 +1,8 @@
 package com.codemangesystem.config;
 
-import com.codemangesystem.gitProcess.repository.ProjectRepository;
-import com.codemangesystem.loginProcess.repository.MyUserRepository;
-import com.codemangesystem.loginProcess.service.UserService;
+import com.codemangesystem.git_process.repository.ProjectRepository;
+import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.login_process.service.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
