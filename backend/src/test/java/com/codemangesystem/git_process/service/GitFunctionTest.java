@@ -46,12 +46,8 @@ class GitFunctionTest {
     @Nested
     class isLocalClonedTest {
         @Test
-        void gitFileExist() {
-        }
-
-        @Test
         void gitFileNotExist() {
-            boolean actual = GitFunction.isLocalCloned("/test");
+            boolean actual = GitFunction.isInLocalGitDirectory("/test");
             assertFalse(actual);
         }
     }

@@ -98,7 +98,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),  // repoINFO
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -128,7 +128,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),  // repoINFO
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -171,7 +171,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),  // repoINFO
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -218,7 +218,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -263,7 +263,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -309,7 +309,7 @@ class GitClonerTest {
                                     any(RepositoryINFO.class),
                                     any(PersonalRepository.class)))
                             .thenReturn(false);
-                mockedStatic.when(() -> GitFunction.isLocalCloned(anyString()))
+                mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                             .thenReturn(true);
 
                 GitResult gitResult = GitResult.builder()
@@ -350,7 +350,7 @@ class GitClonerTest {
                                          any(RepositoryINFO.class),  // repoINFO
                                          any(PersonalRepository.class)))
                                  .thenReturn(false);
-                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                gitFunctionMocked.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                                  .thenReturn(false);
 
                 // 模擬 Git
@@ -391,7 +391,7 @@ class GitClonerTest {
                                          any(RepositoryINFO.class),  // repoINFO
                                          any(PersonalRepository.class)))
                                  .thenReturn(false);
-                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                gitFunctionMocked.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                                  .thenReturn(false);
 
                 // 模擬 Git
@@ -435,7 +435,7 @@ class GitClonerTest {
                                          any(RepositoryINFO.class),  // repoINFO
                                          any(PersonalRepository.class)))
                                  .thenReturn(false);
-                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                gitFunctionMocked.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                                  .thenReturn(false);
 
                 // 模擬 Git
@@ -474,7 +474,7 @@ class GitClonerTest {
                                          any(RepositoryINFO.class),  // repoINFO
                                          any(PersonalRepository.class)))
                                  .thenReturn(false);
-                gitFunctionMocked.when(() -> GitFunction.isLocalCloned(anyString()))
+                gitFunctionMocked.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
                                  .thenReturn(false);
 
                 // 模擬 Git

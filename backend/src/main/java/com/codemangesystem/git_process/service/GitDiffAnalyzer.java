@@ -307,7 +307,7 @@ public class GitDiffAnalyzer {
                         if (!Objects.equals(methodDiff.getValue(), "")) {
                             DiffInfo diffInfo = takeCommitINFO(commit);
                             diffInfo.setDiffCode(methodDiff.getValue());
-                            log.info("s {}", methodDiff.getValue());
+                            log.info("{}", methodDiff.getValue());
                             addDiffInfoInToProject(filePath, fileName, methodDiff.getKey(), diffInfo, project);
                         }
                     }

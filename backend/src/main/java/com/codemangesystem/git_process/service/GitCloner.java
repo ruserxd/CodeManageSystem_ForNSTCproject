@@ -77,7 +77,7 @@ public class GitCloner {
             log.info("Cloning to {}", repoUrl);
 
             // 當本地端有該儲存庫的處理
-            if (GitFunction.isLocalCloned(repoINFO.localPath)) {
+            if (GitFunction.isInLocalGitDirectory(repoINFO.localPath)) {
                 return pullAndUpdateDataBase(repoINFO, user, commitId);
             }
 

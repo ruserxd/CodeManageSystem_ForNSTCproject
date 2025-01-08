@@ -271,6 +271,7 @@ class GitDiffAnalyzerTest {
         }
 
         @Test
+        @DisplayName("沒有 project 的情況")
         void noProjectTest() throws GitAPIException, IOException {
             Path repoPath = tempDir.resolve("test");
 
