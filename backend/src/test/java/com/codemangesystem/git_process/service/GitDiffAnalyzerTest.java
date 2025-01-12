@@ -36,6 +36,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 
+import static com.codemangesystem.FileReader.read;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -868,6 +869,7 @@ class GitDiffAnalyzerTest {
     }
 
     @Nested
+    @DisplayName("比對兩個檔案並產出結果")
     class compareTwoContentTest {
         String newContent;
         String oldContent;
@@ -1154,33 +1156,5 @@ class GitDiffAnalyzerTest {
             DiffInfo diffInfo = diffInfoList.getFirst();
             assertEquals(diffInfo.getDiffCode(), "+ ssss");
         }
-    }
-
-    public static String read(String filePath) {
-        FileReader fr = null;
-        StringBuilder fileINFO = new StringBuilder();
-        try {
-            fr = new FileReader(filePath);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        BufferedReader br = new BufferedReader(fr);
-        String tmp;
-
-        try {
-            while (((tmp = br.readLine()) != null)) {
-                fileINFO.append(tmp);
-                fileINFO.append("\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                br.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return String.valueOf(fileINFO);
     }
 }

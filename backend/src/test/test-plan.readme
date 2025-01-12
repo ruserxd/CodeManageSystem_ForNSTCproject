@@ -1,0 +1,12 @@
+# 測試規劃
+## 這項專案致力於處理方法間的比對
+### class_diff 
+負責展現目前製作的功能
+
+---
+其餘的部分則是為了驗正更細節的
+branch-cover 100%
+### config
+### git_process
+### login_process
+### springboot_runner
