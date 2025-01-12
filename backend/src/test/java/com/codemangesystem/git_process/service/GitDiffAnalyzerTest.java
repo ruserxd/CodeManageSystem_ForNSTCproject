@@ -874,13 +874,15 @@ class GitDiffAnalyzerTest {
 
         @BeforeEach
         void setUp() {
-            newContent = read("src/test/resources/compareTwoContentData/newContent.txt");
-            oldContent = read("src/test/resources/compareTwoContentData/oldContent.txt");
+
         }
 
         @Test
         @DisplayName("測試 file 間的比較結果")
         void test() {
+            newContent = read("src/test/resources/compareTwoContentData/newContent.txt");
+            oldContent = read("src/test/resources/compareTwoContentData/oldContent.txt");
+
             // 測試
             List<Pair<String, String>> actual = gitDiffAnalyzer.compareTwoContent(oldContent, newContent);
 
