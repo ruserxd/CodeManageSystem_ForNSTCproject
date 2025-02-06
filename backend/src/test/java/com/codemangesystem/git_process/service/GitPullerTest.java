@@ -25,7 +25,6 @@ class GitPullerTest {
     GitDiffAnalyzer gitDiffAnalyzer;
     GitPuller gitPuller;
 
-
     @BeforeEach
     void setUp() {
         repositoryINFO = RepositoryINFO.builder()

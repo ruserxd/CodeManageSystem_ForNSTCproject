@@ -131,7 +131,7 @@ public class UserService {
             // 為密碼加密處理 bcrypt
             myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
             // 設定權限
-            myUser.setUserAuthority(UserAuthority.OWNER);
+            myUser.setUserAuthority(UserAuthority.USER);
 
             myUserRepository.save(myUser);
             log.info("Register success");

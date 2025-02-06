@@ -13,6 +13,8 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.CallableDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
@@ -105,10 +107,10 @@ public class GitDiffAnalyzer {
                 // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
                 Iterable<RevCommit> commits = git.log()
                                                  .call();
-                int counterDiffence = 0;
+                int counterDifference = 0;
                 // 獲取兩個版本之間的差異
                 for (RevCommit commit : commits) {
-                    if (counterDiffence == 0) {
+                    if (counterDifference == 0) {
                         firstCommitSHA = commit.getName();
                     }
                     String message = commit.getFullMessage();
@@ -120,9 +122,9 @@ public class GitDiffAnalyzer {
                     List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
                     setCommitDiffToProject(diffs, project, git, commit, previousCommit);
-                    counterDiffence++;
+                    counterDifference++;
                 }
-                log.info("共有 {} 個差異", counterDiffence);
+                log.info("共有 {} 個差異", counterDifference);
             }
 
             log.info("成功獲取所有 commit diff 的資訊");
@@ -375,11 +377,8 @@ public class GitDiffAnalyzer {
      * 獲取某段 commit 的整個檔案內的資料(程式碼)
      */
     public String getContentByCommit(Git git, String path, RevCommit commit) throws IOException {
-        log.info("sss");
         byte[] bytes = new byte[0];
-        log.info("ssss");
         try (TreeWalk treeWalk = TreeWalk.forPath(git.getRepository(), path, commit.getTree())) {
-            log.info("sssss");
             if (treeWalk != null) {
                 ObjectLoader objectLoader = git.getRepository()
                                                .open(treeWalk.getObjectId(0));
@@ -416,6 +415,7 @@ public class GitDiffAnalyzer {
 
             differences.add(Pair.of(methodName, generateGitDiff(oldMethodBody, newMethodBody)));
         }
+
         // 例外: 會出現舊版本有，但新版沒有，代表這個方法被刪減
         for (Map.Entry<String, String> oldMethod : oldMethods.entrySet()) {
             String oldMethodName = oldMethod.getKey();
@@ -429,21 +429,15 @@ public class GitDiffAnalyzer {
         return differences;
     }
 
-    // TODO : Constructor 沒有算在 method 內
     /*
-     * 獲取這個文件內的 HashMap<方法, 方法內容>
+     * 獲取一份 java 檔案的 方法 + 建構子
      * */
     public Map<String, String> getMethodByContent(String content) {
-        /* 不使用 staticJavaParser(Java 3.0.0)
-         * 為了避免掉版本不相容的問題
-         * 自訂 JavaParser 設定
-         * */
         final ParserConfiguration parserConfiguration = new ParserConfiguration();
         parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
 
         JavaParser javaParser = new JavaParser(parserConfiguration);
 
-        // 獲取程式碼的語法樹的頭節點
         CompilationUnit cuNode = javaParser.parse(content)
                                            .getResult()
                                            .filter(result -> result.findCompilationUnit()
@@ -451,46 +445,65 @@ public class GitDiffAnalyzer {
                                            .flatMap(Node::findCompilationUnit)
                                            .orElse(null);
 
-        // 找出所有的方法資訊，並存入 list 內
-        List<MethodDeclaration> methods = cuNode.findAll(MethodDeclaration.class);
-
-        // 將獲得的資訊分為 Key: 方法名稱 Value: 該方法內容
         Map<String, String> contentMethods = new HashMap<>();
+
+        // 處理一般方法
+        List<MethodDeclaration> methods = cuNode.findAll(MethodDeclaration.class);
         for (MethodDeclaration method : methods) {
-
-            // 運用 StringBuilder 因為我們將大量對文件做相對應處理
-            StringBuilder methodContent = new StringBuilder(new StringBuilder());
-
-            // 獲得註解的部分，e.g., @Service, @Controller etc.
-            List<AnnotationExpr> annotations = method.getAnnotations();
-            for (AnnotationExpr annotation : annotations) {
-                methodContent.append(annotation.toString())
-                             .append('\n');
-            }
-
-            // 獲得方法的 (回傳類型, 名稱, 參數 etc.)
-            methodContent.append(method.getDeclarationAsString(true, true, true));
-
-            // 獲得方法的內容 { 方法內容 }
-            method.getBody()
-                  .ifPresent(body -> methodContent.append(' ')
-                                                  .append(body));
-
-            String methodSignature = createMethodSignature(method);
-            log.info("本次的 method {}", methodSignature);
-            contentMethods.put(methodSignature, methodContent.toString());
+            processCallableDeclaration(method, contentMethods);
         }
+
+        // 處理建構子
+        List<ConstructorDeclaration> constructors = cuNode.findAll(ConstructorDeclaration.class);
+        for (ConstructorDeclaration constructor : constructors) {
+            processCallableDeclaration(constructor, contentMethods);
+        }
+
         return contentMethods;
     }
 
+    private void processCallableDeclaration(CallableDeclaration<?> declaration, Map<String, String> contentMethods) {
+        StringBuilder content = new StringBuilder();
+        String type = "null";
+        // 處理註解
+        declaration.getComment().ifPresent(content::append);
+
+        // 處理 annotations
+        List<AnnotationExpr> annotations = declaration.getAnnotations();
+        for (AnnotationExpr annotation : annotations) {
+            content.append(annotation.toString())
+                   .append('\n');
+        }
+
+        // 獲取宣告
+        content.append(declaration.getDeclarationAsString(true, true, true));
+
+        // 處理方法體 - 區分處理方法和建構子
+        if (declaration instanceof MethodDeclaration method) {
+            method.getBody().ifPresent(body ->
+                    content.append(' ').append(body)
+            );
+            type = "method";
+        } else if (declaration instanceof ConstructorDeclaration constructor) {
+            content.append(' ').append(constructor.getBody());
+            type = "constructor";
+        }
+
+        String signature = createMethodSignature(declaration);
+
+        log.info("本次的 {} {}", type, signature);
+        contentMethods.put(signature, content.toString());
+    }
+
     /*
-     * 獲得方法的名稱+傳入值*/
-    private String createMethodSignature(MethodDeclaration method) {
-        StringBuilder signature = new StringBuilder(method.getNameAsString());
+     * 獲得方法或建構子的名稱+傳入值
+     * */
+    private String createMethodSignature(CallableDeclaration<?> declaration) {
+        StringBuilder signature = new StringBuilder(declaration.getNameAsString());
         signature.append('(');
 
         // 加入參數類型
-        List<Parameter> parameters = method.getParameters();
+        List<Parameter> parameters = declaration.getParameters();
         for (int i = 0; i < parameters.size(); i++) {
             if (i > 0) {
                 signature.append(", ");
@@ -499,12 +512,18 @@ public class GitDiffAnalyzer {
         }
         signature.append(')');
 
+        // 如果是方法，加入回傳類型
+        if (declaration instanceof MethodDeclaration method) {
+            signature.append(": ")
+                     .append(method.getType().asString());
+        }
+
         return signature.toString();
     }
 
     // 對比兩個方法，透過 java-diff-utils 去完成
-    public static String generateGitDiff(String oldMethod, String newMethod) {
-        // difflib 前面幾行不用
+    public String generateGitDiff(String oldMethod, String newMethod) {
+        // diff lib 前面幾行不用
         final int nonSelectedLines = 2;
 
         // 把方法每行轉 list
@@ -523,6 +542,7 @@ public class GitDiffAnalyzer {
             unifiedDiff.subList(0, nonSelectedLines)
                        .clear();
         }
+
         // 把 list 透過 \n 拆成一個 String
         return String.join("\n", unifiedDiff);
     }

@@ -27,7 +27,6 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 @RequestMapping("/api")
 public class ApiController {
-
     private final GitCloner gitCloner;
     private final DataBaseService dataBaseService;
     private final UserService userService;

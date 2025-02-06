@@ -111,7 +111,8 @@ public class ApiControllerTest {
     @DisplayName("測試 fetchRepository api throw 的處理")
     public void testFetchRepositoryThrow() throws Exception {
         when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
-                .thenThrow(new GitAPIException("git error"){});
+                .thenThrow(new GitAPIException("git error") {
+                });
 
         mockMvc.perform(post("/api/fetch-repo")
                        .param("url", "https://github.com/test/repo")

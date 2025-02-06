@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /*若此 測試遇上問題請注意本地端的 .env 檔案與 plugin 的設置*/
 @SpringBootTest
-@TestPropertySource(properties="")
+@TestPropertySource(properties = "")
 class CodeMangeSystemApplicationTests {
 
     @Test

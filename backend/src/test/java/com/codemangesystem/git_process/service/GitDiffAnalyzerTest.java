@@ -36,7 +36,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 
-import static com.codemangesystem.FileReader.read;
+import static com.codemangesystem.FileReader.getFileCode;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -882,8 +882,8 @@ class GitDiffAnalyzerTest {
         @Test
         @DisplayName("測試 file 間的比較結果")
         void test() {
-            newContent = read("src/test/resources/compareTwoContentData/newContent.txt");
-            oldContent = read("src/test/resources/compareTwoContentData/oldContent.txt");
+            newContent = getFileCode("src/test/resources/compareTwoContentData/newContent.txt");
+            oldContent = getFileCode("src/test/resources/compareTwoContentData/oldContent.txt");
 
             // 測試
             List<Pair<String, String>> actual = gitDiffAnalyzer.compareTwoContent(oldContent, newContent);
@@ -932,7 +932,7 @@ class GitDiffAnalyzerTest {
         @DisplayName("沒 annotation 的測試")
         void sinTest() {
             // 初始資料
-            content = read("src/test/resources/getMethodByContentData/content.txt");
+            content = getFileCode("src/test/resources/getMethodByContentData/content.txt");
             String[] expected = {"sin(double)", "sin(double, int)", "factorial(double)", "main(String[])"};
 
             // 測試
@@ -947,7 +947,7 @@ class GitDiffAnalyzerTest {
         @DisplayName("有 annotation 的測試")
         void annotationTest() {
             // 初始資料
-            content = read("src/test/resources/getMethodByContentData/havaAnnotationContent.txt");
+            content = getFileCode("src/test/resources/getMethodByContentData/havaAnnotationContent.txt");
             String[] excepted = {"register(MyUser)", "fetchRepository(String, String, String)",
                     "getProjectNames(String)", "deleteDataByProjectName(String, String)", "getFileDataByProjectName(String)"
                     , "pullByProjectName(String)", "login(LoginINFO)", "addSuperAccount()"};
@@ -969,19 +969,19 @@ class GitDiffAnalyzerTest {
 
         @BeforeEach
         void setUp() {
-            oldMethod = read("src/test/resources/generateGitDiffData/oldMethod.txt");
-            newMethod = read("src/test/resources/generateGitDiffData/newMethod.txt");
+            oldMethod = getFileCode("src/test/resources/generateGitDiffData/oldMethod.txt");
+            newMethod = getFileCode("src/test/resources/generateGitDiffData/newMethod.txt");
         }
 
         @Test
         @DisplayName("修改 hello world 比較測試")
         void hellWorldDiffTest() {
             // 測試
-            String actual = GitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
+            String actual = gitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
             log.info("\n{}", actual);
 
             // 驗證
-            String expected = read("src/test/resources/generateGitDiffData/diffResult.txt");
+            String expected = getFileCode("src/test/resources/generateGitDiffData/diffResult.txt");
 
             String[] actualLines = actual.split("\n");
             String[] expectedLines = expected.split("\n");
@@ -991,14 +991,14 @@ class GitDiffAnalyzerTest {
         @Test
         @DisplayName("一樣的 code 進行 diff")
         void noDiffTest() {
-            newMethod = read("src/test/resources/generateGitDiffData/oldMethod.txt");
+            newMethod = getFileCode("src/test/resources/generateGitDiffData/oldMethod.txt");
 
             // 測試
-            String actual = GitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
+            String actual = gitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
             log.info("\n{}", actual);
 
             // 驗證
-            String expected = read("src/test/resources/generateGitDiffData/noDiffResult.txt");
+            String expected = getFileCode("src/test/resources/generateGitDiffData/noDiffResult.txt");
 
             String[] actualLines = actual.split("\n");
             String[] expectedLines = expected.split("\n");

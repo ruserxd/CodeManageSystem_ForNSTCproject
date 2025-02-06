@@ -5,7 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class FileReader {
-    public static String read(String filePath) {
+    public static String getFileCode(String filePath) {
         java.io.FileReader fr = null;
         StringBuilder fileINFO = new StringBuilder();
         try {

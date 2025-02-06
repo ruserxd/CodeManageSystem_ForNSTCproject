@@ -15,7 +15,7 @@ const Login = ({ onLogin }) => {
 		setLoading(true);
 		try {
 			const loginUserInfo = {
-				userAccount: values.useraccount,
+				userAccount: values.userAccount,
 				userPassword: values.password
 			};
 
@@ -49,7 +49,7 @@ const Login = ({ onLogin }) => {
 			onFinish={handleSubmit}
 			form={form}>
 			<Form.Item
-				name="useraccount"
+				name="userAccount"
 				rules={[
 					{
 						required: true,
