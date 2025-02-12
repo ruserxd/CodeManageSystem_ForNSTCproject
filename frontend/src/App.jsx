@@ -12,6 +12,7 @@ import UserPage from './components/user/UserPage';
 import 'antd/dist/reset.css';
 import { App as AntApp, ConfigProvider, message } from 'antd';
 import { useCookies } from 'react-cookie';
+import AdminOutlined from './components/Admin/AdminOutlined';
 
 function App() {
 	// 利用 cookies 將使用者資料存下來
@@ -62,6 +63,7 @@ function App() {
 							<Route path="/Contact" element={<Contact />} />
 							<Route path="/ShowMethodDiff/*" element={<ShowMethodDiff />} />
 							<Route path="/UserPage" element={<UserPage onLogout={handleLogout} />} />
+							<Route path="/AdminPage" element={<AdminOutlined />} />
 						</Route>
 					</Routes>
 				</ConfigProvider>
