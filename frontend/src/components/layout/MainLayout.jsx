@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { ControlOutlined, DesktopOutlined, HomeOutlined, PieChartOutlined, UserOutlined } from '@ant-design/icons';
+import { DesktopOutlined, HomeOutlined, PieChartOutlined, UserOutlined } from '@ant-design/icons';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
+import AdminOutlined from '../Admin/AdminOutlined';
 
 const { Content, Footer, Sider } = Layout
 
@@ -41,7 +42,7 @@ function MainLayout({ user }) {
 						getItem(<Link to="/Register">註冊</Link>, '註冊')
 					]),
 			user && user.userAuthority === 'ADMIN'
-				? getItem(<Link to="/Admin">管理者</Link>, '管理者', <ControlOutlined />)
+				? getItem(<Link to="/AdminPage">管理者</Link>, '管理者', <AdminOutlined />)
 				: null
 		],
 		[user]
@@ -56,6 +57,7 @@ function MainLayout({ user }) {
 		if (path === '/Login') return '登入';
 		if (path === '/Register') return '註冊';
 		if (path === '/UserPage') return '使用者';
+		if (path === '/AdminPage') return '管理者'
 		return '主頁'; // 默認選中首頁
 	}, [curLocation.pathname]);
 
