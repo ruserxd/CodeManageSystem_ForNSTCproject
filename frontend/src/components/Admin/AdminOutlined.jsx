@@ -12,12 +12,11 @@ function AdminOutlined() {
       console.log('API response:', response.data);
       const data = response.data.map(user => ({
         userId: user.userId,
-        userAccount: user.userAccount,
-        // userEmail : user.userEmail,
-        // userAuthority : user.userAuthority,
-        // userPassword : user.userPassword,
-        // userName : user.userName,
-        // personalinfos : user.personalinfos
+		userName : user.userName,
+        userEmail : user.userEmail,
+		userAccount: user.userAccount,
+        userAuthority : user.userAuthority,
+		userPassword : user.userPassword
       }));
       setUsers(data);
     })

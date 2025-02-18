@@ -177,11 +177,11 @@ public class UserService {
         for (MyUser user : users) {
             result.add(new MyUser(
                     user.getUserId(),
-                    null,
-                    null,
+                    user.getUserName(),
+                    user.getUserEmail(),
                     user.getUserAccount(),
-                    null,
-                    null,
+                    user.getUserPassword(),
+                    user.getUserAuthority(),
                     null
             ));
         }
