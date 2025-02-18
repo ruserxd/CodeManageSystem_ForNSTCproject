@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -164,5 +166,26 @@ public class UserService {
     public boolean ifAccountExist(MyUser myUser) {
         Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount(myUser.getUserAccount());
         return myUserInDataBase.isPresent();
+    }
+
+    /**
+     * 管理使用者
+     */
+    public List<MyUser> getIdsAccounts() {
+        List<MyUser> users = myUserRepository.findAll();
+        List<MyUser> result = new ArrayList<>();
+        for (MyUser user : users) {
+            result.add(new MyUser(
+                    user.getUserId(),
+                    user.getUserName(),
+                    user.getUserEmail(),
+                    user.getUserAccount(),
+                    user.getUserPassword(),
+                    user.getUserAuthority(),
+                    null
+            ));
+        }
+
+        return result;
     }
 }

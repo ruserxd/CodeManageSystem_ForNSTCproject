@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { DesktopOutlined, HomeOutlined, PieChartOutlined, UserOutlined } from '@ant-design/icons';
+import { DesktopOutlined, HomeOutlined, PieChartOutlined, ToolOutlined, UserOutlined } from '@ant-design/icons';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
 import AdminOutlined from '../Admin/AdminOutlined';
 
@@ -42,7 +42,7 @@ function MainLayout({ user }) {
 						getItem(<Link to="/Register">註冊</Link>, '註冊')
 					]),
 			user && user.userAuthority === 'ADMIN'
-				? getItem(<Link to="/AdminPage">管理者</Link>, '管理者', <AdminOutlined />)
+				? getItem(<Link to="/AdminPage">管理者</Link>, '管理者', <ToolOutlined />)
 				: null
 		],
 		[user]

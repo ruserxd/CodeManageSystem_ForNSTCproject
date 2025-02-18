@@ -139,4 +139,11 @@ public class ApiController {
         log.info("手動加入超級帳號");
         userService.addSuperAccount();
     }
+
+    @GetMapping("/getAllUsers")
+    public ResponseEntity<List<MyUser>> getAllUsers() {
+        log.info("取得所有使用者的ID與帳號");
+        List<MyUser> users = userService.getIdsAccounts();
+        return new ResponseEntity<>(users, HttpStatus.OK);
+    }
 }
