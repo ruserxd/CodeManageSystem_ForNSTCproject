@@ -8,7 +8,6 @@ import { DownOutlined } from '@ant-design/icons';
 import '../../css/showMethodDiff.css';
 
 const { Title } = Typography;
-// TODO: 透過搜尋的方式顯示資料
 
 const ShowMethodDiff = () => {
 	const { '*': urlParam } = useParams();
@@ -17,9 +16,7 @@ const ShowMethodDiff = () => {
 	const [projectName, setProjectName] = useState('');
 	const [error, setError] = useState(null);
 	const [value, setValue] = useState();
-	const [filteredTreeData, setFilteredTreeData] = useState([]);
 	const [expandedKeys, setExpandedKeys] = useState([]);
-
 
 	// 獲取此專案的 DiffInfo
 	useEffect(() => {
@@ -33,12 +30,10 @@ const ShowMethodDiff = () => {
 
 				const tmp = transformToSelectedTreeData(response.data);
 				setSelectedTreeData(tmp);
-				const initialData = initialTreeData(response.data);
-				setTreeData(initialData);
-				setFilteredTreeData(initialData);
+
+				initialTreeData(response.data);
 				// 設定 Project 為網域的最後一個 Param
 				setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
-
 			} catch (error) {
 				setError(error);
 				console.error('Error during fetch: ', error);
@@ -47,27 +42,8 @@ const ShowMethodDiff = () => {
 		void fetchData();
 	}, [urlParam]);
 
-	const treeSelectOnChange = (newValue) => {
-		setValue(newValue);
-		// 展開節點
-		if (newValue) {
-			const parts = newValue.split('_');
-			const expandKeys = [];
-			let currentKey = parts[0];
-			expandKeys.push(currentKey);
-
-			for (let i = 1; i < parts.length; i++) {
-				currentKey = `${currentKey}_${parts[i]}`;
-				expandKeys.push(currentKey);
-			}
-			setExpandedKeys(expandKeys);
-		}
-	};
-
-
 	// 產生 selected，將 JSon 格式修改成 antd treeSelect 需求
 	const transformToSelectedTreeData = (data) => {
-		if (!data) return [];
 		return [
 			{
 				value: `project_${data.projectId}`,
@@ -94,8 +70,8 @@ const ShowMethodDiff = () => {
 
 	// 初始化 TreeData
 	const initialTreeData = (data) => {
-		if (!data) return [];
-		return[{
+		const tmp = [
+			{
 				value: `project_${data.projectId}`,
 				title: data.projectName,
 				label: data.projectName,
@@ -120,39 +96,64 @@ const ShowMethodDiff = () => {
 				}))
 			}
 		];
+		setTreeData(tmp);
+	};
+
+	// 根據選擇值生成需要展開的所有父節點鍵值
+	const generateExpandedKeys = (selectedValue) => {
+		if (!selectedValue) return [];
+
+		const parts = selectedValue.split('_');
+		const keys = [];
+
+		// 從選擇的完整路徑構建出所有父級路徑
+		for (let i = 1; i <= parts.length; i++) {
+			keys.push(parts.slice(0, i).join('_'));
+		}
+
+		return keys;
+	};
+
+	// 透過 selectTree 選擇直接將資料修該為該路徑
+	const treeSelectOnChange = (newValue) => {
+		console.log(newValue);
+		setValue(newValue);
+
+		// 根據選擇的值，設置需要展開的樹節點
+		if (newValue) {
+			const keysToExpand = generateExpandedKeys(newValue);
+			setExpandedKeys(keysToExpand);
+		}
 	};
 
 	return (
 		<>
 			{error ? (
-				<p>Error: {error.message}</p>
+				<p> Error: {error.message} </p>
 			) : (
 				<div>
 					<Title level={2}>{projectName} 的方法差異資訊</Title>
-					<div style={{ marginBottom: 16 }}>
-
-						<TreeSelect
-							showSearch
-							style={{
-								width: '25%'
-							}}
-							value={value}
-							dropdownStyle={{
-								maxHeight: 400,
-								overflow: 'auto'
-							}}
-							placeholder="Select"
-							allowClear
-							onChange={treeSelectOnChange}
-							treeData={selectedTreeData}
-						/>
-					</div>
+					<TreeSelect
+						showSearch
+						style={{
+							width: '25%'
+						}}
+						value={value}
+						dropdownStyle={{
+							maxHeight: 400,
+							overflow: 'auto'
+						}}
+						placeholder="Select"
+						allowClear
+						onChange={treeSelectOnChange}
+						treeData={selectedTreeData}
+					/>
 					<Tree
-						treeData={filteredTreeData}
+						treeData={treeData}
 						showLine
 						switcherIcon={<DownOutlined />}
 						expandedKeys={expandedKeys}
-						autoExpandParent={true}
+						onExpand={setExpandedKeys}
 					/>
 				</div>
 			)}
