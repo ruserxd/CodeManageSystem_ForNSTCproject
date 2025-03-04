@@ -1,11 +1,11 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_database.*;
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_git.GitStatus;
+import com.codemangesystem.git_process.model.database.*;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.GitStatus;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.user.MyUser;
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
@@ -38,8 +38,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-// TODO: 單純方法間的比較，那變數, 初始化該如何處理
 
 /**
  * 獲取 Git 每段 commit 的方法差異

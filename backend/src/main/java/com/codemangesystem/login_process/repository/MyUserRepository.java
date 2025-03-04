@@ -1,6 +1,6 @@
 package com.codemangesystem.login_process.repository;
 
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.user.MyUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,6 +1,6 @@
 package com.codemangesystem.git_process.repository;
 
-import com.codemangesystem.git_process.model_database.PersonalINFO;
+import com.codemangesystem.git_process.model.database.PersonalINFO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

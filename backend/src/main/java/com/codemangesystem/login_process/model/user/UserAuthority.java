@@ -1,4 +1,4 @@
-package com.codemangesystem.login_process.model_user;
+package com.codemangesystem.login_process.model.user;
 
 /**
  * 使用者的權限

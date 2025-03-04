@@ -1,7 +1,7 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_database.PersonalINFO;
-import com.codemangesystem.git_process.model_database.Project;
+import com.codemangesystem.git_process.model.database.PersonalINFO;
+import com.codemangesystem.git_process.model.database.Project;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
 import lombok.extern.slf4j.Slf4j;

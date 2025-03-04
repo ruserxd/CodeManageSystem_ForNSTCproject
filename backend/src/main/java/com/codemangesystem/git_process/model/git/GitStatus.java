@@ -1,4 +1,4 @@
-package com.codemangesystem.git_process.model_git;
+package com.codemangesystem.git_process.model.git;
 
 /**
  * Git 操作後的狀態

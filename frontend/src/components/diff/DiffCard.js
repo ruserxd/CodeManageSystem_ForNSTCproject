@@ -31,7 +31,7 @@ const DiffCard = ({ diff }) => {
 
 	return (
 		<Card
-			title={diff.headRevstr}
+			title={diff.commitMessage}
 			style={{ width: 800 }}
 			tabList={tabList}
 			bordered={false}

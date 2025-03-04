@@ -1,8 +1,8 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_git.GitStatus;
-import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.GitStatus;
+import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.PullResult;

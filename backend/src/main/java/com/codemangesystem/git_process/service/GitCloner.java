@@ -1,13 +1,13 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_database.PersonalINFO;
-import com.codemangesystem.git_process.model_database.Project;
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_git.GitStatus;
-import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.model.database.PersonalINFO;
+import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.GitStatus;
+import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;

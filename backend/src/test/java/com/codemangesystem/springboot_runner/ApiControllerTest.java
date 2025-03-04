@@ -1,16 +1,16 @@
 package com.codemangesystem.springboot_runner;
 
 import com.codemangesystem.ApiController;
-import com.codemangesystem.git_process.model_database.Project;
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_git.GitStatus;
-import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.GitStatus;
+import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.service.DataBaseService;
 import com.codemangesystem.git_process.service.GitCloner;
 import com.codemangesystem.git_process.service.GitPuller;
-import com.codemangesystem.login_process.model_response.LoginINFO;
-import com.codemangesystem.login_process.model_response.SessionResponse;
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.response.LoginINFO;
+import com.codemangesystem.login_process.model.response.SessionResponse;
+import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.jgit.api.errors.GitAPIException;

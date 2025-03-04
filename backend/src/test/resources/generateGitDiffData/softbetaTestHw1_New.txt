@@ -1,0 +1,29 @@
+void getDataFromJsonFile(String filePath) {
+    try {
+        Object ob = new JSONParser().parse(new FileReader(filePath));
+        JSONObject js = (JSONObject) ob;
+
+        for (String league : leagues) {
+            // 這個聯盟的 Json 物件
+            JSONObject leagueJson = (JSONObject) js.get(league);
+
+            // 如果沒找到對應的 league
+            if (leagueJson == null) {
+                throw new IllegalArgumentException("League not found in JSON: " + league);
+            }
+
+            // 使用 Map 來取代 if-else
+            for (String region : regions) {
+                getRegionsData(leagueJson, region, leagueToHashMap.get(league));
+            }
+        }
+    } catch (IOException e) {
+        log.error("讀取檔案時發生錯誤: ", e);
+        throw new RuntimeException("無法讀取檔案: " + e.getMessage());
+    } catch (ParseException e) {
+        log.error("JSON解析錯誤: ", e);
+        throw new RuntimeException("JSON解析錯誤: " + e.getMessage());
+    } finally {
+        log.info("抓取 Json 結束");
+    }
+}

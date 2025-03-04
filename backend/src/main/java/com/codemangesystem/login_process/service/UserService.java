@@ -1,9 +1,9 @@
 package com.codemangesystem.login_process.service;
 
-import com.codemangesystem.login_process.model_response.LoginINFO;
-import com.codemangesystem.login_process.model_response.SessionResponse;
-import com.codemangesystem.login_process.model_user.MyUser;
-import com.codemangesystem.login_process.model_user.UserAuthority;
+import com.codemangesystem.login_process.model.response.LoginINFO;
+import com.codemangesystem.login_process.model.response.SessionResponse;
+import com.codemangesystem.login_process.model.user.MyUser;
+import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

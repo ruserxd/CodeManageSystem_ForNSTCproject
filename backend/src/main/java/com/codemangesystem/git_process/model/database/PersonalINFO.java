@@ -1,6 +1,6 @@
-package com.codemangesystem.git_process.model_database;
+package com.codemangesystem.git_process.model.database;
 
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.user.MyUser;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

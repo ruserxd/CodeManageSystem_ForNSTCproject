@@ -1,6 +1,6 @@
-package com.codemangesystem.login_process.model_user;
+package com.codemangesystem.login_process.model.user;
 
-import com.codemangesystem.git_process.model_database.PersonalINFO;
+import com.codemangesystem.git_process.model.database.PersonalINFO;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

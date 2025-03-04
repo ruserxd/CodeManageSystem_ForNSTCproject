@@ -1,8 +1,8 @@
 package com.codemangesystem.config;
 
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.model_user.MyUser;
-import com.codemangesystem.login_process.model_user.UserAuthority;
+import com.codemangesystem.login_process.model.user.MyUser;
+import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
 import com.codemangesystem.login_process.service.UserService;
 import lombok.extern.slf4j.Slf4j;

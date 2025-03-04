@@ -1,14 +1,14 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_database.DiffInfo;
-import com.codemangesystem.git_process.model_database.Files;
-import com.codemangesystem.git_process.model_database.Method;
-import com.codemangesystem.git_process.model_database.Project;
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_git.GitStatus;
+import com.codemangesystem.git_process.model.database.DiffInfo;
+import com.codemangesystem.git_process.model.database.Files;
+import com.codemangesystem.git_process.model.database.Method;
+import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.GitStatus;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.user.MyUser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
@@ -32,7 +32,8 @@ import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -1003,6 +1004,17 @@ class GitDiffAnalyzerTest {
             String[] actualLines = actual.split("\n");
             String[] expectedLines = expected.split("\n");
             assertArrayEquals(actualLines, expectedLines);
+        }
+
+        @Test
+        @DisplayName("測試 SoftBetaTest hw1 Commit 46f1671")
+        void softBetaTestHw1Test() {
+            oldMethod = getFileCode("src/test/resources/generateGitDiffData/softbetaTestHw1_Old.txt");
+            newMethod = getFileCode("src/test/resources/generateGitDiffData/softbetaTestHw1_New.txt");
+
+            // 測試
+            String actual = gitDiffAnalyzer.generateGitDiff(oldMethod, newMethod);
+            log.info("\n{}", actual);
         }
     }
 

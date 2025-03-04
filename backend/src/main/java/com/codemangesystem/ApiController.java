@@ -1,14 +1,14 @@
 package com.codemangesystem;
 
-import com.codemangesystem.git_process.model_database.Project;
-import com.codemangesystem.git_process.model_git.GitResult;
-import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.git.GitResult;
+import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.service.DataBaseService;
 import com.codemangesystem.git_process.service.GitCloner;
 import com.codemangesystem.git_process.service.GitPuller;
-import com.codemangesystem.login_process.model_response.LoginINFO;
-import com.codemangesystem.login_process.model_response.SessionResponse;
-import com.codemangesystem.login_process.model_user.MyUser;
+import com.codemangesystem.login_process.model.response.LoginINFO;
+import com.codemangesystem.login_process.model.response.SessionResponse;
+import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -90,8 +90,6 @@ public class ApiController {
         GitResult gitResult = gitPuller.pullLocalRepository(info);
         return new ResponseEntity<>(gitResult, HttpStatus.OK);
     }
-
-    // TODO: 修改成針對使用者去做獲取資料
 
     /**
      * 透過 ProjectName 獲取 Project 資料

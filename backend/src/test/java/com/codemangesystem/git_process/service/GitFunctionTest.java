@@ -1,6 +1,6 @@
 package com.codemangesystem.git_process.service;
 
-import com.codemangesystem.git_process.model_repo.RepositoryINFO;
+import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
