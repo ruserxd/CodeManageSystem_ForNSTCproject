@@ -221,6 +221,7 @@ public class GitDiffAnalyzer {
                     String name = commit.getName();
                     log.info("{} {}", message, name);
                     log.info(commit.getName());
+
                     // 當 commit 走過，break 發生
                     if (commit.getName().equals(oldHeadRevstr)) {
                         log.info("走過 {}", commit.getName());

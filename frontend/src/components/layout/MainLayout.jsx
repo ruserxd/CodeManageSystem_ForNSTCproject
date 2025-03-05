@@ -3,9 +3,8 @@ import { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { DesktopOutlined, HomeOutlined, PieChartOutlined, ToolOutlined, UserOutlined } from '@ant-design/icons';
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
-import AdminOutlined from '../Admin/AdminOutlined';
 
-const { Content, Footer, Sider } = Layout
+const { Content, Footer, Sider } = Layout;
 
 function getItem(label, key, icon, children) {
 	return {
@@ -38,9 +37,9 @@ function MainLayout({ user }) {
 			user
 				? getItem(<Link to="/UserPage">使用者</Link>, '使用者', <UserOutlined />)
 				: getItem('使用者', 'sub2', <UserOutlined />, [
-						getItem(<Link to="/Login">登入</Link>, '登入'),
-						getItem(<Link to="/Register">註冊</Link>, '註冊')
-					]),
+					getItem(<Link to="/Login">登入</Link>, '登入'),
+					getItem(<Link to="/Register">註冊</Link>, '註冊')
+				]),
 			user && user.userAuthority === 'ADMIN'
 				? getItem(<Link to="/AdminPage">管理者</Link>, '管理者', <ToolOutlined />)
 				: null
@@ -57,7 +56,7 @@ function MainLayout({ user }) {
 		if (path === '/Login') return '登入';
 		if (path === '/Register') return '註冊';
 		if (path === '/UserPage') return '使用者';
-		if (path === '/AdminPage') return '管理者'
+		if (path === '/AdminPage') return '管理者';
 		return '主頁'; // 默認選中首頁
 	}, [curLocation.pathname]);
 
@@ -112,12 +111,12 @@ function MainLayout({ user }) {
 // user 可能為空因此未設置 required
 MainLayout.propTypes = {
 	user: PropTypes.shape({
-			userId: PropTypes.number.isRequired,
-			userName: PropTypes.string.isRequired,
-			userEmail: PropTypes.string.isRequired,
-			userAccount: PropTypes.string.isRequired,
-			userPassword: PropTypes.string.isRequired,
-			userAuthority: PropTypes.string.isRequired
-		}).isRequired
+		userId: PropTypes.number.isRequired,
+		userName: PropTypes.string.isRequired,
+		userEmail: PropTypes.string.isRequired,
+		userAccount: PropTypes.string.isRequired,
+		userPassword: PropTypes.string.isRequired,
+		userAuthority: PropTypes.string.isRequired
+	}).isRequired
 };
 export default MainLayout;

@@ -31,7 +31,7 @@ public class DiffInfo {
     @Column(name = "author_email")
     private String authorEmail;
 
-    @Column(name = "commit_message")
+    @Column(name = "commit_message", columnDefinition = "TEXT")
     private String commitMessage;
 
     @Column(name = "timestamp")

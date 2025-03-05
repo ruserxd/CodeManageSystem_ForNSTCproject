@@ -1,15 +1,26 @@
 # 測試規劃
+
 ## 這項專案致力於處理方法間的比對
+
 ## 何為方法
+
 comment + methodName + parameter list + returnType + modifier(s) + method body
+
 ## 何為 diff
+
 ADD、MODIFY、DELETE
+
 ### class_diff
+
 負責展現目前製作的功能
 ---
 其餘的部分則是為了驗正更細節的
 branch-cover 100%
+
 ### config
+
 ### git_process
+
 ### login_process
+
 ### springboot_runner

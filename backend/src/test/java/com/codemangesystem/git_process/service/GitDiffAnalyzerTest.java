@@ -891,27 +891,28 @@ class GitDiffAnalyzerTest {
 
             // 驗證
             List<Pair<String, String>> expected = new ArrayList<>();
-            expected.add(Pair.of("getName()",
+            expected.add(Pair.of("getName(): String",
                     """
                             @@ -1,3 +1,3 @@
                              public String getName() {
                             -    return "KUNWEIsoHandSome";
                             +    return this.name;
                              }"""));
-            expected.add(Pair.of("setName(String)",
+            expected.add(Pair.of("setName(String): void",
                     """
                             @@ -1,3 +1,3 @@
                              public void setName(String name) {
                             -    return;
                             +    this.name = name;
                              }"""));
-            expected.add(Pair.of("showWelcomeMessage()",
+            expected.add(Pair.of("showWelcomeMessage(): void",
                     """
-                            @@ -1,2 +1,3 @@
+                            @@ -1,3 +1,4 @@
+                             /*歡迎使用者的加入*/
                              public void showWelcomeMessage() {
                             +    System.out.println("Welcome " + this.name + " to this ARPG World");
                              }"""));
-            expected.add(Pair.of("willDelete()",
+            expected.add(Pair.of("willDelete(): void",
                     """
                             @@ -1,3 +1,1 @@
                             -public void willDelete() {
@@ -934,7 +935,7 @@ class GitDiffAnalyzerTest {
         void sinTest() {
             // 初始資料
             content = getFileCode("src/test/resources/getMethodByContentData/content.txt");
-            String[] expected = {"sin(double)", "sin(double, int)", "factorial(double)", "main(String[])"};
+            String[] expected = {"factorial(double): double", "main(String[]): void", "sin(double): double", "sin(double, int): double"};
 
             // 測試
             Map<String, String> actualResult = gitDiffAnalyzer.getMethodByContent(content);
@@ -949,12 +950,14 @@ class GitDiffAnalyzerTest {
         void annotationTest() {
             // 初始資料
             content = getFileCode("src/test/resources/getMethodByContentData/havaAnnotationContent.txt");
-            String[] excepted = {"register(MyUser)", "fetchRepository(String, String, String)",
-                    "getProjectNames(String)", "deleteDataByProjectName(String, String)", "getFileDataByProjectName(String)"
-                    , "pullByProjectName(String)", "login(LoginINFO)", "addSuperAccount()"};
+            String[] excepted = {"register(MyUser): ResponseEntity<SessionResponse>", "getProjectNames(String): ResponseEntity<?>",
+                    "pullByProjectName(String): ResponseEntity<?>", "deleteDataByProjectName(String, String): String", "ApiController(GitCloner, DataBaseService, UserService, GitPuller)", "getFileDataByProjectName(String): ResponseEntity<Project>"
+                    , "login(LoginINFO): ResponseEntity<SessionResponse>", "fetchRepository(String, String, String): ResponseEntity<?>", "addSuperAccount(): void"};
 
             // 測試
             Map<String, String> actualResult = gitDiffAnalyzer.getMethodByContent(content);
+            actualResult.forEach((k, v) -> System.out.println(k + "\n" + v));
+
             String[] actual = actualResult.keySet().toArray(new String[0]);
 
             // 驗證
