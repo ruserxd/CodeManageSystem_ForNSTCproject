@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Typography } from 'antd';
+import { Button, Space, Table, Typography } from 'antd';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function AdminOutlined() {
+	const navigate = useNavigate();
 	const { Title } = Typography;
 	const [users, setUsers] = useState([]);
 
@@ -23,6 +25,13 @@ function AdminOutlined() {
 			.catch(error => console.error('Error fetching users:', error));
 	}, []);
 
+	const handleDetailButton = (user) => {
+		// 透過 state 的方式將資料從父頁面傳入子頁面
+		navigate(`/AdminPage/${user.userId}`, { state: { userDetails: user } });
+	};
+
+	const handleDeleteButton = (user) => {
+	};
 
 	const columns = [
 		{
@@ -39,6 +48,27 @@ function AdminOutlined() {
 			title: 'authority',
 			dataIndex: 'userAuthority',
 			key: 'userAuthority'
+		},
+		{
+			title: '',
+			render: (_, record) => (
+				<Space>
+					<Button
+						type="primary"
+						onClick={() => handleDetailButton(record)}
+					>
+						details
+					</Button>
+					<Button
+						danger
+						type="primary"
+						onClick={() => handleDeleteButton()}
+					>
+						delete
+					</Button>
+				</Space>
+			)
+
 		}
 	];
 
