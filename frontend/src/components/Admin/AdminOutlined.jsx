@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Space, Table, Typography } from 'antd';
-import axios from 'axios';
+import { Button, message, Space, Table, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import api from '../../api/axiosConfig';
 
 function AdminOutlined() {
 	const navigate = useNavigate();
@@ -9,20 +9,29 @@ function AdminOutlined() {
 	const [users, setUsers] = useState([]);
 
 	useEffect(() => {
-		axios.get('http://localhost:8080/api/getAllUsers')
-			.then(response => {
-				console.log('API response:', response.data);
-				const data = response.data.map(user => ({
-					userId: user.userId,
-					userName: user.userName,
-					userEmail: user.userEmail,
-					userAccount: user.userAccount,
-					userAuthority: user.userAuthority,
-					userPassword: user.userPassword
-				}));
-				setUsers(data);
-			})
-			.catch(error => console.error('Error fetching users:', error));
+		const fetchUsers = async () => {
+			try {
+				const response = await api.get('/api/getAllUsers');
+
+				if (response.data && Array.isArray(response.data)) {
+					const data = response.data.map(user => ({
+						userId: user.userId,
+						userName: user.userName,
+						userEmail: user.userEmail,
+						userAccount: user.userAccount,
+						userAuthority: user.userAuthority,
+						userPassword: user.userPassword
+					}));
+					setUsers(data);
+				} else {
+					message.error('獲取使用者資訊錯誤');
+				}
+			} catch (error) {
+				message.error(`發生 ${error}`);
+			}
+		};
+
+		fetchUsers();
 	}, []);
 
 	const handleDetailButton = (user) => {
@@ -30,7 +39,18 @@ function AdminOutlined() {
 		navigate(`/AdminPage/${user.userId}`, { state: { userDetails: user } });
 	};
 
-	const handleDeleteButton = (user) => {
+	const handleDeleteButton = async (userId) => {
+		console.log(`嘗試刪除 ${userId}`);
+		const response = await api.post(
+			'/api/deleteUser',
+			new URLSearchParams({ userId })
+		);
+
+		if (response.data === true) {
+			message.success('成功刪除', userId);
+		} else {
+			message.success(`刪除 ${userId}發生錯誤}`);
+		}
 	};
 
 	const columns = [
@@ -62,7 +82,7 @@ function AdminOutlined() {
 					<Button
 						danger
 						type="primary"
-						onClick={() => handleDeleteButton()}
+						onClick={() => handleDeleteButton(record.userId)}
 					>
 						delete
 					</Button>

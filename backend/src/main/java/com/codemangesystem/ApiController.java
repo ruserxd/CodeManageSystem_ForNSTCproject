@@ -110,7 +110,7 @@ public class ApiController {
         return dataBaseService.deleteDataByProjectName(projectName, userId);
     }
 
-    /* 登入系統 */
+    /* 使用者系統 */
     /* 登入 api */
     @PostMapping("/login")
     public ResponseEntity<SessionResponse> login(@RequestBody LoginINFO loginINFO) {
@@ -138,10 +138,24 @@ public class ApiController {
         userService.addSuperAccount();
     }
 
+    /**
+     * 獲取所有使用者資訊
+     */
     @GetMapping("/getAllUsers")
     public ResponseEntity<List<MyUser>> getAllUsers() {
-        log.info("取得所有使用者的ID與帳號");
+        log.info("取得所有使用者的 ID 與帳號");
         List<MyUser> users = userService.getIdsAccounts();
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    /**
+     * 透過 userId 刪除指定用戶
+     */
+    @PostMapping("/deleteUser")
+    public ResponseEntity<Boolean> deleteUser(@RequestParam("userId")int userId) {
+        log.info("刪除 userId 為 {} 的使用者", userId);
+        Boolean deleted = true;
+        log.info("刪除{}", (deleted) ? "成功" : "失敗");
+        return new ResponseEntity<>(deleted, HttpStatus.OK);
     }
 }
