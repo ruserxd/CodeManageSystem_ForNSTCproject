@@ -188,4 +188,8 @@ public class UserService {
 
         return result;
     }
+
+    public boolean deleteUserById(Long userId) {
+        return myUserRepository.deleteMyUserByUserId(userId) == 1;
+    }
 }

@@ -71,24 +71,30 @@ function AdminOutlined() {
 		},
 		{
 			title: '',
-			render: (_, record) => (
-				<Space>
-					<Button
-						type="primary"
-						onClick={() => handleDetailButton(record)}
-					>
-						details
-					</Button>
-					<Button
-						danger
-						type="primary"
-						onClick={() => handleDeleteButton(record.userId)}
-					>
-						delete
-					</Button>
-				</Space>
+			render: (_, record) => (record.userAuthority !== "ADMIN" ?
+					<Space>
+						<Button
+							type="primary"
+							onClick={() => handleDetailButton(record)}
+						>
+							details
+						</Button>
+						<Button
+							danger
+							type="primary"
+							onClick={() => handleDeleteButton(record.userId)}
+						>
+							delete
+						</Button>
+					</Space> : <Space>
+						<Button
+							type="primary"
+							onClick={() => handleDetailButton(record)}
+						>
+							details
+						</Button>
+					</Space>
 			)
-
 		}
 	];
 

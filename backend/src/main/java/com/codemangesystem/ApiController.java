@@ -152,9 +152,9 @@ public class ApiController {
      * 透過 userId 刪除指定用戶
      */
     @PostMapping("/deleteUser")
-    public ResponseEntity<Boolean> deleteUser(@RequestParam("userId")int userId) {
+    public ResponseEntity<Boolean> deleteUser(@RequestParam("userId")Long userId) {
         log.info("刪除 userId 為 {} 的使用者", userId);
-        Boolean deleted = true;
+        Boolean deleted = userService.deleteUserById(userId);
         log.info("刪除{}", (deleted) ? "成功" : "失敗");
         return new ResponseEntity<>(deleted, HttpStatus.OK);
     }
