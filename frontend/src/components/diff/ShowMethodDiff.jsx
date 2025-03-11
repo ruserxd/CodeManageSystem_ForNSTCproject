@@ -181,7 +181,6 @@ ShowMethodDiff.propTypes = {
 								author: PropTypes.string.isRequired,
 								authorEmail: PropTypes.string.isRequired,
 								commitMessage: PropTypes.string.isRequired,
-								timestamp: PropTypes.string.isRequired,
 								commitTime: PropTypes.number.isRequired,
 								diffCode: PropTypes.string.isRequired,
 								headRevstr: PropTypes.string

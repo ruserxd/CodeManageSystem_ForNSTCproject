@@ -360,13 +360,11 @@ public class GitDiffAnalyzer {
         Date commitTime = author.getWhen();
         String commitMessage = commit.getFullMessage();
         String headRevstr = commit.getName();
-        int timeStamp = commit.getCommitTime();
 
         return DiffInfo.builder()
                        .author(author.getName())
                        .authorEmail(author.getEmailAddress())
                        .commitMessage(commitMessage)
-                       .timestamp(timeStamp)
                        .commitTime(commitTime)
                        .headRevstr(headRevstr)
                        .build();

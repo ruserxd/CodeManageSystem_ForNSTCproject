@@ -34,9 +34,6 @@ public class DiffInfo {
     @Column(name = "commit_message", columnDefinition = "TEXT")
     private String commitMessage;
 
-    @Column(name = "timestamp")
-    private long timestamp;
-
     @Column(name = "commit_time")
     private Date commitTime;
 
