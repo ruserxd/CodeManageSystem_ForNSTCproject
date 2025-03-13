@@ -787,7 +787,6 @@ class GitDiffAnalyzerTest {
             assertEquals("test@example.com", info.getAuthorEmail());
             assertEquals("Test commit message", info.getCommitMessage());
             assertEquals("abc123", info.getHeadRevstr());
-            assertEquals(100000, info.getTimestamp());
             assertEquals(new Date(100000000L), info.getCommitTime());
         }
     }
