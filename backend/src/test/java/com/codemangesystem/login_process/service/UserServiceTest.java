@@ -12,9 +12,12 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 class UserServiceTest {
@@ -48,7 +51,7 @@ class UserServiceTest {
                                         .userPassword("123")
                                         .userAuthority(UserAuthority.ADMIN)
                                         .build();
-            Mockito.when(myUserRepository.findByUserAccount("123"))
+            when(myUserRepository.findByUserAccount("123"))
                    .thenReturn(Optional.ofNullable(superAccount));
 
             userService.addSuperAccount();
@@ -83,9 +86,9 @@ class UserServiceTest {
             // 設置錯誤的密碼
             userINFO.setUserPassword("111111111");
 
-            Mockito.when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
+            when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
+            when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
                    .thenReturn(false);
 
             SessionResponse result = userService.checkUser(userINFO);
@@ -101,7 +104,7 @@ class UserServiceTest {
         void emailWrongTest() {
             // 設置錯誤的密碼
 
-            Mockito.when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
+            when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
                    .thenReturn(Optional.empty());
 
             SessionResponse result = userService.checkUser(userINFO);
@@ -116,9 +119,9 @@ class UserServiceTest {
         @DisplayName("測試有該使用者且密碼正確")
         void checkSuccessTest() {
 
-            Mockito.when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
+            when(myUserRepository.findByUserAccount(userINFO.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
+            when(passwordBcrypt.isPasswordSame(userINFO.getUserPassword(), myUser.getUserPassword()))
                    .thenReturn(true);
 
             SessionResponse result = userService.checkUser(userINFO);
@@ -151,9 +154,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試 email 和 account 都存在")
         void accountAndEmailExistTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.ofNullable(myUser));
 
             SessionResponse result = userService.userRegister(myUser);
@@ -167,9 +170,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試只有 email 存在")
         void emailExistTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.ofNullable(myUser));
 
             SessionResponse result = userService.userRegister(myUser);
@@ -183,9 +186,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試只有 account 存在")
         void AccountExistTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.ofNullable(myUser));
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             SessionResponse result = userService.userRegister(myUser);
@@ -199,9 +202,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試成功建立帳號")
         void successRegisterTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             SessionResponse result = userService.userRegister(myUser);
@@ -215,9 +218,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試傳入 user 為 null")
         void muUserIsNullTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(Optional.empty());
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             myUser = null;
@@ -232,9 +235,9 @@ class UserServiceTest {
         @Test
         @DisplayName("測試當發生 myUserRepository 回傳 null 拋出例外")
         void myUserRepositoryReturnNullTest() {
-            Mockito.when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+            when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
                    .thenReturn(null);
-            Mockito.when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+            when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
                    .thenReturn(Optional.empty());
 
             SessionResponse result = userService.userRegister(myUser);
@@ -243,6 +246,63 @@ class UserServiceTest {
                                                     .message("Failed Cannot invoke \"java.util.Optional.isPresent()\" because \"myUserInDataBase\" is null")
                                                     .build();
             assertEquals(except, result);
+        }
+    }
+
+    @Nested
+    @DisplayName("測試 getIdsAccounts()")
+    class getIdsAccountsTest {
+        List<MyUser> excepted = new ArrayList<>();
+
+        @Test
+        public void getAllUserTest() {
+            // 模擬設定
+            when(myUserRepository.findAll())
+                    .thenReturn(excepted);
+
+            // 資料庫獲得內容
+            excepted.add(MyUser.builder()
+                            .userId(0L)
+                            .userAccount("test1@gmail.com")
+                            .userAuthority(UserAuthority.USER)
+                            .userName("tester1")
+                               .build());
+            excepted.add(MyUser.builder()
+                               .userId(1L)
+                               .userAccount("test2@gmail.com")
+                               .userAuthority(UserAuthority.ADMIN)
+                               .userName("tester2")
+                               .build());
+            // 測試
+            assertEquals(userService.getIdsAccounts(), excepted);
+        }
+    }
+
+    @Nested
+    @DisplayName("測試 deleteUserById()")
+    class deleteUserByIdTest {
+        List<MyUser> excepted = new ArrayList<>();
+
+        @Test
+        @DisplayName("測試是否從資料庫刪除(成功) user by userID")
+        void deleteSuccess() {
+            // 模擬設定
+            when(myUserRepository.deleteMyUserByUserId(0L))
+                   .thenReturn(1);
+
+            // 測試
+            assertTrue(userService.deleteUserById(0L));
+        }
+
+        @Test
+        @DisplayName("測試從資料庫刪除(失敗) user by userID")
+        void deleteFailed() {
+            // 模擬設定
+            when(myUserRepository.deleteMyUserByUserId(0L))
+                   .thenReturn(0);
+
+            // 測試
+            assertFalse(userService.deleteUserById(0L));
         }
     }
 }
