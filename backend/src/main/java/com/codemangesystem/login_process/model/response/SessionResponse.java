@@ -10,18 +10,19 @@ import lombok.Data;
 @Builder
 @Data
 public class SessionResponse {
-    /**
-     * 是否登入登出成功
-     */
-    private boolean success;
 
-    /**
-     * 處理登入登出後的訊息
-     */
-    private String message;
+  /**
+   * 是否登入登出成功
+   */
+  private boolean success;
 
-    /**
-     * 使用者資訊
-     */
-    private MyUser myUser;
+  /**
+   * 處理登入登出後的訊息
+   */
+  private String message;
+
+  /**
+   * 使用者資訊
+   */
+  private MyUser myUser;
 }

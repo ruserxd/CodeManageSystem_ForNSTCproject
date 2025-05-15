@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 @Builder
 public class RepositoryINFO {
-    public String repoName;
-    public String localPath;
+
+  public String repoName;
+  public String localPath;
 }

@@ -3,15 +3,22 @@ package com.codemangesystem.git_process.model.database;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * PersonalINFO 代表著 MyUser 與 Project 間的關係
- * MyUser 有著哪些 Project 以及是甚麼的版本
+ * PersonalINFO 代表著 MyUser 與 Project 間的關係 MyUser 有著哪些 Project 以及是甚麼的版本
  */
 @Data
 @Builder
@@ -20,22 +27,23 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Table(name = "personal_info")
 public class PersonalINFO {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long personal_info_id;
 
-    @JsonIgnore
-    @JsonBackReference
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    private MyUser user;
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  private Long personal_info_id;
 
-    @JsonIgnore
-    @JsonBackReference
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", referencedColumnName = "project_id")
-    private Project project;
+  @JsonIgnore
+  @JsonBackReference
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", referencedColumnName = "user_id")
+  private MyUser user;
 
-    @Column(name = "head_revstr")
-    private String headRevstr;
+  @JsonIgnore
+  @JsonBackReference
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "project_id", referencedColumnName = "project_id")
+  private Project project;
+
+  @Column(name = "head_revstr")
+  private String headRevstr;
 }

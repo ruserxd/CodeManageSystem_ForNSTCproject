@@ -9,10 +9,11 @@ import lombok.Data;
 @Builder
 @Data
 public class GitResult {
-    private final GitStatus status;
-    private String message;
 
-    public boolean isPullFailed() {
-        return this.status != GitStatus.PULL_SUCCESS;
-    }
+  private final GitStatus status;
+  private String message;
+
+  public boolean isPullFailed() {
+    return this.status != GitStatus.PULL_SUCCESS;
+  }
 }

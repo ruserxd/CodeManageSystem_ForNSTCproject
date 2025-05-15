@@ -39,196 +39,196 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 public class ApiControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired
+  private MockMvc mockMvc;
 
-    @MockitoBean
-    private GitCloner gitCloner;
+  @MockitoBean
+  private GitCloner gitCloner;
 
-    @MockitoBean
-    private DataBaseService dataBaseService;
+  @MockitoBean
+  private DataBaseService dataBaseService;
 
-    @MockitoBean
-    private UserService userService;
+  @MockitoBean
+  private UserService userService;
 
-    @MockitoBean
-    private GitPuller gitPuller;
+  @MockitoBean
+  private GitPuller gitPuller;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-    private LoginINFO testLoginInfo;
-    private MyUser testUser;
-    private SessionResponse testSessionResponse;
-    private Project testProject;
+  private LoginINFO testLoginInfo;
+  private MyUser testUser;
+  private SessionResponse testSessionResponse;
+  private Project testProject;
 
-    @BeforeEach
-    void setUp() {
-        // 預設 loginINFO
-        testLoginInfo = LoginINFO.builder().build();
-        testLoginInfo.setUserAccount("testUser");
-        testLoginInfo.setUserPassword("testPass");
+  @BeforeEach
+  void setUp() {
+    // 預設 loginINFO
+    testLoginInfo = LoginINFO.builder().build();
+    testLoginInfo.setUserAccount("testUser");
+    testLoginInfo.setUserPassword("testPass");
 
-        // 預設 MyUser
-        testUser = new MyUser();
-        testUser.setUserAccount("testUser");
-        testUser.setUserPassword("testPass");
+    // 預設 MyUser
+    testUser = new MyUser();
+    testUser.setUserAccount("testUser");
+    testUser.setUserPassword("testPass");
 
-        // 預設 SessionResponse
-        testSessionResponse = SessionResponse.builder()
-                                             .success(true)
-                                             .message("Login successful")
-                                             .myUser(testUser)
-                                             .build();
+    // 預設 SessionResponse
+    testSessionResponse = SessionResponse.builder()
+        .success(true)
+        .message("Login successful")
+        .myUser(testUser)
+        .build();
 
-        // 預設 Project
-        testProject = new Project();
-        testProject.setProjectName("testProject");
-    }
+    // 預設 Project
+    testProject = new Project();
+    testProject.setProjectName("testProject");
+  }
 
-    @Test
-    @DisplayName("測試 FetchRepository api")
-    public void testFetchRepository() throws Exception {
-        // 預設回傳值
-        GitResult mockResult = GitResult.builder()
-                                        .status(GitStatus.CLONE_SUCCESS)
-                                        .message("Repository cloned successfully")
-                                        .build();
+  @Test
+  @DisplayName("測試 FetchRepository api")
+  public void testFetchRepository() throws Exception {
+    // 預設回傳值
+    GitResult mockResult = GitResult.builder()
+        .status(GitStatus.CLONE_SUCCESS)
+        .message("Repository cloned successfully")
+        .build();
 
-        // 模擬
-        when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
-                .thenReturn(mockResult);
+    // 模擬
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
+        .thenReturn(mockResult);
 
-        // 測試與驗證
-        mockMvc.perform(post("/api/fetch-repo")
-                       .param("url", "https://github.com/test/repo")
-                       .param("commitId", "main")
-                       .param("userId", "1"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.status").value("CLONE_SUCCESS"));
-    }
+    // 測試與驗證
+    mockMvc.perform(post("/api/fetch-repo")
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main")
+            .param("userId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("CLONE_SUCCESS"));
+  }
 
-    @Test
-    @DisplayName("測試 fetchRepository api throw 的處理")
-    public void testFetchRepositoryThrow() throws Exception {
-        when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
-                .thenThrow(new GitAPIException("git error") {
-                });
+  @Test
+  @DisplayName("測試 fetchRepository api throw 的處理")
+  public void testFetchRepositoryThrow() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
+        .thenThrow(new GitAPIException("git error") {
+        });
 
-        mockMvc.perform(post("/api/fetch-repo")
-                       .param("url", "https://github.com/test/repo")
-                       .param("commitId", "main")
-                       .param("userId", "1"))
-               .andExpect(status().isInternalServerError())
-               .andExpect(content().string("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。"));
-    }
+    mockMvc.perform(post("/api/fetch-repo")
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main")
+            .param("userId", "1"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(content().string("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。"));
+  }
 
-    @Test
-    @DisplayName("測試 getProjectNames api")
-    public void testGetProjectNames() throws Exception {
-        List<String> projectNames = Arrays.asList("project1", "project2");
-        when(dataBaseService.getUserProjects(anyString())).thenReturn(projectNames);
+  @Test
+  @DisplayName("測試 getProjectNames api")
+  public void testGetProjectNames() throws Exception {
+    List<String> projectNames = Arrays.asList("project1", "project2");
+    when(dataBaseService.getUserProjects(anyString())).thenReturn(projectNames);
 
-        mockMvc.perform(get("/api/getProjectNames")
-                       .param("userId", "1"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$[0]").value("project1"))
-               .andExpect(jsonPath("$[1]").value("project2"));
-    }
+    mockMvc.perform(get("/api/getProjectNames")
+            .param("userId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0]").value("project1"))
+        .andExpect(jsonPath("$[1]").value("project2"));
+  }
 
-    @Test
-    @DisplayName("測試 pullProject api")
-    public void testPullProject() throws Exception {
-        GitResult mockResult = GitResult.builder()
-                                        .status(GitStatus.PULL_SUCCESS)
-                                        .message("Repository pulled successfully")
-                                        .build();
+  @Test
+  @DisplayName("測試 pullProject api")
+  public void testPullProject() throws Exception {
+    GitResult mockResult = GitResult.builder()
+        .status(GitStatus.PULL_SUCCESS)
+        .message("Repository pulled successfully")
+        .build();
 
-        when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
-                .thenReturn(mockResult);
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+        .thenReturn(mockResult);
 
-        mockMvc.perform(get("/api/pullProject")
-                       .param("projectName", "testProject"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.status").value("PULL_SUCCESS"));
-    }
+    mockMvc.perform(get("/api/pullProject")
+            .param("projectName", "testProject"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("PULL_SUCCESS"));
+  }
 
-    @Test
-    @DisplayName("測試 getFileDataByProjectName api")
-    public void testGetFileDataByProjectName() throws Exception {
-        when(dataBaseService.getProjectByProjectName(anyString()))
-                .thenReturn(testProject);
+  @Test
+  @DisplayName("測試 getFileDataByProjectName api")
+  public void testGetFileDataByProjectName() throws Exception {
+    when(dataBaseService.getProjectByProjectName(anyString()))
+        .thenReturn(testProject);
 
-        mockMvc.perform(post("/api/getData")
-                       .param("ProjectName", "testProject"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.projectName").value("testProject"));
-    }
+    mockMvc.perform(post("/api/getData")
+            .param("ProjectName", "testProject"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.projectName").value("testProject"));
+  }
 
-    @Test
-    @DisplayName("測試 deleteDataByProjectName api")
-    public void testDeleteDataByProjectName() throws Exception {
-        when(dataBaseService.deleteDataByProjectName(anyString(), anyString()))
-                .thenReturn("Deleted successfully");
+  @Test
+  @DisplayName("測試 deleteDataByProjectName api")
+  public void testDeleteDataByProjectName() throws Exception {
+    when(dataBaseService.deleteDataByProjectName(anyString(), anyString()))
+        .thenReturn("Deleted successfully");
 
-        mockMvc.perform(get("/api/deleteData")
-                       .param("projectName", "testProject")
-                       .param("userId", "1"))
-               .andExpect(status().isOk())
-               .andExpect(content().string("Deleted successfully"));
-    }
+    mockMvc.perform(get("/api/deleteData")
+            .param("projectName", "testProject")
+            .param("userId", "1"))
+        .andExpect(status().isOk())
+        .andExpect(content().string("Deleted successfully"));
+  }
 
-    @Test
-    @DisplayName("測試 login api")
-    public void testLogin() throws Exception {
-        when(userService.checkUser(any(LoginINFO.class)))
-                .thenReturn(testSessionResponse);
+  @Test
+  @DisplayName("測試 login api")
+  public void testLogin() throws Exception {
+    when(userService.checkUser(any(LoginINFO.class)))
+        .thenReturn(testSessionResponse);
 
-        mockMvc.perform(post("/api/login")
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(testLoginInfo)))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.success").value(true))
-               .andExpect(jsonPath("$.message").value("Login successful"));
-    }
+    mockMvc.perform(post("/api/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(testLoginInfo)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Login successful"));
+  }
 
-    @Test
-    @DisplayName("測試 register api")
-    public void testRegister() throws Exception {
-        when(userService.userRegister(any(MyUser.class)))
-                .thenReturn(testSessionResponse);
+  @Test
+  @DisplayName("測試 register api")
+  public void testRegister() throws Exception {
+    when(userService.userRegister(any(MyUser.class)))
+        .thenReturn(testSessionResponse);
 
-        mockMvc.perform(post("/api/register")
-                       .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(testUser)))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.success").value(true))
-               .andExpect(jsonPath("$.message").value("Login successful"));
-    }
+    mockMvc.perform(post("/api/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(testUser)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Login successful"));
+  }
 
-    @Test
-    @DisplayName("測試 addSuperAccount api")
-    public void testAddSuperAccount() throws Exception {
-        mockMvc.perform(get("/api/addSuperAccount"));
-    }
+  @Test
+  @DisplayName("測試 addSuperAccount api")
+  public void testAddSuperAccount() throws Exception {
+    mockMvc.perform(get("/api/addSuperAccount"));
+  }
 
-    @Test
-    @DisplayName("測試 getAllUsers api")
-    public void testGetAllUsers() throws Exception {
-        mockMvc.perform(get("/api/getAllUsers"));
-    }
+  @Test
+  @DisplayName("測試 getAllUsers api")
+  public void testGetAllUsers() throws Exception {
+    mockMvc.perform(get("/api/getAllUsers"));
+  }
 
-    @Test
-    @DisplayName("測試 deleteUser api")
-    public void testDeleteUserSuccess() throws Exception {
-        when(userService.deleteUserById(1L)).thenReturn(true);
-        mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
-    }
+  @Test
+  @DisplayName("測試 deleteUser api")
+  public void testDeleteUserSuccess() throws Exception {
+    when(userService.deleteUserById(1L)).thenReturn(true);
+    mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
+  }
 
-    @Test
-    @DisplayName("測試 deleteUser api")
-    public void testDeleteUserFailed() throws Exception {
-        when(userService.deleteUserById(1L)).thenReturn(false);
-        mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
-    }
+  @Test
+  @DisplayName("測試 deleteUser api")
+  public void testDeleteUserFailed() throws Exception {
+    when(userService.deleteUserById(1L)).thenReturn(false);
+    mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
+  }
 }

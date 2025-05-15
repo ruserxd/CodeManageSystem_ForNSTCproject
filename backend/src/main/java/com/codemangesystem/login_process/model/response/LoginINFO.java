@@ -9,6 +9,7 @@ import lombok.Data;
 @Builder
 @Data
 public class LoginINFO {
-    private String userAccount;
-    private String userPassword;
+
+  private String userAccount;
+  private String userPassword;
 }
