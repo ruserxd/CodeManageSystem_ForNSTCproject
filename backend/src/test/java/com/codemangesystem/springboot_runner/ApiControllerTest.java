@@ -1,5 +1,14 @@
 package com.codemangesystem.springboot_runner;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.codemangesystem.ApiController;
 import com.codemangesystem.git_process.model.database.Project;
 import com.codemangesystem.git_process.model.git.GitResult;
@@ -13,6 +22,8 @@ import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
+import java.util.List;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,19 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Arrays;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ApiController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -41,16 +42,16 @@ public class ApiControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private GitCloner gitCloner;
 
-    @MockBean
+    @MockitoBean
     private DataBaseService dataBaseService;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
-    @MockBean
+    @MockitoBean
     private GitPuller gitPuller;
 
     @Autowired
@@ -209,5 +210,25 @@ public class ApiControllerTest {
     @DisplayName("測試 addSuperAccount api")
     public void testAddSuperAccount() throws Exception {
         mockMvc.perform(get("/api/addSuperAccount"));
+    }
+
+    @Test
+    @DisplayName("測試 getAllUsers api")
+    public void testGetAllUsers() throws Exception {
+        mockMvc.perform(get("/api/getAllUsers"));
+    }
+
+    @Test
+    @DisplayName("測試 deleteUser api")
+    public void testDeleteUserSuccess() throws Exception {
+        when(userService.deleteUserById(1L)).thenReturn(true);
+        mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
+    }
+
+    @Test
+    @DisplayName("測試 deleteUser api")
+    public void testDeleteUserFailed() throws Exception {
+        when(userService.deleteUserById(1L)).thenReturn(false);
+        mockMvc.perform(post("/api/deleteUser").param("userId", String.valueOf(1L)));
     }
 }
