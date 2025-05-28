@@ -15,7 +15,12 @@
 - macbook air m2
 - vscode
 - IntelliJ IDEA 2022.2.5 (Ultimate Edition)
-
+## Docker 一鍵配置
+1. 依照目錄下的 .env.example 的要求，填入資料庫的相關 URL, USERNAME, PASSWORD
+2. Backend 進行 Maven 打包操作 (日後也加入 Docker 中)
+3. 在目錄下依序執行 
+    - docker-compose build
+    - docker-compose up
 ## Frontend
 在開始設置本專案之前，請確保您的本地環境已經安裝以下工具：
 - React
