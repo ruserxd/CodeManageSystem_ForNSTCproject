@@ -41,5 +41,5 @@ build/
 /frontend/node_modules
 
 ### env ###
-backend/.env
+.env
 /backend/src/log/
