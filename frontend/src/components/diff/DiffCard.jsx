@@ -35,7 +35,6 @@ const DiffCard = ({ diff }) => {
 			title={diff.commitMessage}
 			style={{ width: 800 }}
 			tabList={tabList}
-			bordered={false}
 			activeTabKey={activeKey}
 			onTabChange={setActiveKey}
 			tabProps={{

@@ -139,10 +139,6 @@ const ShowMethodDiff = () => {
 							width: '25%'
 						}}
 						value={value}
-						dropdownStyle={{
-							maxHeight: 400,
-							overflow: 'auto'
-						}}
 						placeholder="Select"
 						allowClear
 						onChange={treeSelectOnChange}
