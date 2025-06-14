@@ -17,6 +17,7 @@ import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 獲取 ProjectRepository 的相關資料，(新增、獲取、刪除)
@@ -39,6 +40,7 @@ public class DataBaseService {
   /**
    * 獲取目前 User 內所有的 ProjectName
    */
+  @Transactional(readOnly = true)
   public List<String> getUserProjects(String userId) {
     List<Long> projectId = personalRepository.findProjectIdByUserId(Long.valueOf(userId));
     List<String> userProjectNames = new ArrayList<>();
@@ -52,6 +54,7 @@ public class DataBaseService {
   /**
    * 透過 ProjectName 獲取有關的資料
    */
+  @Transactional(readOnly = true)
   public Project getProjectByProjectName(String projectName) {
     Optional<Project> project = projectRepository.findByProjectName(projectName);
     if (project.isPresent()) {
