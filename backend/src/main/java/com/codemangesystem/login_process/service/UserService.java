@@ -30,6 +30,7 @@ public class UserService {
   /**
    * 系統加入超級帳號
    */
+  @Transactional
   public void addSuperAccount() {
     // 確定目前資料庫內沒有超級帳號
     Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount("123");
@@ -91,6 +92,7 @@ public class UserService {
   /**
    * 新增 User
    */
+  @Transactional
   public SessionResponse userRegister(MyUser myUser) {
     if (myUser == null) {
       log.info("傳入資料為 null");
@@ -153,6 +155,7 @@ public class UserService {
   /**
    * 判斷是否有重複的 email
    */
+  @Transactional(readOnly = true)
   public boolean ifEmailExist(MyUser myUser) {
     Optional<MyUser> myUserInDataBase = myUserRepository.findByUserEmail(myUser.getUserEmail());
     return myUserInDataBase.isPresent();
@@ -161,6 +164,7 @@ public class UserService {
   /**
    * 判斷是否有重複的 account
    */
+  @Transactional(readOnly = true)
   public boolean ifAccountExist(MyUser myUser) {
     Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount(myUser.getUserAccount());
     return myUserInDataBase.isPresent();
@@ -169,6 +173,7 @@ public class UserService {
   /**
    * 管理使用者
    */
+  @Transactional(readOnly = true)
   public List<MyUser> getIdsAccounts() {
     List<MyUser> users = myUserRepository.findAll();
     List<MyUser> result = new ArrayList<>();
@@ -187,6 +192,7 @@ public class UserService {
     return result;
   }
 
+  @Transactional
   public boolean deleteUserById(Long userId) {
     return myUserRepository.deleteMyUserByUserId(userId) == 1;
   }
