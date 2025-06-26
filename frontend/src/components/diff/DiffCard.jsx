@@ -24,7 +24,6 @@ const DiffCard = ({ diff }) => {
 				<p>作者：{diff.author}</p>
 				<p>信箱：{diff.authorEmail}</p>
 				<p>提交時間：{diff.commitTime}</p>
-				<p>Commit Message:<br/>{diff.commitMessage}</p>
 			</div>
 		),
 		[`tab2_${diff.diffInfoId}`]: <HighlightedCode language={'java'} codeString={diff.diffCode} />

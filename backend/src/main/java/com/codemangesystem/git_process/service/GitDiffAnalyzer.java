@@ -497,7 +497,7 @@ public class GitDiffAnalyzer {
     // 獲取宣告
     content.append(declaration.getDeclarationAsString(true, true, true));
 
-    // 處理方法體 - 區分處理方法和建構子
+    // 處理方法體 - 區分處理方法和建構子,  getBody() -> {Body}
     if (declaration instanceof MethodDeclaration method) {
       method.getBody().ifPresent(body ->
           content.append(' ').append(body)
