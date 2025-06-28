@@ -9,10 +9,11 @@
 
 # 使用此項專案的設置
 
+## TODO
+- 標註父類別的修改，影響哪些子類別的 function
+
 ## 個人使用工具
 - macbook pro m4
-- vscode
-- IntelliJ IDEA 2022.2.5 (Ultimate Edition)
 
 ## Docker 一鍵配置
 1. 依照目錄下的 .env.example 的要求，填入資料庫的相關 URL, USERNAME, PASSWORD
@@ -89,3 +90,7 @@ id4[JavaDiff_比較兩者差異] -- a有方法_b無 --> id7[代表新增++];
 ## 許可證
 
 本專案採用 MIT 許可證。詳情請見 [LICENSE](LICENSE) 檔案。
+
+## 致謝 & 參與
+1. 國科會編號:NSTC 113-2813-C-035-131-E 研究計畫之補助
+2. 2025 台灣軟體工程研討會展示論文
