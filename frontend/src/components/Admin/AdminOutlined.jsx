@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, message, Space, Table, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import api from '../../api/axiosConfig';
+import api from '@/api/axiosConfig';
 
 function AdminOutlined() {
 	const navigate = useNavigate();

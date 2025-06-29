@@ -1,7 +1,7 @@
 import { App, Button, Form, Input, Space } from 'antd';
 import PropTypes from 'prop-types';
 import React, { useState } from 'react';
-import api from '../../api/axiosConfig';
+import api from '@/api/axiosConfig';
 import { useCookies } from 'react-cookie';
 
 function CloneGit({ setTrigger }) {

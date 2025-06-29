@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tree, TreeSelect, Typography } from 'antd';
-import api from '../../api/axiosConfig';
+import api from '@/api/axiosConfig';
 import PropTypes from 'prop-types';
 import DiffCard from './DiffCard';
 import { DownOutlined } from '@ant-design/icons';
-import '../../css/showMethodDiff.css';
+import '@/css/showMethodDiff.css';
 
 const { Title } = Typography;
 

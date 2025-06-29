@@ -3,7 +3,7 @@ import { App, Button, Checkbox, Flex, Form, Input } from 'antd';
 import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import api from '../../api/axiosConfig';
+import api from '@/api/axiosConfig';
 
 const Login = ({ onLogin }) => {
 	const [form] = Form.useForm();

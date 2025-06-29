@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { App, Button, Form, Input } from 'antd';
-import api from '../../api/axiosConfig';
+import api from '@/api/axiosConfig';
 import { useNavigate } from 'react-router-dom';
 
 const formItemLayout = {
