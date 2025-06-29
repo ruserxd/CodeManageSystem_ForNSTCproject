@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:3000"}, allowCredentials = "false")
 @RequestMapping("/api")
 public class ApiController {
 
@@ -47,9 +47,11 @@ public class ApiController {
     this.gitPuller = gitPuller;
   }
 
-  /* Git 資料處理
+  /*
+   * Git 資料處理
    * 負責 clone 存儲庫的 api
-   * 並將資料做分類存入資料庫前端沒有輸入的話，commId 預設為 HEAD*/
+   * 並將資料做分類存入資料庫前端沒有輸入的話，commId 預設為 HEAD
+   */
   @PostMapping("/fetch-repo")
   public ResponseEntity<?> fetchRepository(@RequestParam("url") String url,
       @RequestParam("commitId") String commitId,

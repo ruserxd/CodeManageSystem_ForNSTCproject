@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
 	plugins: [react()],
@@ -10,6 +10,10 @@ export default defineConfig({
 		}
 	},
 	server: {
-		port: 3000  // 与 CRA 默认端口保持一致
+		// 當使用 ngrok
+		// allowedHosts: [],
+		port: 3000,
+		host: '0.0.0.0',
+		open: true
 	}
-})
+});
