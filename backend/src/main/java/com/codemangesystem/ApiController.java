@@ -47,6 +47,29 @@ public class ApiController {
     this.gitPuller = gitPuller;
   }
 
+  /**
+   * 臨時分析 Git 專案，不存入資料庫直接回傳結果
+   */
+  @PostMapping("/get-method-diff-temporary")
+  public ResponseEntity<?> getMethodDiffTemporary(
+      @RequestParam("url") String url,
+      @RequestParam("commitId") String commitId) {
+    try {
+      log.info("臨時分析 URL: {} CommitId: {}", url, commitId);
+
+      // 使用臨時分析服務
+      Project tempProject = gitCloner.temporaryCloneRepository(url, commitId);
+
+      log.info("臨時分析完成，回傳結果");
+      return ResponseEntity.ok(tempProject);
+
+    } catch (GitAPIException | IOException e) {
+      log.error("臨時分析時發生錯誤: ", e);
+      return ResponseEntity.status(500)
+          .body("臨時分析專案時發生錯誤。請檢查 URL 是否正確。");
+    }
+  }
+
   /*
    * Git 資料處理
    * 負責 clone 存儲庫的 api

@@ -212,4 +212,84 @@ public class GitCloner {
         .call();
     log.info("成功 checked out commit: {}", commitId);
   }
+
+  /**
+   * 臨時 clone 並分析專案，不存入資料庫
+   */
+  public Project temporaryCloneRepository(String repoUrl, String commitId)
+      throws GitAPIException, IOException {
+
+    log.info("臨時 Clone: {} {}", repoUrl, commitId);
+
+    String repoName = GitFunction.getRepoNameFromUrl(repoUrl);
+    String tempPath = CLONE_LOCAL_BASE_PATH + "temp_" + System.currentTimeMillis() + "_" + repoName;
+
+    try {
+      log.info("臨時 Cloning 到: {}", tempPath);
+
+      // Clone 專案到臨時資料夾
+      CloneCommand command = Git.cloneRepository()
+          .setURI(repoUrl)
+          .setDirectory(new File(tempPath));
+
+      Git git = command.call();
+
+      // 如果有指定的 commitId
+      if (!commitId.equals("HEAD")) {
+        log.info("Checkout 到: {}", commitId);
+        checkToCommitId(git, commitId);
+      }
+
+      log.info("成功 clone 到: {}", tempPath);
+
+      // 關閉 git 連接
+      git.close();
+
+      // 執行臨時分析
+      Project tempProject = gitDiffAnalyzer.analyzeAllCommitsTemporary(tempPath);
+
+      // 清理臨時檔案
+      cleanupTempDirectory(tempPath);
+
+      return tempProject;
+
+    } catch (GitAPIException | IOException e) {
+      // 發生錯誤時也要清理臨時檔案
+      cleanupTempDirectory(tempPath);
+      log.error("臨時分析失敗: {}", repoUrl, e);
+      throw e;
+    }
+  }
+
+  /**
+   * 清理臨時資料夾
+   */
+  private void cleanupTempDirectory(String tempPath) {
+    try {
+      File tempDir = new File(tempPath);
+      if (tempDir.exists()) {
+        deleteDirectory(tempDir);
+        log.info("已清理臨時資料夾: {}", tempPath);
+      }
+    } catch (Exception e) {
+      log.warn("清理臨時資料夾失敗: {}", tempPath, e);
+    }
+  }
+
+  /**
+   * 遞歸刪除資料夾
+   */
+  private void deleteDirectory(File directory) throws IOException {
+    if (directory.isDirectory()) {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    if (!directory.delete()) {
+      throw new IOException("無法刪除檔案: " + directory.getAbsolutePath());
+    }
+  }
 }

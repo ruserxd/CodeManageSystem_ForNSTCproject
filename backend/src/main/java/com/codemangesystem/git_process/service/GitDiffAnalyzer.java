@@ -619,4 +619,68 @@ public class GitDiffAnalyzer {
         .add(diffInfo);
     methods.add(newMethod);
   }
+
+  /**
+   * 臨時分析所有 commits，不存入資料庫，直接回傳 Project 物件
+   */
+  public Project analyzeAllCommitsTemporary(String repoPath) throws GitAPIException, IOException {
+    // 路徑上該專案的 .git 檔案
+    File gitDir = new File(repoPath, ".git");
+
+    // 確保本地端有這個專案
+    if (!gitDir.isDirectory()) {
+      log.error("指定路徑不包含有效的 Git 儲存庫: {}", repoPath);
+      throw new IOException("臨時分析時，本地端沒有此檔案");
+    }
+
+    // 一個 Repository 物件，指向 repoDir 上的 .git 檔案
+    Repository repository = new RepositoryBuilder().setGitDir(gitDir).build();
+
+    // 確保至少有一次 commit 紀錄
+    if (repository.resolve("HEAD") == null) {
+      log.error("儲存庫沒有 commits (No HEAD)。請進行初始 commit。");
+      throw new IOException("臨時分析時，此資料沒有 commit 的紀錄");
+    }
+
+    // 建立臨時 Project 物件，不會存入資料庫
+    Project tempProject = Project.builder()
+        .projectName(repoPath.substring(repoPath.lastIndexOf('/') + 1))
+        .files(new ArrayList<>())
+        .headRevstr(getHeadSHA1(repository))
+        .build();
+
+    // Git 打開 repository
+    try (Git git = new Git(repository)) {
+      log.info("開始臨時分析 {} 上的 commit 差異資訊", repoPath);
+
+      // 這邊的操作，像是在 terminal 打上 git log 獲取每個 commit 的相關資訊
+      Iterable<RevCommit> commits = git.log().call();
+      int counterDifference = 0;
+
+      // 獲取兩個版本之間的差異
+      for (RevCommit commit : commits) {
+        String message = commit.getFullMessage();
+        log.info("本次的 Commit Message: {}", message);
+
+        // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
+        RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
+
+        List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
+
+        // 重用現有的方法來處理差異，但傳入臨時 Project
+        setCommitDiffToProject(diffs, tempProject, git, commit, previousCommit);
+        counterDifference++;
+      }
+      log.info("共有 {} 個差異", counterDifference);
+    }
+
+    log.info("成功完成臨時分析");
+
+    // 這不代表是錯誤，可能是專案非 Java 檔案
+    if (tempProject.getFiles().isEmpty()) {
+      log.warn("在儲存庫中沒有分析到檔案: {}", repoPath);
+    }
+
+    return tempProject;
+  }
 }
