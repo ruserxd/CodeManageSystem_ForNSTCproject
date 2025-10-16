@@ -22,4 +22,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
   @Query("SELECT p.projectName FROM Project p WHERE p.projectId = :id")
   String findProjectNameByProjectId(@Param("id") Long projectId);
+
+  @Query("SELECT DISTINCT p FROM Project p " +
+      "LEFT JOIN FETCH p.files " +
+      "WHERE p.projectName = :projectName")
+  Optional<Project> findByProjectNameWithFiles(@Param("projectName") String projectName);
 }

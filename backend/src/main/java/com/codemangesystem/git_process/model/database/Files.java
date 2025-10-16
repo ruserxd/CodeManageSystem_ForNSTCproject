@@ -52,7 +52,7 @@ public class Files {
   @OneToMany(
       mappedBy = "files",
       cascade = CascadeType.PERSIST,
-      fetch = FetchType.EAGER,
+      fetch = FetchType.LAZY,
       orphanRemoval = true
   )
   private List<Method> methods;

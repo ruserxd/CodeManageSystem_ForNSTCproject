@@ -41,17 +41,19 @@ public class MyPostConstruct {
 
     try {
       // 刪除 src/cloneCode 內 clone 的資料
-      deleteCloneFile();
+      //deleteCloneFile();
 
       // 刪除 project -> files -> method -> diff_info 的相對應資料
-      deleteProjectDatBase();
+      //deleteProjectDatBase();
 
       // 如果需要新增超級帳號
       addSuperAccount();
-    } catch (IOException e) {
-      log.error("發生讀取錯誤");
-      throw new IllegalAccessException("發生讀取錯誤");
-    } catch (NullPointerException nullError) {
+    }
+//    catch (IOException e) {
+//      log.error("發生讀取錯誤");
+//      throw new IllegalAccessException("發生讀取錯誤");
+//    }
+    catch (NullPointerException nullError) {
       log.error("路徑錯誤");
       throw new IllegalAccessException("路徑錯誤");
     }

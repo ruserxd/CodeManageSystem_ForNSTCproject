@@ -1,18 +1,27 @@
 package com.codemangesystem.git_process.service;
 
+import com.codemangesystem.git_process.model.database.DiffInfo;
+import com.codemangesystem.git_process.model.database.Files;
 import com.codemangesystem.git_process.model.database.PersonalINFO;
 import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.dto.FileStructureDTO;
+import com.codemangesystem.git_process.model.dto.MethodStructureDTO;
+import com.codemangesystem.git_process.model.dto.ProjectStructureDTO;
+import com.codemangesystem.git_process.repository.DiffInfoRepository;
+import com.codemangesystem.git_process.repository.FileRepository;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
@@ -30,11 +39,84 @@ public class DataBaseService {
 
   private final ProjectRepository projectRepository;
   private final PersonalRepository personalRepository;
+  private final DiffInfoRepository diffInfoRepository;
+  private final FileRepository fileRepository;
 
   public DataBaseService(ProjectRepository projectRepository,
-      PersonalRepository personalRepository) {
+      PersonalRepository personalRepository, DiffInfoRepository diffInfoRepository,
+      FileRepository fileRepository) {
     this.projectRepository = projectRepository;
     this.personalRepository = personalRepository;
+    this.diffInfoRepository = diffInfoRepository;
+    this.fileRepository = fileRepository;
+  }
+
+  /**
+   * 獲取 Project 結構（不包含 DiffInfo）- 分步查詢避免 MultipleBagFetchException
+   */
+  @Transactional(readOnly = true)
+  public ProjectStructureDTO getProjectStructure(String projectName) {
+    // 第一步：載入 Project 和 Files
+    Optional<Project> projectOpt = projectRepository.findByProjectNameWithFiles(projectName);
+
+    if (projectOpt.isEmpty()) {
+      log.warn("未找到專案: {}", projectName);
+      return null;
+    }
+
+    Project project = projectOpt.get();
+
+    // 第二步：批量載入 Files 的 Methods
+    List<Long> fileIds = project.getFiles().stream()
+        .map(Files::getFilesId)
+        .collect(Collectors.toList());
+
+    if (!fileIds.isEmpty()) {
+      List<Files> filesWithMethods = fileRepository.findByFilesIdInWithMethods(fileIds);
+
+      // 將載入的 Methods 對應回 Project 的 Files
+      Map<Long, Files> fileMap = filesWithMethods.stream()
+          .collect(Collectors.toMap(Files::getFilesId, f -> f));
+
+      project.getFiles().forEach(file -> {
+        Files fileWithMethods = fileMap.get(file.getFilesId());
+        if (fileWithMethods != null) {
+          file.setMethods(fileWithMethods.getMethods());
+        }
+      });
+    }
+
+    log.info("獲取專案結構: {}", projectName);
+
+    // 轉換為 DTO
+    return ProjectStructureDTO.builder()
+        .projectId(project.getProjectId())
+        .projectName(project.getProjectName())
+        .headRevstr(project.getHeadRevstr())
+        .files(project.getFiles().stream()
+            .map(file -> FileStructureDTO.builder()
+                .filesId(file.getFilesId())
+                .fileName(file.getFileName())
+                .filePath(file.getFilePath())
+                .methods(file.getMethods() != null ? file.getMethods().stream()
+                    .map(method -> MethodStructureDTO.builder()
+                        .methodId(method.getMethodId())
+                        .methodName(method.getMethodName())
+                        .diffCount(0)  // 因為是 LAZY，設為 0
+                        .build())
+                    .collect(Collectors.toList()) : Collections.emptyList())
+                .build())
+            .collect(Collectors.toList()))
+        .build();
+  }
+
+  /**
+   * 根據 methodId 獲取 DiffInfo 列表
+   */
+  @Transactional(readOnly = true)
+  public List<DiffInfo> getDiffInfoByMethodId(Long methodId) {
+    log.info("獲取 Method {} 的 DiffInfo", methodId);
+    return diffInfoRepository.findByMethodId(methodId);
   }
 
   /**
@@ -114,7 +196,7 @@ public class DataBaseService {
   /*
    * 刪除指定位置的資料夾*/
   public void deleteGitRepository(String repoPath) throws IOException {
-    Repository repo = new FileRepository(repoPath);
+    Repository repo = new org.eclipse.jgit.internal.storage.file.FileRepository(repoPath);
     Git git = new Git(repo);
     git.getRepository().close();
 

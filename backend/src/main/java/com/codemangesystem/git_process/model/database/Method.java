@@ -37,7 +37,7 @@ public class Method {
   @Column(name = "method_id")
   private Long methodId;
 
-  @Column(name = "method_name")
+  @Column(name = "method_name", columnDefinition = "TEXT")
   private String methodName;
 
   @JsonIgnore
@@ -49,7 +49,7 @@ public class Method {
   @OneToMany(
       mappedBy = "method",
       cascade = CascadeType.ALL,
-      fetch = FetchType.EAGER,
+      fetch = FetchType.LAZY,
       orphanRemoval = true
   )
   private List<DiffInfo> diffInfoList;

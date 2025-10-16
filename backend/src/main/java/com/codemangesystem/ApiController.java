@@ -1,6 +1,8 @@
 package com.codemangesystem;
 
+import com.codemangesystem.git_process.model.database.DiffInfo;
 import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.dto.ProjectStructureDTO;
 import com.codemangesystem.git_process.model.git.GitResult;
 import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.service.DataBaseService;
@@ -142,6 +144,31 @@ public class ApiController {
   public String deleteDataByProjectName(@RequestParam("projectName") String projectName,
       @RequestParam("userId") String userId) {
     return dataBaseService.deleteDataByProjectName(projectName, userId);
+  }
+
+  /**
+   * 獲取專案結構（不包含 DiffInfo）
+   */
+  @GetMapping("/getProjectStructure")
+  public ResponseEntity<ProjectStructureDTO> getProjectStructure(
+      @RequestParam("projectName") String projectName) {
+    log.info("獲取專案結構: {}", projectName);
+    ProjectStructureDTO structure = dataBaseService.getProjectStructure(projectName);
+    if (structure == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(structure);
+  }
+
+  /**
+   * 根據 methodId 獲取 DiffInfo 列表
+   */
+  @GetMapping("/getDiffInfoByMethod")
+  public ResponseEntity<List<DiffInfo>> getDiffInfoByMethod(
+      @RequestParam("methodId") Long methodId) {
+    log.info("獲取 Method {} 的差異信息", methodId);
+    List<DiffInfo> diffInfoList = dataBaseService.getDiffInfoByMethodId(methodId);
+    return ResponseEntity.ok(diffInfoList);
   }
 
   /* 使用者系統 */

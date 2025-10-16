@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.codemangesystem.git_process.model.database.PersonalINFO;
 import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.repository.DiffInfoRepository;
+import com.codemangesystem.git_process.repository.FileRepository;
 import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
 import java.io.IOException;
@@ -24,12 +26,16 @@ class DataBaseServiceTest {
   private ProjectRepository projectRepository;
   private PersonalRepository personalRepository;
   private DataBaseService dataBaseService;
+  private DiffInfoRepository diffInfoRepository;
+  private FileRepository fileRepository;
 
   @BeforeEach
   void setUp() {
     personalRepository = Mockito.mock(PersonalRepository.class);
     projectRepository = Mockito.mock(ProjectRepository.class);
-    dataBaseService = new DataBaseService(projectRepository, personalRepository);
+    diffInfoRepository = Mockito.mock(DiffInfoRepository.class);
+    fileRepository = Mockito.mock(FileRepository.class);
+    dataBaseService = new DataBaseService(projectRepository, personalRepository, diffInfoRepository, fileRepository);
   }
 
   @Nested

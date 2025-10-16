@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Tree, TreeSelect, Typography } from 'antd';
+import { Tree, TreeSelect, Typography, Spin } from 'antd';
 import api from '@/api/axiosConfig';
 import PropTypes from 'prop-types';
 import DiffCard from './DiffCard';
-import { DownOutlined } from '@ant-design/icons';
+import { DownOutlined, LoadingOutlined } from '@ant-design/icons';
 import '@/css/showMethodDiff.css';
 
 const { Title } = Typography;
@@ -17,86 +17,178 @@ const ShowMethodDiff = () => {
 	const [error, setError] = useState(null);
 	const [value, setValue] = useState();
 	const [expandedKeys, setExpandedKeys] = useState([]);
+	const [loadedMethodIds, setLoadedMethodIds] = useState(new Set());
+	const [loading, setLoading] = useState(true);
 
-	// 獲取此專案的 DiffInfo
+	// 初次載入：獲取專案結構（不包含 DiffInfo）
 	useEffect(() => {
-		const fetchData = async () => {
+		const fetchStructure = async () => {
 			try {
-				console.log(`嘗試 fetch ${urlParam}`);
-				const response = await api.post(
-					`/api/getData`,
-					new URLSearchParams({ ProjectName: urlParam })
-				);
+				setLoading(true);
+				console.log(`嘗試 fetch 專案結構 ${urlParam}`);
+				const response = await api.get('/api/getProjectStructure', {
+					params: { projectName: urlParam }
+				});
 
-				const tmp = transformToSelectedTreeData(response.data);
-				setSelectedTreeData(tmp);
+				const structure = response.data;
 
-				initialTreeData(response.data);
-				// 設定 Project 為網域的最後一個 Param
+				// 生成 TreeSelect 數據
+				const selectedData = transformToSelectedTreeData(structure);
+				setSelectedTreeData(selectedData);
+
+				// 生成 Tree 數據（DiffInfo 用 placeholder）
+				const treeDataInit = initialTreeData(structure);
+				setTreeData(treeDataInit);
+
 				setProjectName(urlParam.substring(urlParam.lastIndexOf('/') + 1));
 			} catch (error) {
 				setError(error);
-				console.error('Error during fetch: ', error);
+				console.error('Error during fetch structure: ', error);
+			} finally {
+				setLoading(false);
 			}
 		};
-		void fetchData();
+		void fetchStructure();
 	}, [urlParam]);
 
-	// 產生 selected，將 JSon 格式修改成 antd treeSelect 需求
+	// 生成 TreeSelect 數據
 	const transformToSelectedTreeData = (data) => {
 		return [
 			{
 				value: `project_${data.projectId}`,
 				title: data.projectName,
 				label: data.projectName,
-				children: data.files.map((file, index) => ({
+				children: data.files.map((file) => ({
 					value: `project_${data.projectId}_${file.filesId}`,
 					title: file.fileName,
 					label: file.fileName,
-					children: file.methods.map((method, methodIndex) => ({
+					children: file.methods.map((method) => ({
 						value: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
 						title: method.methodName,
-						label: method.methodName,
-						children: method.diffInfoList.map((diff, diffIndex) => ({
-							value: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`,
-							title: diff.commitMessage,
-							label: diff.commitMessage
-						}))
+						label: `${method.methodName} (${method.diffCount} diffs)`
 					}))
 				}))
 			}
 		];
 	};
 
-	// 初始化 TreeData
+	// 初始化 TreeData（DiffInfo 顯示為 placeholder）
 	const initialTreeData = (data) => {
-		const tmp = [
+		return [
 			{
 				value: `project_${data.projectId}`,
 				title: data.projectName,
 				label: data.projectName,
 				key: `project_${data.projectId}`,
-				children: data.files.map((file, index) => ({
+				children: data.files.map((file) => ({
 					value: `project_${data.projectId}_${file.filesId}`,
 					title: file.fileName,
 					label: file.fileName,
 					key: `project_${data.projectId}_${file.filesId}`,
-					children: file.methods.map((method, methodIndex) => ({
+					children: file.methods.map((method) => ({
 						value: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
 						title: method.methodName,
 						label: method.methodName,
 						key: `project_${data.projectId}_${file.filesId}_${method.methodId}`,
-						children: method.diffInfoList.map((diff, diffIndex) => ({
-							value: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`,
-							title: <DiffCard diff={diff} />,
-							label: diff.commitMessage,
-							key: `project_${data.projectId}_${file.filesId}_${method.methodId}_${diff.diffInfoId}`
-						}))
+						methodId: method.methodId,
+						children: [
+							{
+								key: `loading_${method.methodId}`,
+								title: <span style={{ color: '#999' }}>點擊載入差異信息...</span>,
+								isLeaf: true
+							}
+						]
 					}))
 				}))
 			}
 		];
-		setTreeData(tmp);
+	};
+
+	// 當 Tree 節點展開時，動態載入 DiffInfo
+	const onExpand = async (expandedKeysValue) => {
+		setExpandedKeys(expandedKeysValue);
+
+		// 找出新展開的 method 節點
+		const newExpandedKeys = expandedKeysValue.filter(
+			(key) => !expandedKeys.includes(key) && key.split('_').length === 4
+		);
+
+		for (const key of newExpandedKeys) {
+			const parts = key.split('_');
+			const methodId = parseInt(parts[3]);
+
+			// 如果已經載入過，跳過
+			if (loadedMethodIds.has(methodId)) continue;
+
+			try {
+				console.log(`載入 Method ${methodId} 的 DiffInfo`);
+				const response = await api.get('/api/getDiffInfoByMethod', {
+					params: { methodId }
+				});
+
+				const diffInfoList = response.data;
+
+				// 更新 TreeData，將 placeholder 替換為實際的 DiffCard
+				setTreeData((prevTreeData) => {
+					return updateTreeDataWithDiffInfo(
+						prevTreeData,
+						key,
+						diffInfoList,
+						parts[1],
+						parts[2],
+						methodId
+					);
+				});
+
+				// 標記已載入
+				setLoadedMethodIds((prev) => new Set(prev).add(methodId));
+			} catch (error) {
+				console.error(`載入 Method ${methodId} 的 DiffInfo 失敗:`, error);
+			}
+		}
+	};
+
+	// 遞迴更新 TreeData
+	const updateTreeDataWithDiffInfo = (
+		data,
+		targetKey,
+		diffInfoList,
+		projectId,
+		fileId,
+		methodId
+	) => {
+		return data.map((node) => {
+			if (node.key === targetKey) {
+				// 找到目標節點，更新其 children
+				return {
+					...node,
+					children: diffInfoList.map((diff) => ({
+						value: `project_${projectId}_${fileId}_${methodId}_${diff.diffInfoId}`,
+						title: <DiffCard diff={diff} />,
+						label: diff.commitMessage,
+						key: `project_${projectId}_${fileId}_${methodId}_${diff.diffInfoId}`,
+						isLeaf: true
+					}))
+				};
+			}
+
+			if (node.children) {
+				// 遞迴處理子節點
+				return {
+					...node,
+					children: updateTreeDataWithDiffInfo(
+						node.children,
+						targetKey,
+						diffInfoList,
+						projectId,
+						fileId,
+						methodId
+					)
+				};
+			}
+
+			return node;
+		});
 	};
 
 	// 根據選擇值生成需要展開的所有父節點鍵值
@@ -106,7 +198,6 @@ const ShowMethodDiff = () => {
 		const parts = selectedValue.split('_');
 		const keys = [];
 
-		// 從選擇的完整路徑構建出所有父級路徑
 		for (let i = 1; i <= parts.length; i++) {
 			keys.push(parts.slice(0, i).join('_'));
 		}
@@ -114,17 +205,25 @@ const ShowMethodDiff = () => {
 		return keys;
 	};
 
-	// 透過 selectTree 選擇直接將資料修該為該路徑
+	// 透過 selectTree 選擇直接將資料修改為該路徑
 	const treeSelectOnChange = (newValue) => {
 		console.log(newValue);
 		setValue(newValue);
 
-		// 根據選擇的值，設置需要展開的樹節點
 		if (newValue) {
 			const keysToExpand = generateExpandedKeys(newValue);
 			setExpandedKeys(keysToExpand);
 		}
 	};
+
+	if (loading) {
+		return (
+			<div style={{ textAlign: 'center', padding: '50px' }}>
+				<Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+				<p style={{ marginTop: 20 }}>載入專案結構中...</p>
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -149,7 +248,9 @@ const ShowMethodDiff = () => {
 						showLine
 						switcherIcon={<DownOutlined />}
 						expandedKeys={expandedKeys}
-						onExpand={setExpandedKeys}
+						onExpand={onExpand}
+						virtual
+						height={600}
 					/>
 				</div>
 			)}
@@ -171,21 +272,12 @@ ShowMethodDiff.propTypes = {
 					PropTypes.shape({
 						methodId: PropTypes.number.isRequired,
 						methodName: PropTypes.string.isRequired,
-						diffInfoList: PropTypes.arrayOf(
-							PropTypes.shape({
-								diffInfoId: PropTypes.number.isRequired,
-								author: PropTypes.string.isRequired,
-								authorEmail: PropTypes.string.isRequired,
-								commitMessage: PropTypes.string.isRequired,
-								commitTime: PropTypes.number.isRequired,
-								diffCode: PropTypes.string.isRequired,
-								headRevstr: PropTypes.string
-							})
-						)
+						diffCount: PropTypes.number
 					})
 				)
 			})
 		)
 	})
 };
+
 export default ShowMethodDiff;
