@@ -24,7 +24,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
   String findProjectNameByProjectId(@Param("id") Long projectId);
 
   @Query("SELECT DISTINCT p FROM Project p " +
-      "LEFT JOIN FETCH p.files " +
-      "WHERE p.projectName = :projectName")
+      "LEFT JOIN FETCH p.files f " +
+      "WHERE p.projectName = :projectName " +
+      "ORDER BY f.fileName ASC")
   Optional<Project> findByProjectNameWithFiles(@Param("projectName") String projectName);
 }
