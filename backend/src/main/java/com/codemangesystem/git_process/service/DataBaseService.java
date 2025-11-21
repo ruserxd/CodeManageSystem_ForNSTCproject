@@ -56,7 +56,7 @@ public class DataBaseService {
    */
   @Transactional(readOnly = true)
   public ProjectStructureDTO getProjectStructure(String projectName) {
-    // 第一步：載入 Project 和 Files
+    // 載入 Project 和 Files
     Optional<Project> projectOpt = projectRepository.findByProjectNameWithFiles(projectName);
 
     if (projectOpt.isEmpty()) {
@@ -66,7 +66,7 @@ public class DataBaseService {
 
     Project project = projectOpt.get();
 
-    // 第二步：批量載入 Files 的 Methods
+    // 批量載入 Files 的 Methods
     List<Long> fileIds = project.getFiles().stream()
         .map(Files::getFilesId)
         .collect(Collectors.toList());
@@ -213,7 +213,7 @@ public class DataBaseService {
     WindowCacheConfig config = new WindowCacheConfig();
     config.setPackedGitMMAP(false);
     WindowCache.reconfigure(config);
-
+    
     File file = new File(repoPath);
     FileUtils.deleteDirectory(file);
   }
