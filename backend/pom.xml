@@ -43,6 +43,23 @@
     <build>
         <plugins>
             <!--
+              把 jar repackage 成包含所有相依套件、可用 java -jar 執行的 Spring Boot jar（Dockerfile 依賴這點）。
+              Lombok 只在編譯期使用，不需要打包進去。
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!--
               明確宣告 Lombok 為 annotation processor。
               JDK 23 起 javac 預設不再自動執行 classpath 上的 processor，沒有這段會出現 cannot find symbol（例如 log）。
               版本由 Spring Boot BOM 的 lombok.version 管理。
