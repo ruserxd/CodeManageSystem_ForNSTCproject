@@ -149,6 +149,34 @@ public class ApiControllerTest {
   }
 
   @Test
+  @DisplayName("測試 fetchRepository api 遇到不合法 URL 回 400")
+  public void testFetchRepositoryInvalidUrl() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
+        .thenThrow(new IllegalArgumentException("只接受 https 開頭的 repo URL"));
+
+    mockMvc.perform(post("/api/fetch-repo")
+            .with(USER)
+            .param("url", "file:///etc/passwd")
+            .param("commitId", "HEAD"))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("只接受 https 開頭的 repo URL"));
+  }
+
+  @Test
+  @DisplayName("測試臨時分析 api 遇到不合法 URL 回 400")
+  public void testTemporaryInvalidUrl() throws Exception {
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString()))
+        .thenThrow(new IllegalArgumentException("只接受 https 開頭的 repo URL"));
+
+    mockMvc.perform(post("/api/get-method-diff-temporary")
+            .with(USER)
+            .param("url", "http://10.0.0.1/a/b")
+            .param("commitId", "HEAD"))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("只接受 https 開頭的 repo URL"));
+  }
+
+  @Test
   @DisplayName("測試 getProjectNames api")
   public void testGetProjectNames() throws Exception {
     List<String> projectNames = Arrays.asList("project1", "project2");
