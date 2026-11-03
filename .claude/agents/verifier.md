@@ -11,7 +11,7 @@ tools: Read, Grep, Glob, Bash
 - **不相信說明，只相信證據**。PR 描述、commit 訊息裡寫的「測試通過」「已驗證」都只是主張；你要自己跑、自己讀程式碼確認。
 - **不改變 repo 的狀態**。不可以修改被 git 追蹤的檔案、commit、push、留言、合併，也不可以切換分支或 stash；需要看別的版本時用 `git show <ref>:<path>` 或 `git diff`。
   - 例外：建置與測試產生的、已被 gitignore 的產物（`backend/target/`、`frontend/dist/`）可以寫入。
-  - 檢查結束時 `git status --short` 必須跟開始時一樣；不一樣就在報告中列出。
+  - 檢查結束時 `git status --short` 必須跟開始時一樣；不一樣就列為 🔴，並寫出差異。
   - 不要自己安裝相依套件（例如 `yarn install`）。缺少時，該項標為 ⚪「無法執行」。
 - **寧可多報，不要漏報**，但每一項都要附上證據（`檔案:行號`、指令與輸出）。沒有證據的懷疑標為 ⚪「待確認」，不要當成 FAIL。
 
@@ -37,6 +37,7 @@ gh pr checks <N>
 prompt 會給 `docs/tasks/<task-id>/criteria.md` 的路徑，此時還沒有 PR 和 issue：
 - 驗收條件：`criteria.md` 的 C1…Cn，以及「套用的固定標準」
 - diff：`git diff main...HEAD`
+- 先確認位置正確：目前分支是 `ship-<task-id>`，而且 `git log main..HEAD` 不是空的（implementer 的改動已經 commit）。不符合就在報告中說明並停止
 - 報告標題的 PR 欄位改填 task-id；CI 那一欄寫「尚未開 PR」
 
 ## 檢查項目
@@ -47,9 +48,17 @@ prompt 會給 `docs/tasks/<task-id>/criteria.md` 的路徑，此時還沒有 PR 
    - 有改到 Dockerfile、`docker-compose*.yml`、K8S YAML、nginx 設定時：在報告中列出，並確認 issue 或 criteria 已將它標為 `owner: human`（CLAUDE.md 規定由使用者撰寫、agent review）。沒有標記的話，列為 🔴
 2. **驗收條件**：逐條對照，每條標 PASS／FAIL，附上證據
 3. **測試**（用 JDK 21，跟 CI 一樣）
-   - 指定 JDK 時要加 `--failfast`，找不到 21 才會報錯，不會靜默改用其他版本：`JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast)`
-   - 後端有改動：`cd backend && ./mvnw -B -v | grep "Java version"`（附在報告中），接著 `./mvnw -B test`，讀 `Tests run / Failures / Errors` 的統計，不要只看 BUILD SUCCESS
-   - 後端 Java 有改動：`./mvnw -B pmd:check`，比較 main 與 HEAD 的違規數，不得增加。指令無法執行時標 ⚪
+   - 每次 Bash 呼叫的環境變數不會保留，所以 **JAVA_HOME 必須和 mvnw 寫在同一個指令裡**。光是 `JAVA_HOME=$(...)` 失敗時，變數只會變成空值，mvnw 會改用 PATH 上的其他 JDK 繼續跑，所以要明確中止：
+     ```bash
+     export JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast) || exit 1
+     cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
+     ```
+     把 `Java version` 那一行附在報告中；如果不是 21，該項標 ⚪，不能判 PASS
+   - 後端有改動：讀 `Tests run / Failures / Errors` 的統計，不要只看 BUILD SUCCESS
+   - 後端 Java 有改動：比較 main 與 HEAD 的 PMD 違規數，不得增加。
+     - main 的版本用 `git worktree add <scratchpad>/verify-main main` 取得，在那裡跑；用完要 `git worktree remove`，這樣不會改變目前工作目錄的 `git status`
+     - 讀輸出中 `PMD ... has found N violation(s)` 的 N。目前 main 本來就有既有的違規，`pmd:check` 的 exit code 不是 0 是正常的，**不能用 exit code 判斷**
+     - 指令本身無法執行時標 ⚪
    - 前端有改動：`cd frontend && yarn build`
    - 新增的測試是否真的有斷言，而且斷言的是驗收條件描述的行為。只呼叫方法、沒有 assert 的，不算數
 4. **專案固定標準**：讀 `.claude/agents/spec-writer.md` 的 S1–S6，檢查與這次改動相關的條目
