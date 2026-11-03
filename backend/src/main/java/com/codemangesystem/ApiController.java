@@ -76,6 +76,9 @@ public class ApiController {
       log.info("臨時分析完成，回傳結果");
       return ResponseEntity.ok(tempProject);
 
+    } catch (IllegalArgumentException e) {
+      // repo URL 未通過驗證（GitFunction.validateRepoUrl），屬於使用者輸入錯誤
+      return ResponseEntity.badRequest().body(e.getMessage());
     } catch (GitAPIException | IOException e) {
       log.error("臨時分析時發生錯誤: ", e);
       return ResponseEntity.status(500)
@@ -97,6 +100,9 @@ public class ApiController {
       log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
       log.info("UserId {}", userId);
       return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId, userId));
+    } catch (IllegalArgumentException e) {
+      // repo URL 未通過驗證（GitFunction.validateRepoUrl），屬於使用者輸入錯誤
+      return ResponseEntity.badRequest().body(e.getMessage());
     } catch (GitAPIException | IOException e) {
       log.error("Error cloning or accessing repository: ", e);
       return ResponseEntity.status(500)
