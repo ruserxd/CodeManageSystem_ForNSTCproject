@@ -43,3 +43,5 @@ build/
 ### env ###
 .env
 /backend/src/log/
+.claude/worktrees/
+frontend/.yarn/install-state.gz
