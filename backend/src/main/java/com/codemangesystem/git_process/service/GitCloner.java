@@ -35,6 +35,9 @@ public class GitCloner {
   // clone 存放的檔案位置
   private static final String CLONE_LOCAL_BASE_PATH = "src/cloneCode/";
 
+  // 遠端無回應時的網路逾時（秒），避免請求的執行緒被卡住
+  private static final int CLONE_TIMEOUT_SECONDS = 60;
+
   private final GitDiffAnalyzer gitDiffAnalyzer;
   private final MyUserRepository myUserRepository;
   private final GitPuller gitPuller;
@@ -59,6 +62,7 @@ public class GitCloner {
   public GitResult cloneRepository(String repoUrl, String commitId, Long userId)
       throws GitAPIException, IOException {
     log.info("Clone by {} {} {}", repoUrl, commitId, userId);
+    GitFunction.validateRepoUrl(repoUrl);
     RepositoryINFO repoINFO = RepositoryINFO.builder()
         .repoName(GitFunction.getRepoNameFromUrl(repoUrl))
         .localPath(CLONE_LOCAL_BASE_PATH + GitFunction.getRepoNameFromUrl(repoUrl))
@@ -94,6 +98,7 @@ public class GitCloner {
       CloneCommand command = Git.cloneRepository()
           .setURI(repoUrl)
           .setDirectory(new File(repoINFO.localPath));
+      command.setTimeout(CLONE_TIMEOUT_SECONDS);
             /*
              將資料 clone 下來，try 達到 close
              只是要透過 Git 物件將資料 clone 下來
@@ -220,6 +225,7 @@ public class GitCloner {
       throws GitAPIException, IOException {
 
     log.info("臨時 Clone: {} {}", repoUrl, commitId);
+    GitFunction.validateRepoUrl(repoUrl);
 
     String repoName = GitFunction.getRepoNameFromUrl(repoUrl);
     String tempPath = CLONE_LOCAL_BASE_PATH + "temp_" + System.currentTimeMillis() + "_" + repoName;
@@ -231,6 +237,7 @@ public class GitCloner {
       CloneCommand command = Git.cloneRepository()
           .setURI(repoUrl)
           .setDirectory(new File(tempPath));
+      command.setTimeout(CLONE_TIMEOUT_SECONDS);
 
       Git git = command.call();
 

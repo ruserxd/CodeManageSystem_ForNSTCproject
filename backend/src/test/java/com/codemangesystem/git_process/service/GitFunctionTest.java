@@ -1,5 +1,6 @@
 package com.codemangesystem.git_process.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 class GitFunctionTest {
@@ -26,6 +29,59 @@ class GitFunctionTest {
     UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
         GitFunction::new);
     assertEquals("This is a utility class and cannot be instantiated", exception.getMessage());
+  }
+
+  @Nested
+  @DisplayName("測試 validateRepoUrl()")
+  class validateRepoUrlTest {
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "https://github.com/ruserxd/CodeManageSystem_ForNSTCproject.git",
+        "https://github.com/spring-projects/spring-boot",
+        "https://gitlab.com/owner/repo.name",
+        "https://GitHub.com/owner/repo"
+    })
+    @DisplayName("合法的公開 repo URL 可以通過")
+    void validUrlTest(String url) {
+      assertDoesNotThrow(() -> GitFunction.validateRepoUrl(url));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "",
+        "   ",
+        "file:///etc/passwd",
+        "/Users/someone/project",
+        "../../backend",
+        "http://github.com/owner/repo",
+        "git@github.com:owner/repo.git",
+        "ssh://git@github.com/owner/repo.git",
+        "https://localhost/owner/repo",
+        "https://10.0.0.1/owner/repo",
+        "https://github.com.evil.com/owner/repo",
+        "https://evil.com/owner/repo",
+        "https://user:pass@github.com/owner/repo",
+        "https://github.com:8443/owner/repo",
+        "https://github.com/owner/repo?x=1",
+        "https://github.com/owner/repo#readme",
+        "https://github.com/owner",
+        "https://github.com/owner/repo/tree/main",
+        "https://github.com/owner/..",
+        "https://github.com/../repo",
+        "https://github.com/owner/.git",
+        "https://github.com/owner/re%2F..%2Fpo"
+    })
+    @DisplayName("不合法或惡意的 URL 會被拒絕")
+    void invalidUrlTest(String url) {
+      assertThrows(IllegalArgumentException.class, () -> GitFunction.validateRepoUrl(url));
+    }
+
+    @Test
+    @DisplayName("null 會被拒絕")
+    void nullUrlTest() {
+      assertThrows(IllegalArgumentException.class, () -> GitFunction.validateRepoUrl(null));
+    }
   }
 
   @Nested
