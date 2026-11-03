@@ -3,7 +3,6 @@ package com.codemangesystem.config;
 import static org.apache.tomcat.util.http.fileupload.FileUtils.deleteDirectory;
 
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.repository.MyUserRepository;
 import com.codemangesystem.login_process.service.UserService;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
@@ -23,13 +22,10 @@ public class MyPostConstruct {
 
   private final ProjectRepository projectRepository;
   private final UserService userService;
-  private final MyUserRepository myUserRepository;
 
-  public MyPostConstruct(ProjectRepository projectRepository, UserService userService,
-      MyUserRepository myUserRepository) {
+  public MyPostConstruct(ProjectRepository projectRepository, UserService userService) {
     this.projectRepository = projectRepository;
     this.userService = userService;
-    this.myUserRepository = myUserRepository;
   }
 
   /**
@@ -83,15 +79,9 @@ public class MyPostConstruct {
   }
 
   /**
-   * 檢查超級帳號是否存在，不存在則建立
+   * 建立超級帳號；是否已設定、是否已存在都由 UserService 判斷
    */
   public void addSuperAccount() {
-    if (myUserRepository.findByUserAccount("123")
-        .isEmpty()) {
-      log.info("加入超級帳號");
-      userService.addSuperAccount();
-    } else {
-      log.info("超級帳號已存在");
-    }
+    userService.addSuperAccount();
   }
 }

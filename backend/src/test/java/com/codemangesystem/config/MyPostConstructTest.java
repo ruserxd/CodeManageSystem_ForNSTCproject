@@ -6,14 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.codemangesystem.git_process.repository.ProjectRepository;
-import com.codemangesystem.login_process.model.user.MyUser;
-import com.codemangesystem.login_process.model.user.UserAuthority;
-import com.codemangesystem.login_process.repository.MyUserRepository;
 import com.codemangesystem.login_process.service.UserService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,15 +25,13 @@ class MyPostConstructTest {
 
   private ProjectRepository projectRepository;
   private UserService userService;
-  private MyUserRepository myUserRepository;
   private MyPostConstruct myPostConstruct;
 
   @BeforeEach
   void initial() {
     userService = mock(UserService.class);
     projectRepository = mock(ProjectRepository.class);
-    myUserRepository = mock(MyUserRepository.class);
-    myPostConstruct = new MyPostConstruct(projectRepository, userService, myUserRepository);
+    myPostConstruct = new MyPostConstruct(projectRepository, userService);
   }
 
   /**
@@ -73,31 +67,16 @@ class MyPostConstructTest {
   }
 
   @Test
-  @DisplayName("測試當沒有超級帳號的處理")
-  void doNotAddSuperAccountTest() {
-    Mockito.when(myUserRepository.findByUserAccount("123")).thenReturn(Optional.empty());
+  @DisplayName("addSuperAccount() 交由 UserService 判斷是否建立")
+  void addSuperAccountDelegatesTest() {
     myPostConstruct.addSuperAccount();
     Mockito.verify(userService).addSuperAccount();
   }
 
   @Test
-  @DisplayName("測試當有超級帳號的處理")
-  void addSuperAccountTest() {
-    MyUser myUser = MyUser.builder()
-        .userEmail("zz@gmail.com")
-        .userName("Admin")
-        .userAccount("123")
-        .userPassword("123")
-        .userAuthority(UserAuthority.ADMIN)
-        .build();
-    Mockito.when(myUserRepository.findByUserAccount("123")).thenReturn(Optional.ofNullable(myUser));
-    myPostConstruct.addSuperAccount();
-    Mockito.verify(userService, Mockito.never()).addSuperAccount();
-  }
-
-  @Test
-  @DisplayName("測試 initialSetting()")
+  @DisplayName("測試 initialSetting() 會建立超級帳號")
   void initialSettingTest() throws IllegalAccessException {
     myPostConstruct.initialSettings();
+    Mockito.verify(userService).addSuperAccount();
   }
 }
