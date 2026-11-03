@@ -3,6 +3,10 @@ package com.codemangesystem.login_process.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.codemangesystem.login_process.model.response.LoginINFO;
@@ -18,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 @Slf4j
@@ -31,7 +36,7 @@ class UserServiceTest {
   void setUp() {
     myUserRepository = Mockito.mock(MyUserRepository.class);
     passwordBcrypt = Mockito.mock(PasswordBcrypt.class);
-    userService = new UserService(myUserRepository, passwordBcrypt);
+    userService = new UserService(myUserRepository, passwordBcrypt, "admin", "s3cret");
   }
 
   @Nested
@@ -39,25 +44,40 @@ class UserServiceTest {
   class addSuperAccountTest {
 
     @Test
-    @DisplayName("測試加入超級帳號")
+    @DisplayName("依設定建立管理員，密碼經過雜湊")
     void addAccountTest() {
+      when(myUserRepository.findByUserAccount("admin")).thenReturn(Optional.empty());
+      when(passwordBcrypt.encryptText("s3cret")).thenReturn("hashed");
+
       userService.addSuperAccount();
+
+      ArgumentCaptor<MyUser> saved = ArgumentCaptor.forClass(MyUser.class);
+      verify(myUserRepository).save(saved.capture());
+      assertEquals("admin", saved.getValue().getUserAccount());
+      assertEquals("hashed", saved.getValue().getUserPassword());
+      assertEquals(UserAuthority.ADMIN, saved.getValue().getUserAuthority());
     }
 
     @Test
-    @DisplayName("已存在超級帳號")
+    @DisplayName("已存在超級帳號時不重複建立")
     void isSuperAccountExistTest() {
-      MyUser superAccount = MyUser.builder()
-          .userEmail("zz@gmail.com")
-          .userName("Admin")
-          .userAccount("123")
-          .userPassword("123")
-          .userAuthority(UserAuthority.ADMIN)
-          .build();
-      when(myUserRepository.findByUserAccount("123"))
-          .thenReturn(Optional.ofNullable(superAccount));
+      when(myUserRepository.findByUserAccount("admin"))
+          .thenReturn(Optional.of(MyUser.builder().userAccount("admin").build()));
 
       userService.addSuperAccount();
+
+      verify(myUserRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("未設定帳密時不建立任何管理員")
+    void notConfiguredTest() {
+      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "");
+
+      unconfigured.addSuperAccount();
+
+      verify(myUserRepository, never()).save(any());
+      verify(myUserRepository, never()).findByUserAccount(anyString());
     }
   }
 

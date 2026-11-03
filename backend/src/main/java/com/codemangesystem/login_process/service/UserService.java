@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +22,19 @@ public class UserService {
 
   private final MyUserRepository myUserRepository;
   private final PasswordBcrypt passwordBcrypt;
+  private final String adminAccount;
+  private final String adminPassword;
 
-  public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt) {
+  /**
+   * 管理員帳密由環境變數 APP_ADMIN_ACCOUNT / APP_ADMIN_PASSWORD 提供，未設定時不建立管理員
+   */
+  public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt,
+      @Value("${app.admin.account:}") String adminAccount,
+      @Value("${app.admin.password:}") String adminPassword) {
     this.myUserRepository = myUserRepository;
     this.passwordBcrypt = passwordBcrypt;
+    this.adminAccount = adminAccount;
+    this.adminPassword = adminPassword;
   }
 
   /**
@@ -32,21 +42,23 @@ public class UserService {
    */
   @Transactional
   public void addSuperAccount() {
+    if (adminAccount.isBlank() || adminPassword.isBlank()) {
+      log.info("未設定 APP_ADMIN_ACCOUNT / APP_ADMIN_PASSWORD，不建立管理員帳號");
+      return;
+    }
+
     // 確定目前資料庫內沒有超級帳號
-    Optional<MyUser> myUserInDataBase = myUserRepository.findByUserAccount("123");
-    if (myUserInDataBase.isPresent()) {
-      log.info("已存在超級帳號 {}", myUserInDataBase);
+    if (myUserRepository.findByUserAccount(adminAccount).isPresent()) {
+      log.info("已存在超級帳號 {}", adminAccount);
       return;
     }
 
     MyUser myUser = MyUser.builder()
-        .userEmail("zz@gmail.com")
         .userName("Admin")
-        .userAccount("123")
-        .userPassword("123")
+        .userAccount(adminAccount)
+        .userPassword(passwordBcrypt.encryptText(adminPassword))
         .userAuthority(UserAuthority.ADMIN)
         .build();
-    myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
 
     myUserRepository.save(myUser);
     log.info("成功加入超級帳號");
