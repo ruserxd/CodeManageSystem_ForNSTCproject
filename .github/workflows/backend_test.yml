@@ -48,8 +48,9 @@ jobs:
           cache: maven
 
       # 有任何測試失敗時 Maven 會回傳非 0，讓這個 job 失敗
+      # 用 wrapper 而不是 runner 內建的 mvn，確保 CI 與本機的 Maven 版本相同
       - name: Run tests
-        run: mvn -B test
+        run: ./mvnw -B test
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/test_db
           SPRING_DATASOURCE_USERNAME: test_user
