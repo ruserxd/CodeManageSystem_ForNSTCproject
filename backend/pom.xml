@@ -42,6 +42,49 @@
     </properties>
     <build>
         <plugins>
+            <!--
+              明確宣告 Lombok 為 annotation processor。
+              JDK 23 起 javac 預設不再自動執行 classpath 上的 processor，沒有這段會出現 cannot find symbol（例如 log）。
+              版本由 Spring Boot BOM 的 lombok.version 管理。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!--
+              鎖定建置用的 JDK 範圍，版本不符時直接給出清楚的錯誤，而不是編譯到一半才失敗。
+              上限為實測過的最新版（JDK 26）；確認新 JDK 可用後再放寬。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-java-version</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,27)</version>
+                                    <message>本專案需要 JDK 21 ~ 26 建置。可用 JAVA_HOME=$(/usr/libexec/java_home -v 21) ./mvnw ... 指定版本。</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!--白箱測試 jacoco-->
             <plugin>
                 <groupId>org.jacoco</groupId>
