@@ -26,10 +26,6 @@ function UserDetail() {
 				label: 'UserEmail',
 				span: 'filled',
 				children: `${userDetails.userEmail}`
-			},
-			{
-				label: 'UserPassword',
-				children: `${userDetails.userPassword}`
 			}
 		];
 	};
