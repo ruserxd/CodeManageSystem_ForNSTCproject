@@ -42,14 +42,6 @@
     </properties>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <testFailureIgnore>true</testFailureIgnore>
-                </configuration>
-            </plugin>
-
             <!--白箱測試 jacoco-->
             <plugin>
                 <groupId>org.jacoco</groupId>
