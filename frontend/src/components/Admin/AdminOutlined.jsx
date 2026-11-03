@@ -19,8 +19,7 @@ function AdminOutlined() {
 						userName: user.userName,
 						userEmail: user.userEmail,
 						userAccount: user.userAccount,
-						userAuthority: user.userAuthority,
-						userPassword: user.userPassword
+						userAuthority: user.userAuthority
 					}));
 					setUsers(data);
 				} else {

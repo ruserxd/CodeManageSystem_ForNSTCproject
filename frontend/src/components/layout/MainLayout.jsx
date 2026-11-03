@@ -115,7 +115,6 @@ MainLayout.propTypes = {
 		userName: PropTypes.string.isRequired,
 		userEmail: PropTypes.string.isRequired,
 		userAccount: PropTypes.string.isRequired,
-		userPassword: PropTypes.string.isRequired,
 		userAuthority: PropTypes.string.isRequired
 	}).isRequired
 };
