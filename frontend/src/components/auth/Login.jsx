@@ -22,7 +22,7 @@ const Login = ({ onLogin }) => {
 			const result = await api.post('api/login', loginUserInfo);
 			console.log('登入 ' + JSON.stringify(result.data.myUser));
 			if (result.data.success) {
-				onLogin(result.data.myUser);
+				onLogin(result.data.myUser, result.data.token);
 				message.success(result.data.myUser.userName + '登入成功');
 				form.resetFields();
 				navigate('/UserPage');

@@ -32,4 +32,12 @@ public interface PersonalRepository extends JpaRepository<PersonalINFO, Long> {
   @Query("SELECT pi FROM PersonalINFO pi WHERE pi.project.projectName = :projectName AND pi.user.userId = :userId")
   Optional<PersonalINFO> findProjectByUserIdAndProjectName(@Param("projectName") String projectName,
       @Param("userId") Long userId);
+
+  /**
+   * 查詢 userId 是否擁有該 method 所屬的 Project
+   */
+  @Query("SELECT COUNT(pi) FROM PersonalINFO pi, Method m "
+      + "WHERE m.methodId = :methodId AND pi.project.projectId = m.files.project.projectId "
+      + "AND pi.user.userId = :userId")
+  long countByUserIdAndMethodId(@Param("userId") Long userId, @Param("methodId") Long methodId);
 }

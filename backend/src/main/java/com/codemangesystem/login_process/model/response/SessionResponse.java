@@ -25,4 +25,9 @@ public class SessionResponse {
    * 使用者資訊
    */
   private MyUser myUser;
+
+  /**
+   * 登入成功後的 JWT，之後的請求以 Authorization: Bearer {token} 帶上
+   */
+  private String token;
 }

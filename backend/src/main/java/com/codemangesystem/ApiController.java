@@ -11,6 +11,7 @@ import com.codemangesystem.git_process.service.GitPuller;
 import com.codemangesystem.login_process.model.response.LoginINFO;
 import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
+import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
 import java.io.IOException;
 import java.util.List;
@@ -18,7 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,10 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * api 主要位置
+ * 除了 login、register 外都需要帶 JWT，使用者身分一律從 token 取得，不採用前端傳入的 userId
  */
 @Slf4j
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000"}, allowCredentials = "false")
 @RequestMapping("/api")
 public class ApiController {
 
@@ -39,14 +41,23 @@ public class ApiController {
   private final DataBaseService dataBaseService;
   private final UserService userService;
   private final GitPuller gitPuller;
+  private final JwtService jwtService;
   private static final String LOCAL_BASE_PATH = "src/cloneCode/";
 
   public ApiController(GitCloner gitCloner, DataBaseService dataBaseService,
-      UserService userService, GitPuller gitPuller) {
+      UserService userService, GitPuller gitPuller, JwtService jwtService) {
     this.gitCloner = gitCloner;
     this.dataBaseService = dataBaseService;
     this.userService = userService;
     this.gitPuller = gitPuller;
+    this.jwtService = jwtService;
+  }
+
+  /**
+   * 從 JWT 取得目前登入的 userId
+   */
+  private static Long currentUserId(Jwt jwt) {
+    return Long.valueOf(jwt.getSubject());
   }
 
   /**
@@ -80,11 +91,12 @@ public class ApiController {
   @PostMapping("/fetch-repo")
   public ResponseEntity<?> fetchRepository(@RequestParam("url") String url,
       @RequestParam("commitId") String commitId,
-      @RequestParam("userId") String userId) {
+      @AuthenticationPrincipal Jwt jwt) {
+    Long userId = currentUserId(jwt);
     try {
       log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
       log.info("UserId {}", userId);
-      return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId, Long.valueOf(userId)));
+      return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId, userId));
     } catch (GitAPIException | IOException e) {
       log.error("Error cloning or accessing repository: ", e);
       return ResponseEntity.status(500)
@@ -96,7 +108,8 @@ public class ApiController {
    * 獲取 User 目前擁有的資料
    */
   @GetMapping("/getProjectNames")
-  public ResponseEntity<?> getProjectNames(@RequestParam("userId") String userId) {
+  public ResponseEntity<?> getProjectNames(@AuthenticationPrincipal Jwt jwt) {
+    String userId = jwt.getSubject();
     try {
       log.info("嘗試獲取 userId:{} 的所有 ProjectName", userId);
       List<String> listNames = dataBaseService.getUserProjects(userId);
@@ -116,7 +129,12 @@ public class ApiController {
    * 對當前的資料庫進行 pull
    */
   @GetMapping("/pullProject")
-  public ResponseEntity<?> pullByProjectName(@RequestParam("projectName") String projectName) {
+  public ResponseEntity<?> pullByProjectName(@RequestParam("projectName") String projectName,
+      @AuthenticationPrincipal Jwt jwt) {
+    // 只能 pull 自己擁有的專案，同時避免 projectName 被用來指向其他路徑
+    if (!dataBaseService.isProjectOwner(currentUserId(jwt), projectName)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     RepositoryINFO info = RepositoryINFO.builder()
         .repoName(projectName)
         .localPath(LOCAL_BASE_PATH + projectName)
@@ -130,7 +148,10 @@ public class ApiController {
    */
   @PostMapping("/getData")
   public ResponseEntity<Project> getFileDataByProjectName(
-      @RequestParam("ProjectName") String projectName) {
+      @RequestParam("ProjectName") String projectName, @AuthenticationPrincipal Jwt jwt) {
+    if (!dataBaseService.isProjectOwner(currentUserId(jwt), projectName)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     log.info("嘗試抓取 Data by {}", projectName);
     Project project = dataBaseService.getProjectByProjectName(projectName);
     log.info("getData \n {}", project);
@@ -142,8 +163,8 @@ public class ApiController {
    */
   @GetMapping("/deleteData")
   public String deleteDataByProjectName(@RequestParam("projectName") String projectName,
-      @RequestParam("userId") String userId) {
-    return dataBaseService.deleteDataByProjectName(projectName, userId);
+      @AuthenticationPrincipal Jwt jwt) {
+    return dataBaseService.deleteDataByProjectName(projectName, jwt.getSubject());
   }
 
   /**
@@ -151,7 +172,10 @@ public class ApiController {
    */
   @GetMapping("/getProjectStructure")
   public ResponseEntity<ProjectStructureDTO> getProjectStructure(
-      @RequestParam("projectName") String projectName) {
+      @RequestParam("projectName") String projectName, @AuthenticationPrincipal Jwt jwt) {
+    if (!dataBaseService.isProjectOwner(currentUserId(jwt), projectName)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     log.info("獲取專案結構: {}", projectName);
     ProjectStructureDTO structure = dataBaseService.getProjectStructure(projectName);
     if (structure == null) {
@@ -165,7 +189,10 @@ public class ApiController {
    */
   @GetMapping("/getDiffInfoByMethod")
   public ResponseEntity<List<DiffInfo>> getDiffInfoByMethod(
-      @RequestParam("methodId") Long methodId) {
+      @RequestParam("methodId") Long methodId, @AuthenticationPrincipal Jwt jwt) {
+    if (!dataBaseService.isMethodOwner(currentUserId(jwt), methodId)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
     log.info("獲取 Method {} 的差異信息", methodId);
     List<DiffInfo> diffInfoList = dataBaseService.getDiffInfoByMethodId(methodId);
     return ResponseEntity.ok(diffInfoList);
@@ -175,8 +202,11 @@ public class ApiController {
   /* 登入 api */
   @PostMapping("/login")
   public ResponseEntity<SessionResponse> login(@RequestBody LoginINFO loginINFO) {
-    log.info("嘗試登入 使用者: {}", loginINFO);
+    log.info("嘗試登入{}", loginINFO.getUserAccount());
     SessionResponse sessionResponse = userService.checkUser(loginINFO);
+    if (sessionResponse.isSuccess()) {
+      sessionResponse.setToken(jwtService.generateToken(sessionResponse.getMyUser()));
+    }
     return new ResponseEntity<>(sessionResponse, HttpStatus.OK);
   }
 
@@ -191,7 +221,7 @@ public class ApiController {
   }
 
   /**
-   * 手動加入
+   * 手動加入（僅 ADMIN）
    */
   @GetMapping("/addSuperAccount")
   public void addSuperAccount() {
@@ -200,7 +230,7 @@ public class ApiController {
   }
 
   /**
-   * 獲取所有使用者資訊
+   * 獲取所有使用者資訊（僅 ADMIN）
    */
   @GetMapping("/getAllUsers")
   public ResponseEntity<List<MyUser>> getAllUsers() {
@@ -210,7 +240,7 @@ public class ApiController {
   }
 
   /**
-   * 透過 userId 刪除指定用戶
+   * 透過 userId 刪除指定用戶（僅 ADMIN）
    */
   @PostMapping("/deleteUser")
   public ResponseEntity<Boolean> deleteUser(@RequestParam("userId") Long userId) {

@@ -39,7 +39,7 @@ yarn build
 ## 架構
 
 ### Port
-`application.properties` 設的是 `server.port=8000`，但前端 axios 的 `baseURL`（`frontend/src/api/axiosConfig.js`）、後端 Dockerfile、nginx 的 `/api/` 代理都用 **8080**。CORS 只允許 `http://localhost:3000`。修改網路相關設定前，先確認要用的是哪個 port。
+後端預設 **8080**，可用環境變數調整：`application.properties` 的 `server.port=${SERVER_PORT:8080}`，前端 axios 的 `baseURL` 讀 `VITE_API_URL`（`frontend/src/api/axiosConfig.js`，預設 `http://localhost:8080`；這是瀏覽器要連的位址，不能填 Docker 內部的 `backend:8080`）。後端 Dockerfile 的 `EXPOSE` 和 nginx 的 `/api/` 代理仍寫死 8080，改 port 時要一起改。前端開發伺服器是 3000，CORS 只允許 `http://localhost:3000`。
 
 ### 後端套件（`backend/src/main/java/com/codemangesystem/`）
 - `ApiController` 是唯一的 REST controller，所有 endpoint 都在 `/api` 底下。

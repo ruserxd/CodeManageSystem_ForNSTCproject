@@ -187,6 +187,22 @@ public class DataBaseService {
   }
 
   /**
+   * 判斷使用者是否擁有該 Project
+   */
+  @Transactional(readOnly = true)
+  public boolean isProjectOwner(Long userId, String projectName) {
+    return personalRepository.findProjectByUserIdAndProjectName(projectName, userId).isPresent();
+  }
+
+  /**
+   * 判斷使用者是否擁有該 method 所屬的 Project
+   */
+  @Transactional(readOnly = true)
+  public boolean isMethodOwner(Long userId, Long methodId) {
+    return personalRepository.countByUserIdAndMethodId(userId, methodId) > 0;
+  }
+
+  /**
    * 透過 projectName 獲得資料庫內的 HeadRevstr
    */
   public String getHeadRevstr(String projectName) {

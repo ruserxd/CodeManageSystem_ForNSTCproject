@@ -14,6 +14,7 @@ import { App as AntApp, ConfigProvider, message } from 'antd';
 import { useCookies } from 'react-cookie';
 import AdminOutlined from './components/Admin/AdminOutlined';
 import UserDetail from './components/user/UserDetail';
+import { TOKEN_KEY } from './api/axiosConfig';
 
 function App() {
 	// 利用 cookies 將使用者資料存下來
@@ -21,9 +22,10 @@ function App() {
 	// cookies.user.
 	const [cookies, setCookie, removeCookie] = useCookies(['user']);
 
-	// 處理登入，設置 user 到 cookie 上去
-	const handleLogin = (user) => {
+	// 處理登入，設置 user 到 cookie 上去，JWT 存放於 localStorage 供 api 使用
+	const handleLogin = (user, token) => {
 		console.log('success or not ' + JSON.stringify(user, null, 2));
+		localStorage.setItem(TOKEN_KEY, token);
 		setCookie('user', user, {
 			path: '/'
 		});
@@ -33,6 +35,7 @@ function App() {
 	const handleLogout = () => {
 		console.log('登出 ' + cookies.user.userName);
 		removeCookie('user', { path: '/' });
+		localStorage.removeItem(TOKEN_KEY);
 	};
 
 	// Global 配置 message
