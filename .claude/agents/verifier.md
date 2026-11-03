@@ -50,7 +50,8 @@ prompt 會給 `docs/tasks/<task-id>/criteria.md` 的路徑，此時還沒有 PR 
 3. **測試**（用 JDK 21，跟 CI 一樣）
    - 每次 Bash 呼叫的環境變數不會保留，所以 **JAVA_HOME 必須和 mvnw 寫在同一個指令裡**。光是 `JAVA_HOME=$(...)` 失敗時，變數只會變成空值，mvnw 會改用 PATH 上的其他 JDK 繼續跑，所以要明確中止：
      ```bash
-     export JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast) || exit 1
+     # 先賦值再 export：寫成 export JAVA_HOME=$(...) 時，失敗也會因為 export 本身成功而不中止
+     JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast) || exit 1; export JAVA_HOME
      cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
      ```
      把 `Java version` 那一行附在報告中；如果不是 21，該項標 ⚪，不能判 PASS
