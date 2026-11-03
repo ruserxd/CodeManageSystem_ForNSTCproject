@@ -142,12 +142,17 @@ public class UserService {
       }
 
       // 都沒問題開始加入帳號進入資料庫
-      // 為密碼加密處理 bcrypt
-      myUser.setUserPassword(passwordBcrypt.encryptText(myUser.getUserPassword()));
-      // 設定權限
-      myUser.setUserAuthority(UserAuthority.USER);
+      // 只取註冊允許的欄位建立新的 MyUser，忽略請求中的 userId、userAuthority、personalInfos；
+      // 否則請求帶上既有的 userId 時，save() 會變成 merge，覆蓋掉那位使用者
+      MyUser newUser = MyUser.builder()
+          .userName(myUser.getUserName())
+          .userEmail(myUser.getUserEmail())
+          .userAccount(myUser.getUserAccount())
+          .userPassword(passwordBcrypt.encryptText(myUser.getUserPassword()))
+          .userAuthority(UserAuthority.USER)
+          .build();
 
-      myUserRepository.save(myUser);
+      myUserRepository.save(newUser);
       log.info("Register success");
 
       return SessionResponse.builder()

@@ -2,6 +2,7 @@ package com.codemangesystem.login_process.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -238,6 +239,30 @@ class UserServiceTest {
           .message("Success register")
           .build();
       assertEquals(except, result);
+    }
+
+    @Test
+    @DisplayName("請求中夾帶 userId / userAuthority / personalInfos 時一律忽略，只建立新的 USER")
+    void ignoreUnsafeFieldsTest() {
+      // 攻擊者想用註冊 API 覆蓋 userId = 1 的既有使用者，並把自己設成 ADMIN
+      myUser.setUserId(1L);
+      myUser.setUserAuthority(UserAuthority.ADMIN);
+      myUser.setPersonalInfos(new ArrayList<>());
+      when(myUserRepository.findByUserAccount(myUser.getUserAccount())).thenReturn(Optional.empty());
+      when(myUserRepository.findByUserEmail(myUser.getUserEmail())).thenReturn(Optional.empty());
+      when(passwordBcrypt.encryptText("123")).thenReturn("hashed");
+
+      userService.userRegister(myUser);
+
+      ArgumentCaptor<MyUser> saved = ArgumentCaptor.forClass(MyUser.class);
+      verify(myUserRepository).save(saved.capture());
+      assertNull(saved.getValue().getUserId(), "userId 必須由資料庫產生，不可沿用請求中的值");
+      assertEquals(UserAuthority.USER, saved.getValue().getUserAuthority());
+      assertNull(saved.getValue().getPersonalInfos());
+      assertEquals("123", saved.getValue().getUserAccount());
+      assertEquals("zz@gmail.com", saved.getValue().getUserEmail());
+      assertEquals("Admin", saved.getValue().getUserName());
+      assertEquals("hashed", saved.getValue().getUserPassword());
     }
 
     @Test
