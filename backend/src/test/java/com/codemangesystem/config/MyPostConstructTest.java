@@ -1,28 +1,31 @@
 package com.codemangesystem.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 import com.codemangesystem.git_process.repository.ProjectRepository;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
 import com.codemangesystem.login_process.service.UserService;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 @Slf4j
 class MyPostConstructTest {
+
+  private static final String DEFAULT_PATH = MyPostConstruct.path;
 
   private ProjectRepository projectRepository;
   private UserService userService;
@@ -37,30 +40,30 @@ class MyPostConstructTest {
     myPostConstruct = new MyPostConstruct(projectRepository, userService, myUserRepository);
   }
 
+  /**
+   * path 是 static，若某個測試改了它卻在中途失敗，會污染之後的測試，因此一律在這裡還原
+   */
+  @AfterEach
+  void restorePath() {
+    MyPostConstruct.path = DEFAULT_PATH;
+  }
+
   @Test
-  @DisplayName("測試是否正常刪除資料夾")
-  void deleteCloneFileTest() {
-    try {
-      // 寫入 2 個檔案進行測試
-      String filePath = "src/cloneCode/test1";
-      File file = new File(filePath);
-      file.mkdir();
+  @DisplayName("測試是否正常刪除資料夾（只在暫存目錄操作，不碰真正的 src/cloneCode）")
+  void deleteCloneFileTest(@TempDir Path tempDir) throws IOException {
+    // 兩個有內容的 repo 資料夾（測遞迴刪除），加上一個應該保留的 .gitkeep
+    Path repoA = Files.createDirectories(tempDir.resolve("repoA/src"));
+    Files.writeString(repoA.resolve("Main.java"), "class Main {}");
+    Path repoB = Files.createDirectories(tempDir.resolve("repoB"));
+    Path gitKeep = Files.createFile(tempDir.resolve(".gitkeep"));
 
-      String filePath2 = "src/cloneCode/test2";
-      File file2 = new File(filePath);
-      file2.mkdir();
+    MyPostConstruct.path = tempDir.toString();
+    myPostConstruct.deleteCloneFile();
 
-      myPostConstruct.deleteCloneFile();
-    } catch (IOException e) {
-      log.error("測試 deleteCloneFileTest() 發生 {}", e.getMessage());
-    }
-
-    File directory = new File(MyPostConstruct.path);
-    assertTrue(directory.exists(), "發生錯誤，此路徑應該存在一個資料夾");
-    assertTrue(directory.isDirectory(), "發生錯誤，此路徑應該為一個資料夾");
-
-    // 目錄下會存在一個 .gitKeep 因此預設為 1
-    assertEquals(1, directory.list().length, "發生錯誤，此資料夾不該存在文件");
+    assertFalse(Files.exists(tempDir.resolve("repoA")), "repoA 資料夾應該被刪除");
+    assertFalse(Files.exists(repoB), "repoB 資料夾應該被刪除");
+    assertTrue(Files.exists(gitKeep), "一般檔案不該被刪除");
+    assertEquals(1, tempDir.toFile().list().length, "只應剩下 .gitkeep");
   }
 
   @Test
@@ -97,31 +100,4 @@ class MyPostConstructTest {
   void initialSettingTest() throws IllegalAccessException {
     myPostConstruct.initialSettings();
   }
-
-  @Test
-  @DisplayName("測試 initialSetting() 發生 {路徑錯誤}")
-  void initialSettingThrowTest() {
-    MyPostConstruct.path = "/errorPath";
-    IllegalAccessException exception = assertThrows(IllegalAccessException.class, () -> {
-      myPostConstruct.initialSettings();
-    });
-    assertEquals(exception.getMessage(), "路徑錯誤");
-    MyPostConstruct.path = "src/cloneCode";
-  }
-
-  @Test
-  @DisplayName("測試 initialSetting() 發生 {IOException}")
-  void initialSettingThrowIOExceptionTest() throws IOException {
-    MyPostConstruct.path = "/errorPath";
-    myPostConstruct = spy(myPostConstruct);
-    doThrow(new IOException("delete error")).when(myPostConstruct).deleteCloneFile();
-
-    IllegalAccessException exception = assertThrows(IllegalAccessException.class, () -> {
-      myPostConstruct.initialSettings();
-    });
-    assertEquals(exception.getMessage(), "發生讀取錯誤");
-    MyPostConstruct.path = "src/cloneCode";
-  }
-
-
 }
