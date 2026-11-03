@@ -1,6 +1,7 @@
 package com.codemangesystem.login_process.model.user;
 
 import com.codemangesystem.git_process.model.database.PersonalINFO;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * 使用者的資料
@@ -41,6 +43,11 @@ public class MyUser {
   @Column(name = "user_account")
   private String userAccount;
 
+  /**
+   * bcrypt 雜湊。WRITE_ONLY：註冊時可以接收，但永遠不會出現在 API 回應中；也不出現在 toString（log）中
+   */
+  @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+  @ToString.Exclude
   @Column(name = "user_password")
   private String userPassword;
 
