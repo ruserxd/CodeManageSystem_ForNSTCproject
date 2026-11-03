@@ -1,6 +1,8 @@
 package com.codemangesystem.springboot_runner;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -221,7 +223,42 @@ public class ApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.message").value("Login successful"))
-        .andExpect(jsonPath("$.token").value("test-token"));
+        .andExpect(jsonPath("$.token").value("test-token"))
+        .andExpect(jsonPath("$.myUser.userAccount").value("testUser"))
+        .andExpect(jsonPath("$.myUser.userPassword").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("測試 register api 仍能接收密碼（userPassword 為 WRITE_ONLY）")
+  public void testRegisterAcceptsPassword() throws Exception {
+    when(userService.userRegister(any(MyUser.class))).thenReturn(testSessionResponse);
+
+    // 用原始 JSON，因為 objectMapper 序列化 MyUser 時已經不會輸出密碼
+    mockMvc.perform(post("/api/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"userAccount\":\"newUser\",\"userPassword\":\"secret\"}"))
+        .andExpect(status().isOk());
+
+    verify(userService).userRegister(argThat(u -> "secret".equals(u.getUserPassword())));
+  }
+
+  @Test
+  @DisplayName("測試 getAllUsers api 不回傳密碼雜湊")
+  public void testGetAllUsersHidesPassword() throws Exception {
+    MyUser user = MyUser.builder().userId(1L).userAccount("a").userPassword("$2a$hash").build();
+    when(userService.getIdsAccounts()).thenReturn(List.of(user));
+
+    mockMvc.perform(get("/api/getAllUsers").with(ADMIN))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].userAccount").value("a"))
+        .andExpect(jsonPath("$[0].userPassword").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("MyUser.toString() 不包含密碼，避免寫進 log")
+  public void testMyUserToStringHidesPassword() {
+    MyUser user = MyUser.builder().userAccount("a").userPassword("$2a$hash").build();
+    assertFalse(user.toString().contains("$2a$hash"));
   }
 
   @Test
