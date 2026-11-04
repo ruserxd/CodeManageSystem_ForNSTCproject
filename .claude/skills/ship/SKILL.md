@@ -99,7 +99,7 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
        - 確定是 🔴 → 和報告裡其他 🔴 在**同一輪**一起交出去：agent 檔案交給 implementer，`owner: human` 檔案照上面的 mentor 流程處理。這一輪仍然只算一次退回，查證後新增的 🔴 不另外計算。
        - 確定是 🟡 → 照上面「PASS（有建議）」底下 🟡 的規則逐項決定：合理的就修正，範圍外的另開 issue，不處理的在 PR 留言寫明理由。決定修正的 🟡 和這一輪的 🔴 一起交給 implementer（`owner: human` 檔案同樣照 mentor 流程），不另外計算退回。那裡「有新的 commit 才回到 ④ 重驗；沒有就直接進入 ⑤」這一句在 FAIL 分支不適用：FAIL 一定要等修正後重驗。
        - 確定不是問題 → 在 PR 留言寫出查證方式和結果（指令與輸出，或 `檔案:行號`），不能只寫結論。
-       - 查不清楚 → 用 AskUserQuestion 交給使用者決定，而且要在交給 implementer **之前**問，這樣使用者判定是問題時，修正可以放進同一輪。
+       - 查不清楚 → 用 AskUserQuestion 交給使用者決定，而且要在交給 implementer（或 mentor）**之前**問，這樣使用者判定是問題時，修正可以放進同一輪。
    - verifier 驗過的 SHA 之後只要有新的 commit，不管改的是程式碼還是文件，都要重驗（這個 repo 的 agent 與 skill 定義本身就是 Markdown，很難分清「只是文件」）。
    - 已經退回 2 次（實作跑了 3 輪）仍是 FAIL → 停下來，向使用者說明卡在哪幾條標準，詢問要改標準、改設計，還是手動處理。
 5. verifier 在範圍外的發現另開 issue，不要塞進這個 PR。它的建議若牽涉權限設定（`settings.json`）或 `CLAUDE.md`，交給使用者決定。
