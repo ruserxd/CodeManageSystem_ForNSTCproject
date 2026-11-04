@@ -214,13 +214,6 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!--h2 DataBase-->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!--加密 使用者密碼-->
         <dependency>
             <groupId>org.mindrot</groupId>
