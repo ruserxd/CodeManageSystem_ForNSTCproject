@@ -103,7 +103,7 @@ R4、R5 都**先寫測試、確認修正前會失敗**，再修正（錯誤訊�
 
 ### 3.5 /ship 多 agent 流程（#28–#39）
 
-這一批 PR 只改 agent／skill 定義（Markdown），沒有改產品程式碼。
+這一批 PR 只改 agent／skill 定義與 ROADMAP（Markdown），沒有改產品程式碼。
 
 | PR | issue | 改了什麼 | 為什麼 |
 |---|---|---|---|
@@ -114,7 +114,7 @@ R4、R5 都**先寫測試、確認修正前會失敗**，再修正（錯誤訊�
 | #37 | #36 | verifier.md 要求「標 ⚪」的地方都寫明是哪一種；SKILL.md 的 FAIL 分支補上：重驗前一併補好 ⚪「無法執行」的環境 | #35 的 verifier 指出：沒寫標籤的 ⚪ 無法分流；FAIL 時沒補環境會多跑一輪 |
 | #39 | #38 | SKILL.md 的 FAIL 分支補上：交給 implementer（或 mentor）之前先查證 ⚪「待確認」，查證出的 🔴 在同一輪一起修 | #36 驗收標準列為範圍外的項目。不先查證的話，查證後才發現的 🔴 會多用一次退回 |
 
-#35、#37、#39 都是前一個 PR 的 verifier 或 spec-writer 列在範圍外、另開 issue 後接著處理的。
+#35、#37、#39 都是先前 PR 的 verifier 或 spec-writer 列在範圍外、另開 issue 後接著處理的：#30 來自 #28 的 verifier，#36 來自 #35 的 verifier，#38 來自 #36 的驗收標準。
 
 ---
 
@@ -137,7 +137,8 @@ issue（為什麼要改、驗收條件）
 | 合併條件：實作方自己驗證過、verifier 判定 PASS、CI 綠燈，三項都滿足 | 使用者決定 |
 | verifier 檢驗時，在 PR 的 commit 上另外建立 worktree，並比對 `headRefOid` | 第一次檢驗 #22 時，Agent 工具的 worktree 是從 main 建立的；verifier 發現 HEAD 不一致後停止（那次的報告沒有貼到 PR 上） |
 | verifier 在範圍外的發現另開 issue，不塞進目前的 PR | #20、#21、#25、#26 都是這樣來的；之後的 #30、#34、#36 也是 |
-| /ship 唯一的人工關卡是 ② 的驗收標準核准；verifier 判 PASS 且 CI 綠燈後由總指揮直接合併 | 使用者決定（2026-11-03 授權），寫在 `.claude/skills/ship/SKILL.md` |
+| /ship 唯一的人工關卡是 ② 的驗收標準核准 | 使用者決定，記在 issue #21 的設計決策留言（2026-11-04），寫在 `.claude/skills/ship/SKILL.md` ② |
+| verifier 判 PASS 且 CI 綠燈後，由總指揮直接合併 | 使用者 2026-11-03 授權，寫在 `.claude/skills/ship/SKILL.md` ⑤ |
 | 本機測試一律使用 JDK 21：`JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast)` | 跟 CI 一致 |
 
 相關檔案：
@@ -216,5 +217,5 @@ Phase 2（LLM）和 Phase 3（K8s）的規劃，見 ROADMAP §3、§4。
 | verifier 拿到的不是 PR 的程式碼 | Agent 工具的 worktree 是從 main 建立的 | 自己在 PR 的 commit 上建立 detached worktree |
 | 打包出來的 jar 無法執行 | 沒有宣告 `spring-boot-maven-plugin` | 已修正（#24） |
 | 同一個分支不能同時被兩個 worktree checkout；不加 `--detach` 的 worktree 會佔住 main | git 的限制 | worktree 一律用 `--detach` 建立（#28） |
-| agent frontmatter 裡的 ` #21`、`owner: human` 讓 YAML 解析出錯 | ` #` 會被當成註解，`: ` 會被當成 mapping | 含這些字元的值加上引號，並用 YAML parser 確認（#28、#33） |
+| skill frontmatter 裡的 ` #21`（SKILL.md 的 `argument-hint`）、agent frontmatter 裡的 `owner: human`（mentor.md 的 description）讓 YAML 解析出錯 | ` #` 會被當成註解，`: ` 會被當成 mapping | 含這些字元的值加上引號，並用 YAML parser 確認（#28、#33） |
 | 總指揮寫一句理由，就能合併 verifier 沒驗到的項目 | 合併條件只寫了「說明不處理的理由」，沒有區分 🟡 和 ⚪ | ⚪ 要補環境重驗或查證，不能只寫理由（#35） |
