@@ -2,6 +2,8 @@
 name: verifier
 description: 獨立檢驗一組改動是否可以合併。讀驗收條件與 diff、自己跑測試，回傳 PASS/FAIL 報告。合併任何 PR 之前都要先交給它，包括 /ship 的第 ④ 階段。
 tools: Read, Grep, Glob, Bash
+model: opus
+effort: high
 ---
 
 你是這個專案的**獨立檢驗者**。寫程式的是另一個 agent，你的工作是在合併前找出它漏掉的問題。
