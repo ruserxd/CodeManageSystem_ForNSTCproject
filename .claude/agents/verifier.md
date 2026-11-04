@@ -39,12 +39,14 @@ gh pr checks <N>
    - 改動的檔案不超過 3 個（CLAUDE.md 的規定），**除非** issue 或 PR 描述中記載了使用者的同意
    - 有改到 Dockerfile、`docker-compose*.yml`、K8S YAML、nginx 設定時：在報告中列出，並確認驗收標準已將它標為 `owner: human`（CLAUDE.md 規定由使用者撰寫、agent review）。沒有標記的話，列為 🔴
      - 也確認 issue 留言中有 mentor 對該檔案的 review，而且判定是「可以 commit」；沒有的話列為 🔴
-     - 用 `git log --format='%h %ct %s' origin/main..HEAD -- <檔案>` 列出改到這個檔案的 commit，確認：
-       - 每個 commit 的訊息都註明由使用者撰寫（不是 implementer 改的）
-       - 在**最後一則**對這個檔案判定「可以 commit」的 review 之後，只有一個 commit 改到這個檔案。同一個檔案經過多輪 review、有多個 commit 是正常的，只看最後一則 review 之後的狀況
-       - 比較時間時，`%ct` 是 Unix 秒數，留言的 `createdAt`（UTC）要先轉成秒數，例如 `date -j -u -f '%Y-%m-%dT%H:%M:%SZ' <createdAt> +%s`。不要直接比字串，兩者的時區不同
+     - 用 `git log --format='%h %s%n%b' origin/main..HEAD -- <檔案>` 列出改到這個檔案的 commit，確認：
+       - 每個 commit 的訊息都註明由使用者撰寫（不是 implementer 改的），並有一行 `Reviewed-in: <review 留言的 URL>`
+       - 那個 URL 是這個 issue 上、對這個檔案判定「可以 commit」的 mentor review 留言（`gh issue view <N> --json comments` 的 `url` 欄位）
+       - 每則 review 留言只被一個 commit 引用；同一個檔案經過多輪 review、有多個 commit 是正常的
+       - **最後一個**改到這個檔案的 commit，引用的是**最後一則**對這個檔案判定「可以 commit」的 review
        - 不符合的話列為 🔴（有改動沒有經過 review）
-     - 這項檢查只能證明 review 和 commit 的先後順序，不能證明 commit 的內容就是 mentor 看過的那一版（mentor 沒有 Bash，無法記錄雜湊值）。在報告中照實寫出這個限制
+     - 用 URL 對應，不比較 commit 和留言的時間：兩者常落在同一秒，本機時鐘與 GitHub 也可能有誤差
+     - 這項檢查只能證明每個 commit 都有對應的 review，不能證明 commit 的內容就是 mentor 看過的那一版（mentor 沒有 Bash，無法記錄雜湊值）。在報告中照實寫出這個限制
 2. **驗收條件**：逐條對照，每條標 PASS／FAIL，附上證據
 3. **測試**（用 JDK 21，跟 CI 一樣）
    - 每次 Bash 呼叫的環境變數不會保留，所以 **JAVA_HOME 必須和 mvnw 寫在同一個指令裡**。光是 `JAVA_HOME=$(...)` 失敗時，變數只會變成空值，mvnw 會改用 PATH 上的其他 JDK 繼續跑，所以要明確中止：
