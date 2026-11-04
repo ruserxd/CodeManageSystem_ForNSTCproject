@@ -4,7 +4,7 @@
 >
 > **更新方式**：每完成一批 PR 就在「已完成」補上一節，並更新「進度總表」和「下一步」。每一項都附上 issue／PR 編號，細節以 GitHub 上的 PR 描述和 verifier 留言為準。
 
-最後更新：2026-11-03
+最後更新：2026-11-04
 
 ---
 
@@ -12,11 +12,11 @@
 
 | 項目 | 數字 |
 |---|---|
-| 本次產品化工作已合併的 PR | 12 個（#4、#6–#8、#10、#11、#13、#14、#16、#19、#22、#24）；另有 2025-02 的舊 PR #1、#2 |
-| 已關閉的 issue | 8 個（#3、#5、#9、#12、#15、#17、#18、#23） |
-| 尚未處理的 issue | 4 個（#20、#21、#25、#26），見 §5 |
-| 後端測試 | 135 個全部通過（開始時是 104 個，其中 3 個失敗，但 CI 仍然顯示成功） |
-| 目前階段 | Phase 1：安全問題 R1、R3–R6 已修正，下一個是 R2（需要先完成的 Flyway 已經做好） |
+| 本次產品化工作已合併的 PR | 19 個（#4、#6–#8、#10、#11、#13、#14、#16、#19、#22、#24、#27、#28、#31、#33、#35、#37、#39）；另有 2025-02 的舊 PR #1、#2 |
+| 已關閉的 issue | 14 個（#3、#5、#9、#12、#15、#17、#18、#21、#23、#29、#30、#32、#36、#38） |
+| 尚未處理的 issue | 4 個（#20、#25、#26、#34），見 §5 |
+| 後端測試 | 135 個全部通過（開始時是 104 個，其中 3 個失敗，但 CI 仍然顯示成功）；#27 之後的 PR 都沒有改後端 |
+| 目前階段 | Phase 1：安全問題 R1、R3–R6 已修正，下一個是 R2（需要先完成的 Flyway 已經做好）。/ship 多 agent 流程已經可以使用（§3.5） |
 
 ---
 
@@ -51,7 +51,7 @@
 | P1-08 ～ P1-17 | 錯誤格式、REST 化、非同步 job、拆分分析器、版本升級、前端等 | 尚未開始 |
 | — | 架構審查 A | Phase 1 結束時進行 |
 
-ROADMAP 以外新增的項目：可執行 jar（#23 → #24）、忽略 `frontend/dist`（#8）、verifier agent（#18 → #19）。
+ROADMAP 以外新增的項目：可執行 jar（#23 → #24）、忽略 `frontend/dist`（#8）、verifier agent（#18 → #19）、/ship 多 agent 流程（#28–#39，見 §3.5）。
 
 ---
 
@@ -101,6 +101,21 @@ R4、R5 都**先寫測試、確認修正前會失敗**，再修正（錯誤訊�
 - **忽略 `frontend/dist`（#8）**
 - **verifier agent（#19）**：見 §4
 
+### 3.5 /ship 多 agent 流程（#28–#39）
+
+這一批 PR 只改 agent／skill 定義（Markdown），沒有改產品程式碼。
+
+| PR | issue | 改了什麼 | 為什麼 |
+|---|---|---|---|
+| #28 | #21 | 新增 `implementer` agent；/ship 的狀態改放在 GitHub（issue 本文、「📋 驗收標準」留言、PR 與 PR 留言），不再用 `docs/tasks/`；verifier 只保留 PR 模式，在總指揮建立的 detached worktree 上檢驗 | 原本 /ship 缺少實作者；合併條件、worktree 做法、退回流程原本只記在 Claude 的記憶裡，改成寫進 repo |
+| #31 | #29 | spec-writer 改讀 prompt 中附上的 issue 內容，輸出由總指揮貼成 issue 留言；S3 的理由更新（pom 已移除 `testFailureIgnore`）；ROADMAP 的分支命名改成 `<type>/<issue 編號>-<英文-slug>` | #28 改了流程，spec-writer 和 ROADMAP 還停在 `brief.md`／`criteria.md` 的舊寫法 |
+| #33 | #32 | 新增 `mentor` agent，只有 Read／Grep／Glob 工具；`owner: human` 的子任務（Dockerfile、compose、K8S YAML、nginx）改由 mentor 講解與 review，最後一輪 review 貼成 issue 留言後再 commit | CLAUDE.md 要求這些檔案由使用者自己寫。用工具權限保證 mentor 無法替使用者寫檔 |
+| #35 | #30 | SKILL.md ④ 把 ⚪ 分成「無法執行」和「待確認」：前者由總指揮補好環境再重驗，後者由總指揮查證；⑤ 的合併條件改成 ⚪ 不能只靠說明理由合併 | 原本「PASS（有建議）」只說明 🟡 怎麼處理，總指揮寫一句理由就能合併沒驗過的項目 |
+| #37 | #36 | verifier.md 要求「標 ⚪」的地方都寫明是哪一種；SKILL.md 的 FAIL 分支補上：重驗前一併補好 ⚪「無法執行」的環境 | #35 的 verifier 指出：沒寫標籤的 ⚪ 無法分流；FAIL 時沒補環境會多跑一輪 |
+| #39 | #38 | SKILL.md 的 FAIL 分支補上：交給 implementer（或 mentor）之前先查證 ⚪「待確認」，查證出的 🔴 在同一輪一起修 | #36 驗收標準列為範圍外的項目。不先查證的話，查證後才發現的 🔴 會多用一次退回 |
+
+#35、#37、#39 都是前一個 PR 的 verifier 或 spec-writer 列在範圍外、另開 issue 後接著處理的。
+
 ---
 
 ## 4. 已建立的工作流程
@@ -121,13 +136,16 @@ issue（為什麼要改、驗收條件）
 | Dockerfile、compose、K8S YAML 由使用者撰寫，agent 只解釋觀念和 review | CLAUDE.md |
 | 合併條件：實作方自己驗證過、verifier 判定 PASS、CI 綠燈，三項都滿足 | 使用者決定 |
 | verifier 檢驗時，在 PR 的 commit 上另外建立 worktree，並比對 `headRefOid` | 第一次檢驗 #22 時，Agent 工具的 worktree 是從 main 建立的；verifier 發現 HEAD 不一致後停止（那次的報告沒有貼到 PR 上） |
-| verifier 在範圍外的發現另開 issue，不塞進目前的 PR | #20、#21、#25、#26 都是這樣來的 |
+| verifier 在範圍外的發現另開 issue，不塞進目前的 PR | #20、#21、#25、#26 都是這樣來的；之後的 #30、#34、#36 也是 |
+| /ship 唯一的人工關卡是 ② 的驗收標準核准；verifier 判 PASS 且 CI 綠燈後由總指揮直接合併 | 使用者決定（2026-11-03 授權），寫在 `.claude/skills/ship/SKILL.md` |
 | 本機測試一律使用 JDK 21：`JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast)` | 跟 CI 一致 |
 
 相關檔案：
 - `.claude/agents/verifier.md`：檢驗者
 - `.claude/agents/spec-writer.md`：訂標準，用於 /ship
-- `.claude/skills/ship/SKILL.md`：/ship 流程，目前還缺 implementer（#21）
+- `.claude/agents/implementer.md`：實作 `owner: agent` 的子任務，用於 /ship（#28）
+- `.claude/agents/mentor.md`：講解與 review `owner: human` 的子任務，只讀不寫（#33）
+- `.claude/skills/ship/SKILL.md`：/ship 流程，由總指揮依序呼叫上面四個 agent
 
 ---
 
@@ -135,10 +153,10 @@ issue（為什麼要改、驗收條件）
 
 | issue | 內容 | 建議時機 |
 |---|---|---|
-| #20 | CLAUDE.md 與 spec-writer S3 有過時描述（`testFailureIgnore`、JaCoCo 路徑、超級帳號 `"123"`） | 和 P1-17 一起處理 |
-| #21 | /ship 缺少 implementer agent | 要開始使用 /ship 之前 |
+| #20 | CLAUDE.md 有過時描述（`testFailureIgnore`、JaCoCo 路徑、超級帳號 `"123"`）；spec-writer S3 的部分已在 #31 修正 | 和 P1-17 一起處理 |
 | #25 | CI 沒有實際驗證 Flyway migration 和 validate | R2 之前或同時處理，因為 R2 會新增 V2 migration |
 | #26 | h2 被打包進正式 jar | 和 #25 一起考慮 |
+| #34 | 一個子任務有多個 `owner: human` 檔案時，mentor review 與 `Reviewed-in` 怎麼對應 | Phase 3 開始前 |
 
 ---
 
@@ -197,3 +215,6 @@ Phase 2（LLM）和 Phase 3（K8s）的規劃，見 ROADMAP §3、§4。
 | `export X=$(cmd) \|\| exit 1` 不會中止 | `export` 本身的 exit code 是 0 | 先賦值、檢查失敗，再 export |
 | verifier 拿到的不是 PR 的程式碼 | Agent 工具的 worktree 是從 main 建立的 | 自己在 PR 的 commit 上建立 detached worktree |
 | 打包出來的 jar 無法執行 | 沒有宣告 `spring-boot-maven-plugin` | 已修正（#24） |
+| 同一個分支不能同時被兩個 worktree checkout；不加 `--detach` 的 worktree 會佔住 main | git 的限制 | worktree 一律用 `--detach` 建立（#28） |
+| agent frontmatter 裡的 ` #21`、`owner: human` 讓 YAML 解析出錯 | ` #` 會被當成註解，`: ` 會被當成 mapping | 含這些字元的值加上引號，並用 YAML parser 確認（#28、#33） |
+| 總指揮寫一句理由，就能合併 verifier 沒驗到的項目 | 合併條件只寫了「說明不處理的理由」，沒有區分 🟡 和 ⚪ | ⚪ 要補環境重驗或查證，不能只寫理由（#35） |
