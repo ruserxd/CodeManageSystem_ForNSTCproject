@@ -76,7 +76,18 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 3. 把報告原樣貼成 PR 留言（`gh pr comment <PR> --body-file <檔案>`），用完執行 `git worktree remove <路徑>`。
 4. 依判定處理：
    - **PASS** → 進入 ⑤。
-   - **PASS（有建議）** → 逐項決定：合理的 🟡 就修正，範圍外的另開 issue，不處理的在 PR 留言寫明理由。有新的 commit 才回到 ④ 重驗；沒有就直接進入 ⑤。
+   - **PASS（有建議）** → 🟡 和 ⚪ 分開處理：
+     - 🟡：逐項決定，合理的就修正，範圍外的另開 issue，不處理的在 PR 留言寫明理由。有新的 commit 才回到 ④ 重驗；沒有就直接進入 ⑤（報告裡還有 ⚪ 時，要等 ⚪ 也照下面處理完）。
+     - ⚪「無法執行」：是環境問題造成的（例如缺 `frontend/node_modules`、Java version 不是 21、`pmd:check` 指令本身跑不起來）。verifier 不能自己安裝套件，所以由你補好環境再重驗，**不能只在 PR 留言寫理由帶過**：
+       1. 第 3 步已經移除 worktree，用**同一個** `headRefOid` 重建 worktree，照第 1 步準備環境（node_modules 用 symlink 或 `yarn install --immutable`）；後端測試要用 JDK 21（見「規則」）。
+       2. 用 SendMessage 請**同一個** verifier 重驗，照第 3 步把報告貼成 PR 留言、移除 worktree，再依新的判定回到這一步處理。
+       3. 這種重驗只是補環境、沒有新的 commit，**不計入**退回次數。
+       4. 試過後還是補不好（例如本機沒有 JDK 21）→ 停下來用 AskUserQuestion 交給使用者決定，不能自己判定可以合併。
+     - ⚪「待確認」：verifier 有懷疑但沒有證據。
+       1. 由你自己查證：讀報告指出的 `檔案:行號`、跑指令。
+       2. 確定是問題 → 依嚴重程度當成 🔴 或 🟡：🔴 走下面 FAIL 的退回流程，🟡 照上面 🟡 的規則處理。
+       3. 確定不是問題 → 在 PR 留言寫出查證方式和結果（指令與輸出，或 `檔案:行號`），不能只寫結論。
+       4. 查不清楚 → 用 AskUserQuestion 交給使用者決定。
    - **FAIL**，且退回次數還不到 2 次 → 用 SendMessage 把報告交給**同一個** implementer。implementer commit 修正後，由你 push，用新的 `headRefOid` 重建 worktree，再用 SendMessage 請**同一個** verifier 重驗，讓它追蹤上次的問題。
      - FAIL 的項目在 `owner: human` 的檔案上時，**不要交給 implementer**（它不能碰這些檔案），回到 ③ 的 mentor 流程：把 verifier 指出的問題交給同一個 mentor，由使用者修改、mentor 重新 review 判定「可以 commit」後，照 ③ 把新的 review 貼成 issue 留言、commit 時附上新留言的 URL，再重驗。這也算一次退回。
      - 同一份報告同時有 agent 檔案與 `owner: human` 檔案的問題時，兩條路都要走，全部修完後一起重驗，只算一次退回。
@@ -89,7 +100,9 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 1. 確認 CI 通過：`gh pr checks <PR>`。還在跑就等它跑完；失敗就當成 FAIL 回到 ④ 的退回流程。
 2. 合併條件都成立時直接合併，不用再問使用者（使用者 2026-11-03 已授權）：
    - 你自己檢查過
-   - verifier 對 PR 目前的 `headRefOid` 判定 PASS，或 PASS（有建議）且剩下的建議都已另開 issue 或說明不處理的理由
+   - verifier 對 PR 目前的 `headRefOid` 判定 PASS，或 PASS（有建議）且：
+     - 剩下的 🟡 都已另開 issue 或說明不處理的理由
+     - ⚪ 都已依 ④ 第 4 步處理完：補環境重驗後消失、查證確定不是問題且 PR 留言附了證據，或使用者已決定可以合併。⚪ 不能只靠說明理由合併
    - CI 全部通過
    ```bash
    # --match-head-commit：PR 在驗證之後又被推了新 commit 時，拒絕合併
