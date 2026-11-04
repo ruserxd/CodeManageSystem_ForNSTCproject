@@ -50,10 +50,12 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
    - 整個 issue 用**同一個** implementer：第一個子任務用 Agent 呼叫，之後的子任務用 SendMessage 延續，讓它保留上下文。
    - session 中沒有 `implementer` agent 類型時（agent 清單在 session 開始時載入），改用 general-purpose agent，請它先讀 `.claude/agents/implementer.md` 並完全照規則做。
    - 回報是 BLOCKED → 依原因處理：需要使用者決定的就問使用者，標準有問題的就回到 ②。
-2. `owner: human` 的子任務（Dockerfile、compose、K8S YAML、nginx）**不交給 implementer**：
-   - 向使用者說明要寫什麼、相關觀念、「為什麼這樣做」和「其他可行做法」，然後停下來等使用者寫完。
-   - 使用者寫完後 review 他們的檔案，提出修改建議，由使用者自己改。
-   - review 通過後由你 commit 這些檔案（訊息註明由使用者撰寫），再繼續下一個子任務。不先 commit 的話，下一個 implementer 會因為工作目錄不乾淨而 BLOCKED。
+2. `owner: human` 的子任務（Dockerfile、compose、K8S YAML、nginx）**不交給 implementer**，交給 `mentor` agent，由使用者自己寫：
+   - **講解**：呼叫 mentor，prompt 給「講解模式」、issue 編號、子任務編號，並附上 issue 的標題、本文與所有留言（它沒有 Bash）。把它的回覆完整轉給使用者，然後停下來等使用者寫完。
+   - **review**：使用者說寫好後，用 SendMessage 請**同一個** mentor review，prompt 給檔案路徑和第幾輪。把結果完整轉給使用者；有 🔴 就等使用者修改後再 review 下一輪。
+   - 判定「可以 commit」後，把最後一輪 review 貼成 issue 留言（verifier 會據此確認 `owner: human` 的檔案經過 review），再由你 commit 這些檔案：訊息註明由使用者撰寫，並加上一行 `Reviewed-in: <那則留言的 URL>`（`gh issue comment` 會印出這個 URL），然後繼續下一個子任務。不先 commit 的話，下一個 implementer 會因為工作目錄不乾淨而 BLOCKED。
+   - 不要自己動手改使用者的檔案，也不要替 mentor 補上它沒給的答案。
+   - session 中沒有 `mentor` agent 類型時，先告訴使用者：改用 general-purpose agent 的話它有寫檔工具，「只讀不寫」只剩規則文字約束。使用者同意後，再請它先讀 `.claude/agents/mentor.md` 並完全照規則做；不同意就請使用者開新的 session。
 3. 全部子任務完成後，自己先檢查一次：`git diff --stat main...HEAD` 的檔案數與範圍符合 ② 的標準，再 push 並開 PR：
    - `git push -u origin <branch>`
    - `gh pr create`，描述包含：`Closes #<N>`、做了什麼、每條驗收條目對應哪個 commit、測試統計
@@ -76,6 +78,8 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
    - **PASS** → 進入 ⑤。
    - **PASS（有建議）** → 逐項決定：合理的 🟡 就修正，範圍外的另開 issue，不處理的在 PR 留言寫明理由。有新的 commit 才回到 ④ 重驗；沒有就直接進入 ⑤。
    - **FAIL**，且退回次數還不到 2 次 → 用 SendMessage 把報告交給**同一個** implementer。implementer commit 修正後，由你 push，用新的 `headRefOid` 重建 worktree，再用 SendMessage 請**同一個** verifier 重驗，讓它追蹤上次的問題。
+     - FAIL 的項目在 `owner: human` 的檔案上時，**不要交給 implementer**（它不能碰這些檔案），回到 ③ 的 mentor 流程：把 verifier 指出的問題交給同一個 mentor，由使用者修改、mentor 重新 review 判定「可以 commit」後，照 ③ 把新的 review 貼成 issue 留言、commit 時附上新留言的 URL，再重驗。這也算一次退回。
+     - 同一份報告同時有 agent 檔案與 `owner: human` 檔案的問題時，兩條路都要走，全部修完後一起重驗，只算一次退回。
    - verifier 驗過的 SHA 之後只要有新的 commit，不管改的是程式碼還是文件，都要重驗（這個 repo 的 agent 與 skill 定義本身就是 Markdown，很難分清「只是文件」）。
    - 已經退回 2 次（實作跑了 3 輪）仍是 FAIL → 停下來，向使用者說明卡在哪幾條標準，詢問要改標準、改設計，還是手動處理。
 5. verifier 在範圍外的發現另開 issue，不要塞進這個 PR。它的建議若牽涉權限設定（`settings.json`）或 `CLAUDE.md`，交給使用者決定。
