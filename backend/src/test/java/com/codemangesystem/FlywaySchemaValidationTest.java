@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.DisplayName;
 import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -157,6 +157,19 @@ class FlywaySchemaValidationTest {
     assertEquals(1, count(db, "user"));
   }
 
+  @Test
+  @DisplayName("連到的 MySQL 版本和 TEST_MYSQL_IMAGE 指定的 tag 一致")
+  void mysqlVersionMatchesImageTagTest() {
+    String version = jdbcTemplate.queryForObject("SELECT VERSION()", String.class);
+    String tag = MYSQL_IMAGE.getVersionPart();
+    log.info("測試用的 MySQL image：{}，SELECT VERSION()：{}",
+        MYSQL_IMAGE.asCanonicalNameString(), version);
+
+    // 加上 "." 避免 8.4 誤配到 8.40 之類的版本
+    assertTrue(version.equals(tag) || version.startsWith(tag + "."),
+        "MySQL 版本 " + version + " 和 image tag " + tag + " 不一致");
+  }
+
   private static String jdbcUrl(String database) {
     return "jdbc:mysql://" + MYSQL.getHost() + ":" + MYSQL.getMappedPort(MySQLContainer.MYSQL_PORT)
         + "/" + database;
@@ -199,18 +212,5 @@ class FlywaySchemaValidationTest {
 
   private static int count(JdbcTemplate db, String table) {
     return db.queryForObject("SELECT COUNT(*) FROM `" + table + "`", Integer.class);
-  }
-
-  @Test
-  @DisplayName("連到的 MySQL 版本和 TEST_MYSQL_IMAGE 指定的 tag 一致")
-  void mysqlVersionMatchesImageTagTest() {
-    String version = jdbcTemplate.queryForObject("SELECT VERSION()", String.class);
-    String tag = MYSQL_IMAGE.getVersionPart();
-    log.info("測試用的 MySQL image：{}，SELECT VERSION()：{}",
-        MYSQL_IMAGE.asCanonicalNameString(), version);
-
-    // 加上 "." 避免 8.4 誤配到 8.40 之類的版本
-    assertTrue(version.equals(tag) || version.startsWith(tag + "."),
-        "MySQL 版本 " + version + " 和 image tag " + tag + " 不一致");
   }
 }
