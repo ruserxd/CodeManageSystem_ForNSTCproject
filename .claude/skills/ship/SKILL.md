@@ -61,7 +61,7 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 
 ## ④ 驗證成果
 
-1. 取得 PR 的 `headRefOid`（`gh pr view <PR> --json headRefOid`），在 scratchpad 建立 detached worktree：
+1. 取得 PR 的 `headRefOid`（`gh pr view <PR> --json headRefOid`）。剛 push 完時 GitHub 可能延遲幾秒才更新，要等到它等於本機的 `git rev-parse HEAD`，再在 scratchpad 建立 detached worktree：
    ```bash
    git worktree add --detach <scratchpad>/wt/pr-<PR> <headRefOid>
    ```
