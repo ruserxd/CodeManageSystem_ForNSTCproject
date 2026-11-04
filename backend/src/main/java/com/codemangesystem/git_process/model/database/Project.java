@@ -38,6 +38,10 @@ public class Project {
   @Column(name = "project_name")
   private String projectName;
 
+  // 正規化後的 repo URL（ADR 0001），全域唯一；第 3 步才開始寫入，在那之前為 null
+  @Column(name = "repo_url")
+  private String repoUrl;
+
   @Column(name = "head_revstr")
   private String headRevstr;
 
