@@ -13,27 +13,16 @@ on:
 
 jobs:
   test:
-    name: Build and Test
+    name: Build and Test (MySQL ${{ matrix.mysql }})
     runs-on: ubuntu-latest
+    # 8.0 是 docker-compose 用的版本，8.4 是 ROADMAP 的升級目標；一個版本失敗時另一個仍要跑完
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql: ['8.0', '8.4']
     defaults:
       run:
         working-directory: ./backend
-    
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: test_db
-          MYSQL_ROOT_PASSWORD: root_password
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
 
     steps:
       - name: Checkout code
@@ -49,10 +38,27 @@ jobs:
 
       # 有任何測試失敗時 Maven 會回傳非 0，讓這個 job 失敗
       # 用 wrapper 而不是 runner 內建的 mvn，確保 CI 與本機的 Maven 版本相同
+      # 資料庫由 FlywaySchemaValidationTest 用 Testcontainers 啟動（ubuntu-latest 內建 Docker），
+      # 每次都是空的 MySQL，才能驗證 Flyway migration 與 Hibernate validate
       - name: Run tests
         run: ./mvnw -B test
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/test_db
-          SPRING_DATASOURCE_USERNAME: test_user
-          SPRING_DATASOURCE_PASSWORD: test_password
-          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+          TEST_MYSQL_IMAGE: mysql:${{ matrix.mysql }}
+
+      # 測試用 disabledWithoutDocker，runner 沒有 Docker 時會被跳過、Maven 仍然成功；
+      # CI 一定要真的驗到 migration，所以確認 Surefire 報告裡有執行、且沒有任何 skipped
+      - name: Verify FlywaySchemaValidationTest was not skipped
+        run: |
+          report=target/surefire-reports/TEST-com.codemangesystem.FlywaySchemaValidationTest.xml
+          if [ ! -f "$report" ]; then
+            echo "::error::找不到 $report，FlywaySchemaValidationTest 沒有執行"
+            exit 1
+          fi
+          summary=$(grep -o '<testsuite [^>]*>' "$report" || true)
+          tests=$(echo "$summary" | grep -o ' tests="[0-9]*"' | grep -o '[0-9][0-9]*' || true)
+          skipped=$(echo "$summary" | grep -o ' skipped="[0-9]*"' | grep -o '[0-9][0-9]*' || true)
+          echo "FlywaySchemaValidationTest: tests=${tests:-?}, skipped=${skipped:-?}"
+          if [ "${tests:-0}" -eq 0 ] || [ "${skipped:-1}" -ne 0 ]; then
+            echo "::error::FlywaySchemaValidationTest 被跳過了，runner 可能沒有 Docker"
+            exit 1
+          fi
