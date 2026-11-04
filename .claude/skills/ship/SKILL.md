@@ -94,7 +94,7 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
      - 報告中同時有 ⚪「無法執行」時，在用新的 `headRefOid` 重建 worktree 時就一併補好環境，做法照上面「PASS（有建議）」底下 ⚪「無法執行」的說明（node_modules 用 symlink 或 `yarn install --immutable`；後端測試要用 JDK 21），讓同一輪重驗一起涵蓋這些項目。
        - 這裡用的是 implementer 修正後的**新** `headRefOid`，不是那裡第 1 小步寫的「同一個」`headRefOid`。
        - 這一輪仍然只算一次退回，補環境不另外計算。
-       - 試過後還是補不好 → 照那裡第 4 小步處理，用 AskUserQuestion 交給使用者決定。
+       - 試過後還是補不好 → 不要因此跳過重驗，其他項目仍照常請 verifier 重驗 implementer 的修正；重驗後再照那裡第 4 小步，把無法執行的部分用 AskUserQuestion 交給使用者決定，不能自己判定可以合併。
    - verifier 驗過的 SHA 之後只要有新的 commit，不管改的是程式碼還是文件，都要重驗（這個 repo 的 agent 與 skill 定義本身就是 Markdown，很難分清「只是文件」）。
    - 已經退回 2 次（實作跑了 3 輪）仍是 FAIL → 停下來，向使用者說明卡在哪幾條標準，詢問要改標準、改設計，還是手動處理。
 5. verifier 在範圍外的發現另開 issue，不要塞進這個 PR。它的建議若牽涉權限設定（`settings.json`）或 `CLAUDE.md`，交給使用者決定。
