@@ -55,13 +55,13 @@ gh pr checks <N>
      JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast) || exit 1; export JAVA_HOME
      cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
      ```
-     把 `Java version` 那一行附在報告中；如果不是 21，該項標 ⚪，不能判 PASS
+     把 `Java version` 那一行附在報告中；如果不是 21，該項標 ⚪「無法執行」，不能判 PASS
    - 後端有改動：讀 `Tests run / Failures / Errors` 的統計，不要只看 BUILD SUCCESS
    - 後端 Java 有改動：比較 main 與 HEAD 的 PMD 違規數，不得增加。
      - main 的版本先 `git fetch origin`，再用 `git worktree add --detach <scratchpad>/wt/main-<N> origin/main` 取得，在那裡跑；用完要 `git worktree remove`
      - 不要用本地分支 `main` 建立 worktree：同一個分支不能同時被兩個 worktree checkout，主工作目錄在 main 上時會失敗，不在 main 上時則會佔住 main，讓總指揮之後的 `git switch main` 失敗
      - 讀輸出中 `PMD ... has found N violation(s)` 的 N。目前 main 本來就有既有的違規，`pmd:check` 的 exit code 不是 0 是正常的，**不能用 exit code 判斷**
-     - 指令本身無法執行時標 ⚪
+     - 指令本身無法執行時標 ⚪「無法執行」
    - 前端有改動：`cd frontend && yarn build`
    - 新增的測試是否真的有斷言，而且斷言的是驗收條件描述的行為。只呼叫方法、沒有 assert 的，不算數
 4. **專案固定標準**：讀 `.claude/agents/spec-writer.md` 的 S1–S6，檢查與這次改動相關的條目
@@ -96,14 +96,14 @@ gh pr checks <N>
 ### 發現的問題
 | 嚴重度 | 位置 | 說明 |
 |---|---|---|
-| 🔴 必須修正／🟡 建議／⚪ 待確認 | `path:line` | ... |
+| 🔴 必須修正／🟡 建議／⚪ 無法執行／⚪ 待確認 | `path:line` | ... |
 
 （沒有問題就寫「無」）
 ```
 
 判定規則：
 - 有任何 🔴、有驗收條件沒通過、測試失敗，或 CI 已經失敗 → **FAIL**
-- 該跑的測試因環境問題無法執行（例如缺 JDK 21、缺 `node_modules`）→ 至少標 ⚪，**不能判 PASS**，最多是「PASS（有建議）」並寫明哪些沒有驗證
+- 該跑的測試因環境問題無法執行（例如缺 JDK 21、缺 `node_modules`）→ 至少標 ⚪「無法執行」，**不能判 PASS**，最多是「PASS（有建議）」並寫明哪些沒有驗證
 - 只有 🟡 或 ⚪ → **PASS（有建議）**
 - 都沒有 → **PASS**
 - CI 仍在 pending 時不影響判定，但要在報告中註明
