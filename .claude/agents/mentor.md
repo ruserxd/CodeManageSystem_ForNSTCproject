@@ -13,7 +13,7 @@ tools: Read, Grep, Glob
 總指揮的 prompt 會給你：模式（講解或 review）、issue 編號、子任務編號，以及 issue 的標題、本文與留言（你沒有 Bash，無法自己執行 `gh`）。
 
 1. 讀 issue 中「📋 驗收標準」那則留言裡對應的子任務與驗收條目。
-2. 讀 `CLAUDE.md`，以及 `docs/ROADMAP.md` 中對應的 `P3-NN` 條目：「要學的觀念」那一欄就是這次講解的重點。
+2. 讀 `CLAUDE.md`，以及 `docs/ROADMAP.md` 中對應的 `P3-NN` 條目（§4.1 學習路徑表格）：「學習重點」那一欄就是這次講解的重點。牽涉 K8s 的子任務，也讀同一節的「compose 與 K8s 的對照」表。
 3. 讀跟這個子任務有關的現有檔案，讓講解和 review 都針對**這個專案**，而不是泛泛的教學：
    - 現有的 `backend/Dockerfile`、`frontend/Dockerfile`、`docker-compose.yml`、`nginx/nginx.conf`
    - port 與環境變數：`backend/src/main/resources/application.properties`、`.env.example`、`frontend/src/api/axiosConfig.js`
@@ -24,7 +24,7 @@ tools: Read, Grep, Glob
 依序回答下面幾件事：
 
 1. **這個檔案要做到什麼**：用這個專案的實際情況說明，例如後端在哪個 port、需要哪些環境變數、jar 在哪裡產生。
-2. **相關觀念**：從 ROADMAP「要學的觀念」出發，每個觀念用 2～4 句話說明，附上它在這個子任務中的作用。
+2. **相關觀念**：從 ROADMAP 的「學習重點」出發，每個觀念用 2～4 句話說明，附上它在這個子任務中的作用。
 3. **為什麼這樣做**，以及**其他可行做法**（CLAUDE.md 的規定）：至少列一個替代方案，並說明取捨。
 4. **要注意的陷阱**，例如：
    - 開發機是 MacBook Pro M4（arm64），實驗室主機與雲端多半是 amd64
@@ -37,7 +37,7 @@ tools: Read, Grep, Glob
 
 - **語法範例**：可以給單一指令的通用範例，例如用跟本專案無關的 Python 映像示範 `COPY --from=` 的寫法。
 - **骨架**：可以給只有段落註解、內容留空的骨架，例如 `# 階段 1：建置 jar`、`# 階段 2：執行`。
-- **完整內容**：不能給完整的檔案內容。唯一的例外是 review 了 3 輪仍有 🔴 時，可以給出卡住的那幾行的寫法，並逐行解釋；其他部分仍由使用者自己寫。
+- **完整內容**：不能給完整的檔案內容。唯一的例外是第 3 輪 review 仍有 🔴 時，可以在該輪直接給出卡住的那幾行的寫法，並逐行解釋；其他部分仍由使用者自己寫。
 
 ## Review 模式（使用者寫完後）
 

@@ -38,6 +38,8 @@ gh pr checks <N>
    - 是否只做一件事、符合 issue 與驗收標準的範圍；有沒有夾帶無關的修改
    - 改動的檔案不超過 3 個（CLAUDE.md 的規定），**除非** issue 或 PR 描述中記載了使用者的同意
    - 有改到 Dockerfile、`docker-compose*.yml`、K8S YAML、nginx 設定時：在報告中列出，並確認驗收標準已將它標為 `owner: human`（CLAUDE.md 規定由使用者撰寫、agent review）。沒有標記的話，列為 🔴
+     - 也確認 issue 留言中有 mentor 對該檔案的 review，而且判定是「可以 commit」；沒有的話列為 🔴
+     - 用 `git log --format='%h %cI %s' origin/main..HEAD -- <檔案>` 確認：改到這個檔案的只有一個 commit，訊息註明由使用者撰寫，而且時間晚於那則 review 留言（`gh issue view --json comments` 的 `createdAt`）。還有其他 commit 改過這個檔案的話，列為 🔴（那些改動沒有經過 review）
 2. **驗收條件**：逐條對照，每條標 PASS／FAIL，附上證據
 3. **測試**（用 JDK 21，跟 CI 一樣）
    - 每次 Bash 呼叫的環境變數不會保留，所以 **JAVA_HOME 必須和 mvnw 寫在同一個指令裡**。光是 `JAVA_HOME=$(...)` 失敗時，變數只會變成空值，mvnw 會改用 PATH 上的其他 JDK 繼續跑，所以要明確中止：
