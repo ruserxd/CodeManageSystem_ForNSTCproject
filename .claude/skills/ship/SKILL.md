@@ -74,7 +74,7 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 3. 把報告原樣貼成 PR 留言（`gh pr comment <PR> --body-file <檔案>`），用完執行 `git worktree remove <路徑>`。
 4. 依判定處理：
    - **PASS** → 進入 ⑤。
-   - **PASS（有建議）** → 處理合理的 🟡，然後回到 ④ 重驗。
+   - **PASS（有建議）** → 逐項決定：合理的 🟡 就修正，範圍外的另開 issue，不處理的在 PR 留言寫明理由。有新的 commit 才回到 ④ 重驗；沒有就直接進入 ⑤。
    - **FAIL**，且退回次數還不到 2 次 → 用 SendMessage 把報告交給**同一個** implementer。implementer commit 修正後，由你 push，用新的 `headRefOid` 重建 worktree，再用 SendMessage 請**同一個** verifier 重驗，讓它追蹤上次的問題。
    - verifier 驗過的 SHA 之後只要有新的 commit，不管改的是程式碼還是文件，都要重驗（這個 repo 的 agent 與 skill 定義本身就是 Markdown，很難分清「只是文件」）。
    - 已經退回 2 次（實作跑了 3 輪）仍是 FAIL → 停下來，向使用者說明卡在哪幾條標準，詢問要改標準、改設計，還是手動處理。
