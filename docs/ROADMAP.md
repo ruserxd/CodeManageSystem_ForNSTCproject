@@ -322,13 +322,13 @@ GPU 推論留在實驗室。雲端上的 GPU 機器費用很高，而且 D3 的 
 
 ### 與 `/ship` 多 agent 流程的關係
 
-- 本文件中每一個 `P*-NN` 都是一次 `/ship P*-NN` 的輸入
-- `spec-writer` 會讀本文件，把該任務的驗收條目寫進 `criteria.md`
+- 本文件中的 `P*-NN` 可以直接當作 `/ship P*-NN` 的輸入，總指揮會為它開 issue。一個 issue 對應一個 PR（≤3 個檔案），放不下的條目（例如 P1-07）先拆成多個 issue，各跑一次 `/ship`
+- `spec-writer` 會讀 issue 與本文件中對應的條目，產出子任務與驗收條目，由總指揮貼成 issue 的「📋 驗收標準」留言
 - 架構審查關卡是 `/ship` 之外的獨立步驟，要人工確認
 
 ### 分支與 commit
 
-- 每個任務一個分支：`feat/P1-07-project-identity`
+- 每個 issue 一個分支：`<type>/<issue 編號>-<英文-slug>`，例如 `chore/21-ship-github-flow`（與 `.claude/skills/ship/SKILL.md` 一致）
 - commit 遵循現有的 Conventional Commits 風格（`feat:`、`fix:`、`chore:`）
 
 ---
