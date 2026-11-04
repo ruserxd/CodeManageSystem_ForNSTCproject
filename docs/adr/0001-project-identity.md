@@ -12,7 +12,7 @@
 - `ProjectRepository.findByProjectName` 遇到多筆資料時會丟例外，也可能拿到別人的資料，擁有權檢查因此可能被繞過。
 - clone 路徑是 `src/cloneCode/<repoName>`，不同 owner 的同名 repo 會寫進同一個資料夾。
 
-現況裡已經有一部分「共用」的行為：本地已有 clone 時，`GitCloner` 走 pull 並更新資料庫，只新增一筆 `PersonalINFO`；`DataBaseService.deleteDataByProjectName` 先刪自己的 `PersonalINFO`，沒有人擁有時才刪 `Project` 和本地資料夾。本 ADR 把這個行為正式定案，並改用 URL 當唯一鍵。
+現況裡已經有一部分「共用」的行為：本地已有 clone 時，`GitCloner` 走 pull 並更新資料庫，只新增一筆 `PersonalINFO`；`DataBaseService.deleteDataByProjectName` 先刪自己的 `PersonalINFO`，沒有人擁有時才刪 `Project` 和本地資料夾。本 ADR 把「共用一份、刪除時只移除自己的對應」正式定案，並改用 URL 當唯一鍵。但「加入」有一處行為變更：現況加入時會 pull 並做增量分析，本 ADR 改為不 pull、不重新分析（見「共用一份的語意」）。
 
 資料庫裡的舊分析資料不遷移，清掉重新分析（2026-11-03，使用者決定，記錄於 `docs/PROGRESS.md` §6.1）。
 
@@ -36,8 +36,8 @@
 
 1. scheme 固定為 `https`。
 2. host 與 path 全部轉小寫。
-3. 去掉一個結尾的 `.git`。
-4. 去掉一個結尾的 `/`。
+3. 先去掉一個結尾的 `/`。
+4. 再去掉一個結尾的 `.git`（順序不可對調，否則 `…/utils.git/` 會留下 `.git`）。實作時不可沿用現行 `getRepoNameFromUrl`，它用 `replace(".git", "")` 會刪掉名稱中所有的 `.git`（例如 `my.github.io` 會變成 `myhub.io`），要只處理結尾。
 5. 輸出固定為 `https://<host>/<owner>/<repo>`。
 
 允許的 host：`github.com`、`gitlab.com`、`bitbucket.org`。路徑格式：`/owner/repo`，名稱只允許英數與 `.` `_` `-`；不允許帳密、port、query、fragment，也不允許 `.`、`..` 段。
@@ -51,6 +51,7 @@
 | `https://GitHub.com/A/Utils.git` | `https://github.com/a/utils` |
 | `https://github.com/a/utils` | `https://github.com/a/utils` |
 | `https://github.com/a/utils/` | `https://github.com/a/utils`（需第 3 步放寬驗證器） |
+| `https://github.com/a/utils.git/` | `https://github.com/a/utils`（需第 3 步放寬驗證器） |
 
 被拒絕的輸入：
 
@@ -114,7 +115,7 @@
 後續 issue（R2 的第 2 到第 6 步，各跑一次 /ship）：
 
 1. V2 migration：清空分析資料，`project` 加上帶唯一鍵的 `repo_url`，entity 加欄位。
-2. 存入正規化 URL 並改查詢（含放寬驗證器的結尾 `/`、clone 使用正規化 URL、加入時不接受 `commitId`）。
+2. 存入正規化 URL 並改查詢（含放寬驗證器的結尾 `/`、clone 使用正規化 URL、加入時不接受 `commitId`、加入時不再 pull 與增量分析）。
 3. clone 路徑改用 projectId。
 4. API 改用 projectId（保留擁有權檢查）。
 5. 前端改用 projectId。
