@@ -31,14 +31,14 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 2. 不清楚的地方用 AskUserQuestion 問（最多一輪），不要猜。
 3. **一個 issue 對應一個 PR。** 任務太大、一個 PR 放不下時，提出拆分方式給使用者，只對第一個 issue 繼續，其餘的留給之後的 /ship。
 4. 準備 issue：
-   - 指令是 issue 編號 → `gh issue view <N> --comments` 讀現況
+   - 指令是 issue 編號 → `gh issue view <N> --json title,body,comments` 讀現況（不要用 `--comments`，非終端機輸出時它不印本文）
    - 否則 → `gh issue create`，本文包含：目標、範圍內／範圍外、使用者原話、已知限制
 5. 準備分支：`git status --short` 必須是空的；`git switch main && git pull --ff-only`，再建立 `<type>/<issue 編號>-<英文-slug>`（例如 `chore/21-ship-github-flow`）。
 
 ## ② 設定標準
 
-1. 呼叫 `spec-writer` agent。它沒有 Bash，所以 prompt 直接附上 issue 本文的原文。
-2. 把它回傳的內容原樣貼成 issue 留言（`gh issue comment <N> --body-file <檔案>`），標題「📋 驗收標準」。
+1. 呼叫 `spec-writer` agent。它沒有 Bash，所以 prompt 直接附上 issue 的標題、本文與所有留言的原文（後來補的需求常常寫在留言裡）。
+2. 在它回傳的內容最前面加上一行 `## 📋 驗收標準`（改版時寫 `## 📋 驗收標準（第 n 版）`），其餘原樣貼成 issue 留言（`gh issue comment <N> --body-file <檔案>`）。implementer 和 verifier 靠這一行找到標準。
 3. ⏸ **人工關卡**（整個流程唯一的一關）：把子任務切分、驗收條目、標記 `owner: human` 的項目整理給使用者，用 AskUserQuestion 問「核准／要修改」。
    - 沒有核准就不能進入 ③。
    - 要修改 → 帶著使用者的意見重新呼叫 `spec-writer`，貼成新一版留言，再回到這個關卡。
@@ -48,10 +48,12 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 
 1. 依子任務順序，對每個 `owner: agent` 的子任務呼叫 `implementer` agent，prompt 只給 issue 編號、子任務編號與分支名稱。
    - 整個 issue 用**同一個** implementer：第一個子任務用 Agent 呼叫，之後的子任務用 SendMessage 延續，讓它保留上下文。
+   - session 中沒有 `implementer` agent 類型時（agent 清單在 session 開始時載入），改用 general-purpose agent，請它先讀 `.claude/agents/implementer.md` 並完全照規則做。
    - 回報是 BLOCKED → 依原因處理：需要使用者決定的就問使用者，標準有問題的就回到 ②。
 2. `owner: human` 的子任務（Dockerfile、compose、K8S YAML、nginx）**不交給 implementer**：
    - 向使用者說明要寫什麼、相關觀念、「為什麼這樣做」和「其他可行做法」，然後停下來等使用者寫完。
    - 使用者寫完後 review 他們的檔案，提出修改建議，由使用者自己改。
+   - review 通過後由你 commit 這些檔案（訊息註明由使用者撰寫），再繼續下一個子任務。不先 commit 的話，下一個 implementer 會因為工作目錄不乾淨而 BLOCKED。
 3. 全部子任務完成後，自己先檢查一次：`git diff --stat main...HEAD` 的檔案數與範圍符合 ② 的標準，再 push 並開 PR：
    - `git push -u origin <branch>`
    - `gh pr create`，描述包含：`Closes #<N>`、做了什麼、每條驗收條目對應哪個 commit、測試統計
@@ -64,13 +66,17 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
    git worktree add --detach <scratchpad>/wt/pr-<PR> <headRefOid>
    ```
    **不要用 Agent 的 `isolation: "worktree"`**：它會從 main 建立工作區，verifier 會拿到沒有改動的程式碼。
+   PR 改到前端時，新的 worktree 裡沒有 `frontend/node_modules`，verifier 也不能自己安裝，所以由你先準備：
+   - `package.json`、`yarn.lock` 沒變 → 連結主工作目錄的套件：`ln -s <主工作目錄>/frontend/node_modules <worktree>/frontend/node_modules`（`.gitignore` 已忽略這個路徑）
+   - 有變 → 在 worktree 的 `frontend/` 執行 `yarn install --immutable`
 2. 呼叫 `verifier` agent（PR 模式），prompt 只給 PR 編號和 worktree 路徑。**不要給它 implementer 的回報**，讓驗證保持獨立。
    - session 中沒有 `verifier` agent 類型時（agent 清單在 session 開始時載入），改用 general-purpose agent，請它先讀 `.claude/agents/verifier.md` 並完全照規則做。
 3. 把報告原樣貼成 PR 留言（`gh pr comment <PR> --body-file <檔案>`），用完執行 `git worktree remove <路徑>`。
 4. 依判定處理：
    - **PASS** → 進入 ⑤。
-   - **PASS（有建議）** → 處理合理的 🟡。之後若有程式碼或設定的改動（不是只改註解或文件），就回到 ④ 重驗。
-   - **FAIL**，且退回次數還不到 2 次 → 用 SendMessage 把報告交給**同一個** implementer。它 commit 修正後 push，用新的 `headRefOid` 重建 worktree，再用 SendMessage 請**同一個** verifier 重驗，讓它追蹤上次的問題。
+   - **PASS（有建議）** → 處理合理的 🟡，然後回到 ④ 重驗。
+   - **FAIL**，且退回次數還不到 2 次 → 用 SendMessage 把報告交給**同一個** implementer。implementer commit 修正後，由你 push，用新的 `headRefOid` 重建 worktree，再用 SendMessage 請**同一個** verifier 重驗，讓它追蹤上次的問題。
+   - verifier 驗過的 SHA 之後只要有新的 commit，不管改的是程式碼還是文件，都要重驗（這個 repo 的 agent 與 skill 定義本身就是 Markdown，很難分清「只是文件」）。
    - 已經退回 2 次（實作跑了 3 輪）仍是 FAIL → 停下來，向使用者說明卡在哪幾條標準，詢問要改標準、改設計，還是手動處理。
 5. verifier 在範圍外的發現另開 issue，不要塞進這個 PR。它的建議若牽涉權限設定（`settings.json`）或 `CLAUDE.md`，交給使用者決定。
 
@@ -79,10 +85,11 @@ agent 之間**只透過 issue、PR 與 repo 內容交接**，不要把你自己�
 1. 確認 CI 通過：`gh pr checks <PR>`。還在跑就等它跑完；失敗就當成 FAIL 回到 ④ 的退回流程。
 2. 合併條件都成立時直接合併，不用再問使用者（使用者 2026-11-03 已授權）：
    - 你自己檢查過
-   - verifier 判定 PASS，或 PASS（有建議）且建議已處理
+   - verifier 對 PR 目前的 `headRefOid` 判定 PASS，或 PASS（有建議）且剩下的建議都已另開 issue 或說明不處理的理由
    - CI 全部通過
    ```bash
-   gh pr merge <PR> --squash --delete-branch
+   # --match-head-commit：PR 在驗證之後又被推了新 commit 時，拒絕合併
+   gh pr merge <PR> --squash --delete-branch --match-head-commit <交給 verifier 檢驗的 headRefOid（完整 SHA）>
    git switch main && git pull --ff-only
    ```
 3. 向使用者交付：做了什麼、對應哪幾條驗收條目、驗證證據摘要、`owner: human` 的待辦、另開的 issue、已知限制。

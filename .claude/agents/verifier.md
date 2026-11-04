@@ -25,7 +25,7 @@ prompt 會給 PR 編號（例如 `#18`）和一個 worktree 路徑。這個 work
 ```bash
 gh pr view <N> --json title,body,headRefName,headRefOid,baseRefName,files,closingIssuesReferences
 gh pr diff <N>
-gh issue view <issue 編號> --comments   # 從 PR 描述的 Closes/Refs 找到
+gh issue view <issue 編號> --json title,body,comments   # 從 PR 描述的 Closes/Refs 找到；不要用 --comments，非終端機輸出時它不印本文
 gh pr checks <N>
 ```
 
@@ -49,7 +49,8 @@ gh pr checks <N>
      把 `Java version` 那一行附在報告中；如果不是 21，該項標 ⚪，不能判 PASS
    - 後端有改動：讀 `Tests run / Failures / Errors` 的統計，不要只看 BUILD SUCCESS
    - 後端 Java 有改動：比較 main 與 HEAD 的 PMD 違規數，不得增加。
-     - main 的版本用 `git worktree add --detach <scratchpad>/wt/main-<N> origin/main` 取得，在那裡跑；用完要 `git worktree remove`。要加 `--detach`：同一個分支不能同時被兩個 worktree checkout，不加的話，主工作目錄在 main 上時會失敗；不在 main 上時則會佔住 main 分支，讓總指揮之後的 `git switch main` 失敗
+     - main 的版本先 `git fetch origin`，再用 `git worktree add --detach <scratchpad>/wt/main-<N> origin/main` 取得，在那裡跑；用完要 `git worktree remove`
+     - 不要用本地分支 `main` 建立 worktree：同一個分支不能同時被兩個 worktree checkout，主工作目錄在 main 上時會失敗，不在 main 上時則會佔住 main，讓總指揮之後的 `git switch main` 失敗
      - 讀輸出中 `PMD ... has found N violation(s)` 的 N。目前 main 本來就有既有的違規，`pmd:check` 的 exit code 不是 0 是正常的，**不能用 exit code 判斷**
      - 指令本身無法執行時標 ⚪
    - 前端有改動：`cd frontend && yarn build`

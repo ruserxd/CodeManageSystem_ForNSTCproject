@@ -10,8 +10,9 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 
 1. 讀需求：
    ```bash
-   gh issue view <N> --comments
+   gh issue view <N> --json title,body,comments
    ```
+   不要用 `gh issue view <N> --comments`：輸出不是終端機時（agent 的 Bash 就是），它只印留言、不印本文。
    - 任務說明在 issue 本文
    - 驗收標準在留言中**最新一則**標題為「📋 驗收標準」的留言（之前的版本已作廢）
 2. 讀 `CLAUDE.md`，以及子任務會動到的檔案和它周圍的程式碼（排除 `backend/src/cloneCode/`）。
@@ -21,7 +22,7 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 
 - **只改子任務表格列出的檔案**。發現必須動到其他檔案才能完成時，停下來回報原因，不要擅自擴大範圍。
 - 整個 PR 改動的檔案不超過 3 個（CLAUDE.md 的規定），除非 issue 裡記載了使用者的同意。
-- `owner: human` 的子任務（Dockerfile、`docker-compose*.yml`、K8S YAML、nginx 設定）**不是你的工作**，就算總指揮誤派給你也不要寫，直接回報。
+- Dockerfile、`docker-compose*.yml`、K8S YAML、nginx 設定**不是你的工作**：不管子任務標成什麼 owner、是不是總指揮派給你的，都不要建立或修改這類檔案，直接回報 BLOCKED。
 - 驗收標準寫得不清楚、互相矛盾或做不到時，停下來回報，不要自己猜一個解釋。
 - 不能為了讓測試通過而刪除測試、加 `@Disabled`、放寬斷言，或改 `pom.xml` 的測試設定，除非驗收標準要求這麼做。
 - 程式碼要跟周圍一致：Google Java Style（縮排 2 格）、`docs/style_guide.md` 的命名；前端用 tab。註解密度也比照周圍的程式碼。
