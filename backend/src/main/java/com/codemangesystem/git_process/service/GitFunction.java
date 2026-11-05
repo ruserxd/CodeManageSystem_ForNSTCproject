@@ -76,6 +76,31 @@ public class GitFunction {
   }
 
   /**
+   * 將 repo URL 正規化成 https://&lt;host&gt;/&lt;owner&gt;/&lt;repo&gt;（ADR 0001）。
+   * 先通過 validateRepoUrl，再把 host 與 path 轉小寫、去掉一個結尾的 /、再去掉一個結尾的 .git。
+   * 只去一個，不保證冪等。不合法時丟出 IllegalArgumentException
+   */
+  public static String normalizeRepoUrl(String repoUrl) {
+    validateRepoUrl(repoUrl);
+
+    URI uri = URI.create(repoUrl);
+    String host = uri.getHost().toLowerCase(Locale.ROOT);
+    String path = uri.getRawPath().toLowerCase(Locale.ROOT);
+
+    if (path.endsWith("/")) {
+      path = path.substring(0, path.length() - 1);
+    }
+    if (path.endsWith(".git")) {
+      path = path.substring(0, path.length() - ".git".length());
+    }
+    // 驗證器的空名稱檢查區分大小寫，轉小寫去掉 .git 後可能只剩 /owner/
+    if (path.endsWith("/")) {
+      throw new IllegalArgumentException("無法從 repo URL 取得專案名稱");
+    }
+    return "https://" + host + path;
+  }
+
+  /**
    * 從儲存庫 URL 中取得專案名稱
    */
   public static String getRepoNameFromUrl(String repoUrl) {
