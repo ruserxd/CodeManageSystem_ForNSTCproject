@@ -166,6 +166,10 @@ class GitFunctionTest {
         "https://github.com/a/.git",
         "https://github.com/a/.GIT",
         "https://github.com/a/.git/",
+        "https://github.com/a/.Git",
+        "https://github.com/a/..GIT",
+        "https://github.com/a/...GIT",
+        "https://github.com/a/..GIT/",
         "",
         "   ",
         "https://github.com/a/utils//"

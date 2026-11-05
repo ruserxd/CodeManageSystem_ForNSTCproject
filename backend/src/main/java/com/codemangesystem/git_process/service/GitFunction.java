@@ -93,8 +93,9 @@ public class GitFunction {
     if (path.endsWith(".git")) {
       path = path.substring(0, path.length() - ".git".length());
     }
-    // 驗證器的空名稱檢查區分大小寫，轉小寫去掉 .git 後可能只剩 /owner/
-    if (path.endsWith("/")) {
+    // 驗證器的空名稱檢查區分大小寫，轉小寫去掉 .git 後名稱可能是空的、"." 或 ".."
+    String repoName = path.substring(path.lastIndexOf('/') + 1);
+    if (repoName.isEmpty() || repoName.equals(".") || repoName.equals("..")) {
       throw new IllegalArgumentException("無法從 repo URL 取得專案名稱");
     }
     return "https://" + host + path;
