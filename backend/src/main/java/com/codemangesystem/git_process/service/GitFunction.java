@@ -29,9 +29,9 @@ public class GitFunction {
   private static final Set<String> ALLOWED_HOSTS = Set.of("github.com", "gitlab.com", "bitbucket.org");
 
   /**
-   * 路徑必須剛好是 /owner/repo（可帶 .git），名稱只允許英數與 . _ -
+   * 路徑必須剛好是 /owner/repo（可帶 .git、可帶一個結尾 /），名稱只允許英數與 . _ -
    */
-  private static final Pattern REPO_PATH = Pattern.compile("^/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$");
+  private static final Pattern REPO_PATH = Pattern.compile("^/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/?$");
 
   /**
    * clone 前驗證使用者提供的 repo URL，不合法時丟出 IllegalArgumentException（訊息可直接回給使用者）
