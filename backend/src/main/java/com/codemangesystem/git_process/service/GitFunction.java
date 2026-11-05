@@ -98,7 +98,10 @@ public class GitFunction {
     if (repoName.isEmpty() || repoName.equals(".") || repoName.equals("..")) {
       throw new IllegalArgumentException("無法從 repo URL 取得專案名稱");
     }
-    return "https://" + host + path;
+    String normalized = "https://" + host + path;
+    // 去掉 .git 後可能露出新的 .git（如 .GIT.git），結果必須仍是合法的 repo URL
+    validateRepoUrl(normalized);
+    return normalized;
   }
 
   /**
