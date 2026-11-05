@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
@@ -81,6 +82,109 @@ class GitFunctionTest {
     @DisplayName("null 會被拒絕")
     void nullUrlTest() {
       assertThrows(IllegalArgumentException.class, () -> GitFunction.validateRepoUrl(null));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "https://github.com/a/utils/",
+        "https://github.com/a/utils.git/",
+        "https://gitlab.com/owner/repo.name/"
+    })
+    @DisplayName("允許一個結尾 /")
+    void trailingSlashValidTest(String url) {
+      assertDoesNotThrow(() -> GitFunction.validateRepoUrl(url));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "https://github.com/a/utils//",
+        "https://github.com/owner/",
+        "https://github.com/a/.git/",
+        "https://github.com/owner/../",
+        "https://github.com/a/utils/tree/main/"
+    })
+    @DisplayName("兩個以上結尾 /、缺 repo 名、名稱為空、.. 段仍被拒絕")
+    void trailingSlashInvalidTest(String url) {
+      assertThrows(IllegalArgumentException.class, () -> GitFunction.validateRepoUrl(url));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "https://github.com/a/utils/,utils",
+        "https://github.com/a/utils.git/,utils",
+        "https://gitlab.com/owner/repo.name/,repo.name"
+    })
+    @DisplayName("結尾 / 不會讓 clone 路徑跳出 src/cloneCode/")
+    void trailingSlashRepoNameTest(String url, String expected) {
+      GitFunction.validateRepoUrl(url);
+      String name = GitFunction.getRepoNameFromUrl(url);
+      assertFalse(name.isEmpty());
+      assertFalse(name.contains("/"));
+      assertFalse(name.equals(".") || name.equals(".."));
+      assertEquals(expected, name);
+    }
+  }
+
+  @Nested
+  @DisplayName("測試 normalizeRepoUrl()")
+  class normalizeRepoUrlTest {
+
+    @ParameterizedTest
+    @CsvSource({
+        "https://GitHub.com/A/Utils.git,https://github.com/a/utils",
+        "https://github.com/a/utils,https://github.com/a/utils",
+        "https://github.com/a/utils/,https://github.com/a/utils",
+        "https://github.com/a/utils.git/,https://github.com/a/utils",
+        "https://github.com/a/my.github.io,https://github.com/a/my.github.io",
+        "https://github.com/a/my.github.io.git,https://github.com/a/my.github.io",
+        "https://github.com/a/.github,https://github.com/a/.github",
+        "https://github.com/a.git/utils,https://github.com/a.git/utils",
+        "HTTPS://GITHUB.COM/A/B,https://github.com/a/b",
+        "https://gitlab.com/Owner/Repo.Name/,https://gitlab.com/owner/repo.name",
+        "https://bitbucket.org/A/B.GIT,https://bitbucket.org/a/b"
+    })
+    @DisplayName("正規化結果正確")
+    void normalizeTest(String input, String expected) {
+      assertEquals(expected, GitFunction.normalizeRepoUrl(input));
+    }
+
+    @Test
+    @DisplayName("只去一個 .git，不要求冪等")
+    void onlyStripOneDotGitTest() {
+      assertEquals("https://github.com/a/utils.git",
+          GitFunction.normalizeRepoUrl("https://github.com/a/utils.git.git"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "http://github.com/a/utils",
+        "git@github.com:a/utils.git",
+        "https://example.com/a/utils",
+        "https://github.com/a",
+        "https://github.com/a/utils?x=1",
+        "https://github.com:8443/a/utils",
+        "https://github.com/a/.git",
+        "https://github.com/a/.GIT",
+        "https://github.com/a/.git/",
+        "https://github.com/a/.Git",
+        "https://github.com/a/..GIT",
+        "https://github.com/a/...GIT",
+        "https://github.com/a/..GIT/",
+        "https://github.com/a/.GIT.git",
+        "https://github.com/a/..GIT.git",
+        "",
+        "   ",
+        "https://github.com/a/utils//"
+    })
+    @DisplayName("不合法或正規化後名稱為空的輸入會丟 IllegalArgumentException")
+    void invalidTest(String input) {
+      assertThrows(IllegalArgumentException.class, () -> GitFunction.normalizeRepoUrl(input));
+    }
+
+    @Test
+    @DisplayName("null 會丟 IllegalArgumentException")
+    void nullTest() {
+      assertThrows(IllegalArgumentException.class, () -> GitFunction.normalizeRepoUrl(null));
     }
   }
 

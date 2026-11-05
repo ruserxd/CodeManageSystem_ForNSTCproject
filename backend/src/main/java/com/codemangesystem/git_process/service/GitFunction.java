@@ -29,9 +29,9 @@ public class GitFunction {
   private static final Set<String> ALLOWED_HOSTS = Set.of("github.com", "gitlab.com", "bitbucket.org");
 
   /**
-   * 路徑必須剛好是 /owner/repo（可帶 .git），名稱只允許英數與 . _ -
+   * 路徑必須剛好是 /owner/repo（可帶 .git、可帶一個結尾 /），名稱只允許英數與 . _ -
    */
-  private static final Pattern REPO_PATH = Pattern.compile("^/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$");
+  private static final Pattern REPO_PATH = Pattern.compile("^/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/?$");
 
   /**
    * clone 前驗證使用者提供的 repo URL，不合法時丟出 IllegalArgumentException（訊息可直接回給使用者）
@@ -73,6 +73,35 @@ public class GitFunction {
     if (repoName.isBlank() || repoName.equals(".") || repoName.equals("..")) {
       throw new IllegalArgumentException("無法從 repo URL 取得專案名稱");
     }
+  }
+
+  /**
+   * 將 repo URL 正規化成 https://&lt;host&gt;/&lt;owner&gt;/&lt;repo&gt;（ADR 0001）。
+   * 先通過 validateRepoUrl，再把 host 與 path 轉小寫、去掉一個結尾的 /、再去掉一個結尾的 .git。
+   * 只去一個，不保證冪等。不合法時丟出 IllegalArgumentException
+   */
+  public static String normalizeRepoUrl(String repoUrl) {
+    validateRepoUrl(repoUrl);
+
+    URI uri = URI.create(repoUrl);
+    String host = uri.getHost().toLowerCase(Locale.ROOT);
+    String path = uri.getRawPath().toLowerCase(Locale.ROOT);
+
+    if (path.endsWith("/")) {
+      path = path.substring(0, path.length() - 1);
+    }
+    if (path.endsWith(".git")) {
+      path = path.substring(0, path.length() - ".git".length());
+    }
+    // 驗證器的空名稱檢查區分大小寫，轉小寫去掉 .git 後名稱可能是空的、"." 或 ".."
+    String repoName = path.substring(path.lastIndexOf('/') + 1);
+    if (repoName.isEmpty() || repoName.equals(".") || repoName.equals("..")) {
+      throw new IllegalArgumentException("無法從 repo URL 取得專案名稱");
+    }
+    String normalized = "https://" + host + path;
+    // 去掉 .git 後可能露出新的 .git（如 .GIT.git），結果必須仍是合法的 repo URL
+    validateRepoUrl(normalized);
+    return normalized;
   }
 
   /**
