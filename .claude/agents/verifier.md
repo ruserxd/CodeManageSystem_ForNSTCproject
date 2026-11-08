@@ -77,9 +77,9 @@ gh pr checks <N>
    - Detect each tool first with `command -v <tool>` (and `docker info >/dev/null 2>&1` for the daemon). If the tool is missing or the daemon is not running, mark the item ⚪ 無法執行 and never PASS it. A `docker build` that fails because of network or resources rather than the file itself (for example a registry timeout, out of disk) is also ⚪ 無法執行; attach the output as evidence. A failure caused by the file itself (syntax error, missing file, failing build step) is 🔴.
    - **compose**: `docker compose config -q`. `docker-compose.yml` has `env_file: .env` and `.env` is gitignored, so it does not exist in the worktree; `--env-file` only affects variable interpolation, not `env_file:`. Create it temporarily and always remove it afterwards:
      ```bash
-     cd <worktree path> && test ! -e .env && cp .env.example .env && docker compose config -q; rc=$?; rm -f .env; echo "exit=$rc"
+     cd <worktree path>; created=0; if [ ! -e .env ]; then cp .env.example .env && created=1; fi; docker compose config -q; rc=$?; if [ "$created" = 1 ]; then rm -f .env; fi; echo "exit=$rc"
      ```
-     (If `.env` already exists, do not overwrite or delete it.) Expect exit 0, then confirm `git status --short` is unchanged.
+     Only a `.env` that this command created is removed; an existing `.env` is used as is, never overwritten or deleted. `exit` is the result of `docker compose config -q`. Expect exit 0, then confirm `git status --short` is unchanged.
    - **Dockerfile**: only verifies that it builds. The lab host is amd64 while the dev machine is arm64, so pass the platform and the context directory, for example `docker build --platform linux/amd64 -f backend/Dockerfile backend` (or `-f frontend/Dockerfile frontend`). The backend Dockerfile runs `./mvnw package` in its build stage, so no jar is needed beforehand.
    - **workflow**: `actionlint <the changed .github/workflows/*.yml>`.
 
