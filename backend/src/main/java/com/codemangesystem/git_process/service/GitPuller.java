@@ -34,12 +34,15 @@ public class GitPuller {
    */
   public GitResult pullLocalRepository(RepositoryINFO repoINFO) {
     try {
-      Git git = Git.open(new File(repoINFO.localPath));
-      log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
-      PullResult pullResult = git.pull()
-          .setRemote(DEFAULT_REMOTE)
-          .setRemoteBranchName(DEFAULT_BRANCH)
-          .call();
+      PullResult pullResult;
+      // try-with-resources 離開區塊即關閉 git，確保先關閉再分析
+      try (Git git = Git.open(new File(repoINFO.localPath))) {
+        log.info("Try to pull {} at {}", repoINFO.repoName, repoINFO.localPath);
+        pullResult = git.pull()
+            .setRemote(DEFAULT_REMOTE)
+            .setRemoteBranchName(DEFAULT_BRANCH)
+            .call();
+      }
 
       // 如果 pull 的操作失敗
       if (!pullResult.isSuccessful()) {
@@ -48,9 +51,6 @@ public class GitPuller {
             .status(GitStatus.PULL_FAILED)
             .build();
       }
-
-      // 手動關閉 git
-      git.close();
 
       // 獲取前一次存放的 Revstr
       String previousHeadRevstr = dataBaseService.getHeadRevstr(repoINFO.repoName);
