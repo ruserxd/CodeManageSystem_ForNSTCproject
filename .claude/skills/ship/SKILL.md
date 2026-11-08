@@ -66,21 +66,17 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - Once the verdict is `可以 commit`, post the last review round as an issue comment (the verifier uses it to confirm the `owner: human` file was reviewed). Then commit those files yourself: the message states that the user wrote them and includes a line `Reviewed-in: <URL of that comment>` (`gh issue comment` prints the URL). Then move on to the next subtask. If you do not commit first, the next implementer will report BLOCKED because the working tree is not clean.
    - Do not edit the user's files yourself, and do not fill in answers the mentor did not give.
    - If the session has no `mentor` agent type, first tell the user: a general-purpose agent has file-writing tools, so "read-only" would rest only on the written rules. Once the user agrees, tell it to read `.claude/agents/mentor.md` first and follow it exactly; if they do not agree, ask the user to start a new session.
-3. After all subtasks are done, check yourself first: the file count and scope of `git diff --stat main...HEAD` match the criteria from ②. Then push and open the PR:
+3. After all subtasks are done, check yourself first: the file count and scope of `git diff --stat main...HEAD` match the criteria from ②. If the change touches `.claude/agents/` or `.claude/skills/`, also run `.claude/skills/ship/scripts/check-frontmatter.sh` (by the repo root's absolute path, on its own, not chained with `;` or `&&`); a non-zero exit means do not push. Then push and open the PR:
    - `git push -u origin <branch>`
    - `gh pr create`, with a description containing: `Closes #<N>`, what was done, which commit covers each acceptance item, and the test statistics
    - **Do not paste the implementer's report into the PR**; the PR description contains only facts you confirmed yourself.
 
 ## ④ Verify
 
-1. Get the PR's `headRefOid` (`gh pr view <PR> --json headRefOid`). Right after a push GitHub may lag a few seconds; wait until it equals the local `git rev-parse HEAD`, then create a detached worktree in the scratchpad:
-   ```bash
-   git worktree add --detach <scratchpad>/wt/pr-<PR> <headRefOid>
-   ```
-   **Do not use the Agent tool's `isolation: "worktree"`**: it creates the worktree from main, so the verifier would get code without the changes.
-   When the PR touches the frontend, the new worktree has no `frontend/node_modules`, and the verifier may not install packages itself, so prepare it:
-   - `package.json` and `yarn.lock` unchanged → link the main working directory's packages: `ln -s <main working directory>/frontend/node_modules <worktree>/frontend/node_modules` (`.gitignore` already ignores this path)
-   - Changed → run `yarn install --immutable` in the worktree's `frontend/`
+1. Create the verifier's worktree with the script `.claude/skills/ship/scripts/verify-worktree.sh <PR> <scratchpad>`. It waits until the PR's `headRefOid` equals the local `HEAD` (timeout in seconds: `SHIP_SYNC_TIMEOUT`), creates the detached worktree `<scratchpad>/wt/pr-<PR>`, prepares `frontend/node_modules` when the PR touches the frontend, and prints the worktree path on its last stdout line. It refuses to overwrite an existing path and exits non-zero on any failure (timeout, missing `node_modules` in the main working directory), so do not go on to the verifier when it fails.
+   - The sandbox may reject compound commands that embed `git`. First get the repo root's absolute path, then call the script on its own by that absolute path (`bash <repo root>/.claude/skills/ship/scripts/verify-worktree.sh <PR> <scratchpad>`). Do not chain it with other commands using `;` or `&&`. Whether the sandbox accepts this form is still an assumption to confirm when you run it; if it is rejected, say so in the PR instead of claiming it works.
+   - **Do not use the Agent tool's `isolation: "worktree"`**: it creates the worktree from main, so the verifier would get code without the changes.
+   - Frontend packages (the script handles this): `package.json` and `yarn.lock` unchanged → it links the main working directory's `frontend/node_modules` (`.gitignore` already ignores this path); changed → it runs `yarn install --immutable` in the worktree's `frontend/`. The verifier may not install packages itself.
 2. Call the `verifier` agent (PR mode). The prompt contains only the PR number and the worktree path. **Do not give it the implementer's report**, so verification stays independent.
    - If the session has no `verifier` agent type (the agent list is loaded at session start), use a general-purpose agent instead and tell it to read `.claude/agents/verifier.md` first and follow it exactly.
 3. Post the report unchanged as a PR comment (`gh pr comment <PR> --body-file <file>`), then run `git worktree remove <path>`.
@@ -89,7 +85,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - **PASS（有建議）** → handle 🟡 and ⚪ separately:
      - 🟡: decide item by item — fix what is reasonable, open a new issue for what is out of scope, and for anything you will not handle, write the reason in a PR comment. Return to ④ for re-verification only if there are new commits; otherwise go straight to ⑤ (if the report also has ⚪, wait until those are handled as described below).
      - ⚪ 無法執行: caused by the environment (for example missing `frontend/node_modules`, a Java version other than 21, or the `pmd:check` command itself failing to run). The verifier cannot install packages, so you fix the environment and re-verify. **Writing a reason in a PR comment is not enough**:
-       1. Step 3 already removed the worktree. Recreate it from the **same** `headRefOid` and prepare the environment as in step 1 (node_modules via symlink or `yarn install --immutable`); backend tests must use JDK 21 (see "Rules").
+       1. Step 3 already removed the worktree. Recreate it from the **same** `headRefOid` and run the step 1 script again (it prepares node_modules; the local `HEAD` must still equal that `headRefOid`); backend tests must use JDK 21 (see "Rules").
        2. Ask the **same** verifier to re-verify via SendMessage, post the report as a PR comment and remove the worktree as in step 3, then come back to this step with the new verdict.
        3. This kind of re-verification only fixes the environment with no new commits, so it **does not count** as a send-back.
        4. If you still cannot fix it after trying (for example, no JDK 21 on this machine) → stop and let the user decide with AskUserQuestion. You may not decide on your own that it can be merged.
@@ -101,7 +97,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - **FAIL**, with fewer than 2 send-backs so far → give the report to the **same** implementer via SendMessage. After the implementer commits the fix, you push, recreate the worktree from the new `headRefOid`, and ask the **same** verifier to re-verify via SendMessage so it can track the previous findings.
      - When a FAIL item is in an `owner: human` file, **do not give it to the implementer** (it may not touch those files). Go back to the mentor flow in ③: hand the verifier's findings to the same mentor; the user fixes the file; once the mentor's new review says `可以 commit`, post the new review as an issue comment as in ③, commit with the new comment's URL, then re-verify. This also counts as one send-back.
      - When the same report has findings in both agent files and `owner: human` files, take both paths, and re-verify once after everything is fixed. This counts as a single send-back.
-     - When the report also has ⚪ 無法執行, fix the environment while recreating the worktree from the new `headRefOid`, in the way described under ⚪ 無法執行 in "PASS（有建議）" above (node_modules via symlink or `yarn install --immutable`; backend tests on JDK 21), so the same re-verification round covers those items too.
+     - When the report also has ⚪ 無法執行, fix the environment while recreating the worktree from the new `headRefOid`, in the way described under ⚪ 無法執行 in "PASS（有建議）" above (the step 1 script prepares node_modules; backend tests on JDK 21), so the same re-verification round covers those items too.
        - Here you use the implementer's **new** `headRefOid`, not the "same" `headRefOid` from sub-step 1 there.
        - This round still counts as only one send-back; fixing the environment is not counted separately.
        - If you still cannot fix the environment → do not skip re-verification because of it; still ask the verifier to re-verify the implementer's fix for the other items. After re-verification, follow sub-step 4 there: let the user decide on the parts that could not run with AskUserQuestion. You may not decide on your own that it can be merged.
