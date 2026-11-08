@@ -59,7 +59,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - Use **one** implementer for the whole issue: call it with Agent for the first subtask, and continue it with SendMessage for later subtasks so it keeps its context.
    - If the session has no `implementer` agent type (the agent list is loaded at session start), use a general-purpose agent instead and tell it to read `.claude/agents/implementer.md` first and follow it exactly.
    - If it reports BLOCKED → handle by cause: ask the user when it needs the user's decision; go back to ② when the criteria are the problem.
-2. `owner: human` subtasks (Dockerfile, compose, K8S YAML, nginx) are **not given to the implementer**. They go to the `mentor` agent, and the user writes them:
+2. `owner: human` subtasks (Dockerfile, compose, K8S YAML, nginx, and any `.github/workflows/*.yml` that builds or pushes images or deploys) are **not given to the implementer**. They go to the `mentor` agent, and the user writes them:
    - **Explain**: call mentor with "explain mode", the issue number and the subtask number in the prompt, plus the issue's title, body and all comments (it has no Bash). Relay its whole reply to the user, then stop and wait for the user to finish writing.
    - **Review**: when the user says they are done, ask the **same** mentor for a review via SendMessage, with the file path and the round number in the prompt. Relay the whole result to the user; if it has any 🔴, wait for the user's fix and review again in the next round.
    - Once the verdict is `可以 commit`, post the last review round as an issue comment (the verifier uses it to confirm the `owner: human` file was reviewed). Then commit those files yourself: the message states that the user wrote them and includes a line `Reviewed-in: <URL of that comment>` (`gh issue comment` prints the URL). Then move on to the next subtask. If you do not commit first, the next implementer will report BLOCKED because the working tree is not clean.
@@ -127,8 +127,22 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA of the headRefOid the verifier checked>
    git switch main && git pull --ff-only
    ```
-3. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations.
-4. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
+3. **Post-merge verification (deployment PRs only).** Applies when the PR changes a workflow that deploys (decided by content, as in ③ step 2: it builds or pushes an image, logs in to a registry, or deploys over SSH or to a remote host; a workflow that only runs tests or lint does not count), or any other file whose merge triggers a deployment. For a pure code or docs PR skip this step; the rest of ⑤ is unchanged. A deploy workflow normally triggers on `push: main`, so success is only visible after the merge:
+   - **Observe the run.** Get the merge commit SHA (`gh pr view <PR> --json mergeCommit --jq .mergeCommit.oid`), then find the run whose `headSha` equals it:
+     ```bash
+     gh run list --workflow <workflow file name> --branch main --json databaseId,headSha,status,conclusion
+     gh run watch <run-id> --exit-status   # exit code non-zero when the run fails
+     ```
+   - If no run with that `headSha` appears after about 2 minutes, or `gh run watch` does not finish within a reasonable time (for example 15 minutes), do not assume success: tell the user and ask with AskUserQuestion whether to keep waiting or investigate (for example the workflow's trigger or path filter).
+   - **Smoke test.** The backend has no health endpoint that works without login (`/actuator/**` needs ADMIN), so only check that the stack answers and nginx has not lost the backend. The host address is never written in this file or in the repo: take it from the user, or from a GitHub repo variable or secret that the user names. Check the HTTP status codes only:
+     ```bash
+     curl -s -o /dev/null -w '%{http_code}' http://<host>/                                                  # expect 200
+     curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://<host>/api/login   # expect 4xx, not 502 or any 5xx
+     ```
+   - If this machine cannot reach the lab network, ask the user to run the commands and report the codes. You may not count the smoke test as passed on your own.
+   - **On failure** (the run failed, or a smoke test result is not as expected): do not declare the delivery complete; tell the user first. Do not force-push. Rollback is a new revert PR, or redeploying the last known-good image tag. Let the user choose between rollback and a fix forward with AskUserQuestion. The deploy workflow is `owner: human`, so a fix goes through the mentor flow in ③, not to the implementer. The PR is already merged, so this does not count as a send-back in ④; handle it as a new issue and PR (a revert or fix) that goes through ① to ⑤ again.
+4. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. For a deployment PR, also report the workflow run result and the smoke test result.
+5. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
 
 ## Rules
 
