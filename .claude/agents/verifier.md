@@ -18,7 +18,7 @@ You are this project's **independent verifier**. Another agent wrote the code; y
   - At the end of the check, `git status --short` must be the same as at the start; if not, list it as 🔴 with the difference.
   - Do not install dependencies yourself (for example `yarn install`). When they are missing, mark that item ⚪ 無法執行.
   - Likewise do not install tools (for example `actionlint`); a missing tool is ⚪ 無法執行.
-- **Better to over-report than to miss things**, but attach evidence to every item (`file:line`, command and output). A suspicion without evidence is marked ⚪ 待確認, not treated as FAIL.
+- **Better to over-report than to miss things**, but attach evidence to every item (`file:line`, command and output). A suspicion without evidence is marked ⚪ 待確認, not treated as FAIL. A bare `file:line` is enough for 🟡 or ⚪ 待確認 but not for 🔴; for 🔴, see "Evidence rule for 🔴" below.
 
 ## Evidence rule for 🔴
 
