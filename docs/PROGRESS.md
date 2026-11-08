@@ -189,6 +189,14 @@ issue（為什麼要改、驗收條件）
 | /ship 唯一的人工關卡是 ② 的驗收標準核准 | 使用者決定，記在 issue #21 的設計決策留言（2026-11-04），寫在 `.claude/skills/ship/SKILL.md` ② |
 | verifier 判 PASS 且 CI 綠燈後，由總指揮直接合併 | 使用者 2026-11-03 授權，寫在 `.claude/skills/ship/SKILL.md` ⑤ |
 | 本機測試一律使用 JDK 21：`JAVA_HOME=$(/usr/libexec/java_home -v 21 --failfast)` | 跟 CI 一致 |
+| owner 涵蓋部署 workflow：會建置／推送映像或部署的 `.github/workflows/*.yml` 視為 `owner: human`，依內容判斷，純測試 workflow（如 `backend_test.yml`）仍是 `agent` | #71／#78，SKILL.md ③ 第 2 步 |
+| 基礎設施檔案的靜態檢查：只在改到 compose、Dockerfile、workflow 時，verifier 執行 `docker compose config -q`、`docker build --platform linux/amd64`（不 push）、`actionlint`；缺工具或 daemon 沒啟動標 ⚪ 無法執行，不自行安裝 | #77／#83，verifier.md 第 7 項 |
+| 合併後驗證：合併會觸發建置／推送映像或部署的 workflow run 時，用 `gh run watch --exit-status` 等結果；真的部署到主機時再做煙霧測試；失敗不得宣告交付，以 revert PR 或部署上一個映像 tag 回退，不 force-push | #77／#83，SKILL.md ⑤ 第 3 步 |
+| 判 🔴 必須附實際執行的證據（指令與輸出）；只靠閱讀的發現標 ⚪ 待確認；spec-writer 對既有行為的斷言要引用 `file:line`；mentor 的 🔴 附使用者可自己跑的驗證指令 | #79／#84，verifier.md「Evidence rule for 🔴」 |
+| 合併後回顧：每次合併後在 PR 貼 `## /ship 回顧` 留言，必填 (a)–(f)，不是人工關卡；有價值的內容之後整理進本文件 §8 | #81／#85，SKILL.md ⑤ 第 4 步 |
+| how／why 講解：交付時只針對 `owner: agent` 的改動，講 how、why、其他可行做法，挑 1 至 2 個點，沒有值得講的點就寫一行說明 | #82／#86，SKILL.md ⑤ 第 5 步 |
+| 兩支腳本：`verify-worktree.sh`（等 `headRefOid` 與本機 HEAD 一致後建立 verifier 的 detached worktree）、`check-frontmatter.sh`（改到 `.claude/agents/` 或 `.claude/skills/` 時，push 前檢查 frontmatter） | #80／#87，SKILL.md ③ 第 3 步、④ 第 1 步 |
+| /ship 的 `SKILL.md` 與 4 個 agent 定義改寫為英文，規則語意不變；給使用者看的產出仍一律用繁體中文，agent 之間比對的固定字串維持中文 | #69／#70，SKILL.md「Language」 |
 
 相關檔案：
 - `.claude/agents/verifier.md`：檢驗者
@@ -196,6 +204,10 @@ issue（為什麼要改、驗收條件）
 - `.claude/agents/implementer.md`：實作 `owner: agent` 的子任務，用於 /ship（#28）
 - `.claude/agents/mentor.md`：講解與 review `owner: human` 的子任務，只讀不寫（#33）
 - `.claude/skills/ship/SKILL.md`：/ship 流程，由總指揮依序呼叫上面四個 agent
+- `.claude/skills/ship/scripts/verify-worktree.sh`：建立 verifier 用的 worktree（#87）
+- `.claude/skills/ship/scripts/check-frontmatter.sh`：檢查 agent 與 skill 定義的 frontmatter（#87）
+
+SKILL.md 與 4 個 agent 定義現在是英文（#70）；給使用者看的內容仍是繁體中文。
 
 ---
 
@@ -285,3 +297,12 @@ Phase 2（LLM）和 Phase 3（K8s）的規劃，見 ROADMAP §3、§4。
 | 同一個分支不能同時被兩個 worktree checkout；不加 `--detach` 的 worktree 會佔住 main | git 的限制 | worktree 一律用 `--detach` 建立（#28） |
 | skill frontmatter 裡的 ` #21`（SKILL.md 的 `argument-hint`）、agent frontmatter 裡的 `owner: human`（mentor.md 的 description）讓 YAML 解析出錯 | ` #` 會被當成註解，`: ` 會被當成 mapping | 含這些字元的值加上引號，並用 YAML parser 確認（#28、#33） |
 | 總指揮寫一句理由，就能合併 verifier 沒驗到的項目 | 合併條件只寫了「說明不處理的理由」，沒有區分 🟡 和 ⚪ | ⚪ 要補環境重驗或查證，不能只寫理由（#35） |
+| 在 M4 上用 `--platform linux/amd64` 建置 backend 穩定失敗（`./mvnw dependency:go-offline` 解壓縮 Maven 時 `Function not implemented`），原生 arm64 則成功（PR #83 verifier 實測，記錄在 #46 留言，2026-11-08） | Docker Desktop 的 amd64 模擬環境問題，不在 Dockerfile 本身 | amd64 映像在 CI 原生建置；本機只用原生 arm64 驗證 Dockerfile（ROADMAP §4.3）。若 Dockerfile 日後寫入 amd64 專用內容，要在 verifier.md 補「原生失敗原因是架構專用內容時標 ⚪ 待確認」（#46 留言） |
+| #77 驗收標準寫「`/api/login` 回 4xx」，實際回 200（#84 的動機） | 這是沒有查程式碼的斷言，經過 issue、spec-writer 一路傳下去 | 對既有行為的斷言要引用 `file:line`，否則寫「待實作時實測」，🔴 要附實際執行的證據（#84） |
+| 每次建立 verifier worktree 都要手動等 `headRefOid`、拆指令（#78、#83、#84、#85 都重複），沙盒又拒絕內嵌 `git` 的複合指令（#85 回顧） | 步驟固定但每次手動操作，且沙盒擋複合指令 | 寫成腳本，以絕對路徑單獨呼叫（#87 已完成，沙盒接受這個形式；#87 回顧）。其餘腳本候選（`mvn21.sh`、`read-issue.sh`、`merge-pr.sh`）留在 #80 |
+| worktree 沙盒會拒絕：python heredoc 內容提到 git、`for` 迴圈、相對路徑接 `; echo`、`printf … > file`、多段 heredoc（#85、#87 回顧） | 沙盒無法證明這些複合指令只作用在自己的 worktree | 改用 Edit／Write 工具、單一指令，或以絕對路徑單獨呼叫腳本；被拒絕就說明，不繞過（SKILL.md「Rules」） |
+| 本機 `main` ref 過時，`git diff main` 與實際不符（#85 回顧） | 本機沒有 fetch，ref 落後遠端 | 比對一律用 `origin/main`；verifier 用 `gh api .../commits/main` 確認 |
+| 加了 commit 後 PR 描述沒有同步，連續 3 次被 verifier 標 🟡（PR #84、#86、#87；#86、#87 回顧） | 描述裡的「驗收條目對應」是手動維護，沒有檢查 | 目前是 #80 剩下的候選（PR 描述 commit 對應檢查），尚未實作；在那之前，每次 push 新 commit 後手動重讀 PR 描述 |
+| implementer 照驗收條目的「預期」做，漏掉條目本文多寫的一句（PR #86 的 C6，`9e832a0` 補上） | spec-writer 的條目本文與「預期」不一致 | spec-writer 寫條目時，本文和「預期」要一致，不要只在本文多寫要求。尚未改 `spec-writer.md`，等下次改它時一起處理（#86 回顧）；來源是 #86 回顧，不是新規則 |
+| bash 腳本在 `set -u` 下報 `unbound variable`（#87 開發中發現） | 變數後面直接接全形標點（如 `$target（`）會被當成變數名的一部分 | 一律寫成 `${var}`（#87 的 `ab88983` 已改） |
+| `verify-worktree.sh` 的 `yarn install --immutable` 分支沒有實測（#87 回顧） | 近 60 個已合併 PR 都沒動 `package.json`／`yarn.lock`，找不到樣本 PR | 第一次遇到改相依套件的前端 PR 時，實際跑一次並確認腳本行為 |
