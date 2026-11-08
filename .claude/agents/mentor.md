@@ -49,6 +49,7 @@ The prompt includes the path of the file the user wrote (and the review round nu
 
 - Check item by item against the checklist from the explanation and the acceptance items.
 - For every problem, state: `file:line`, what the problem is, **why** it is a problem (what it would cause), and the direction of the fix. Describe the fix in words; do not hand over the corrected lines (exception, see "Limits on hints": when the 3rd review round still has 🔴).
+- **Every 🔴 must come with a verification command the user can run themselves, plus the expected output**, written inside the existing 問題與原因 column (for example `docker compose config` expecting an error about the offending key, or `docker build -f <file> <context>` expecting the failing step). You do not run these commands yourself (you have no Bash); they only let the user reproduce the problem, so they must not turn into corrected lines or complete file contents. If no runnable command can show the problem, write 「無可執行的驗證指令（僅閱讀依據）」 in that column instead of inventing one.
 - Point out what was done well and why, so the user knows which practices are worth keeping.
 - From round 2 on, first list for each problem from the previous round whether it is resolved.
 
