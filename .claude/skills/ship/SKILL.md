@@ -127,14 +127,14 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA of the headRefOid the verifier checked>
    git switch main && git pull --ff-only
    ```
-3. **Post-merge verification (deployment PRs only).** Applies when the PR changes a workflow that deploys (decided by content, as in ③ step 2: it builds or pushes an image, logs in to a registry, or deploys over SSH or to a remote host; a workflow that only runs tests or lint does not count), or any other file whose merge triggers a deployment. For a pure code or docs PR skip this step; the rest of ⑤ is unchanged. A deploy workflow normally triggers on `push: main`, so success is only visible after the merge:
-   - **Observe the run.** Get the merge commit SHA (`gh pr view <PR> --json mergeCommit --jq .mergeCommit.oid`), then find the run whose `headSha` equals it:
+3. **Post-merge verification (only when the merge triggers a build/push or deploy workflow run).** Decide by whether **this merge** triggers a run of a workflow that builds or pushes an image, logs in to a registry, or deploys over SSH or to a remote host (decided by content, as in ③ step 2; a workflow that only runs tests or lint does not count). Read each such workflow's `on:` triggers and path filters and check whether this merge matches them; the kind of files the PR changed does not decide it. For example, a workflow triggered by `push: main` on all paths also runs when an ordinary code PR is merged. A PR that triggers no such run skips this step, and the rest of ⑤ is unchanged. Success is only visible after the merge:
+   - **Observe the run** (every triggered run). Get the merge commit SHA (`gh pr view <PR> --json mergeCommit --jq .mergeCommit.oid`), then find the run whose `headSha` equals it:
      ```bash
      gh run list --workflow <workflow file name> --branch main --json databaseId,headSha,status,conclusion
      gh run watch <run-id> --exit-status   # exit code non-zero when the run fails
      ```
    - If no run with that `headSha` appears after about 2 minutes, or `gh run watch` does not finish within a reasonable time (for example 15 minutes), do not assume success: tell the user and ask with AskUserQuestion whether to keep waiting or investigate (for example the workflow's trigger or path filter).
-   - **Smoke test.** The backend has no health endpoint that works without login (`/actuator/**` needs ADMIN), so use two checks. The host address is never written in this file or in the repo: take it from the user, or from a GitHub repo variable or secret that the user names. Never use a real account or password in these requests.
+   - **Smoke test**, only when the observed run actually deploys to a host. A run that only builds/pushes an image needs just a successful result, with no smoke test. The backend has no health endpoint that works without login (`/actuator/**` needs ADMIN), so use two checks. The host address is never written in this file or in the repo: take it from the user, or from a GitHub repo variable or secret that the user names. Never use a real account or password in these requests.
      ```bash
      # 1. frontend static page through nginx: expect 200
      curl -s -o /dev/null -w '%{http_code}' http://<host>/
@@ -145,7 +145,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - Why check 2: the request goes nginx → backend → a real MySQL query, so a correct answer confirms all three layers and the database connection. It fails when the code is 502/503/504 or any other 5xx, the connection fails, or the code is 200 but the body lacks `"success":false` (for example an nginx error page). Rejected logins return 200 in the current API (`ApiController.login`); if that is later changed to 401, update this check.
    - If this machine cannot reach the lab network, ask the user to run the commands and report the codes. You may not count the smoke test as passed on your own.
    - **On failure** (the run failed, or a smoke test result is not as expected): do not declare the delivery complete; tell the user first. Do not force-push. Rollback is a new revert PR, or redeploying the last known-good image tag. Let the user choose between rollback and a fix forward with AskUserQuestion. The deploy workflow is `owner: human`, so a fix goes through the mentor flow in ③, not to the implementer. The PR is already merged, so this does not count as a send-back in ④; handle it as a new issue and PR (a revert or fix) that goes through ① to ⑤ again.
-4. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. For a deployment PR, also report the workflow run result and the smoke test result.
+4. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. When post-merge verification applied, also report the workflow run result and, if the run deployed, the smoke test result.
 5. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
 
 ## Rules
