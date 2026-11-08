@@ -19,6 +19,7 @@ These instructions are in English, but **everything the user reads is written in
 - Verifier verdicts: `PASS`, `FAIL`, `PASS（有建議）`
 - Finding severities: `🔴 必須修正`, `🟡 建議`, `⚪ 無法執行`, `⚪ 待確認`
 - Mentor verdicts: `可以 commit`, `需要修改`
+- Retrospective comment heading: `## /ship 回顧`
 
 ## Where state lives
 
@@ -30,7 +31,7 @@ All state lives on GitHub; do not keep separate files locally:
 | ② Criteria | Issue comment headed `📋 驗收標準`; a revision is a new comment headed `📋 驗收標準（第 n 版）`, and the latest one wins |
 | ③ Work | Commits on the working branch, and the PR description |
 | ④ Verification | PR comments (one verifier report per round) |
-| ⑤ Delivery | The merged PR |
+| ⑤ Delivery | The merged PR; the retrospective is a PR comment headed `## /ship 回顧` on that PR |
 
 Agents hand off **only through the issue, the PR and the repo contents**. Do not put your own reasoning into the next agent's prompt.
 
@@ -145,8 +146,19 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - Why check 2: the request goes nginx → backend → a real MySQL query, so a correct answer confirms all three layers and the database connection. It fails when the code is 502/503/504 or any other 5xx, the connection fails, or the code is 200 but the body lacks `"success":false` (for example an nginx error page). Rejected logins return 200 in the current API (`ApiController.login`); if that is later changed to 401, update this check.
    - If this machine cannot reach the lab network, ask the user to run the commands and report the codes. You may not count the smoke test as passed on your own.
    - **On failure** (the run failed, or a smoke test result is not as expected): do not declare the delivery complete; tell the user first. Do not force-push. Rollback is a new revert PR, or redeploying the last known-good image tag. Let the user choose between rollback and a fix forward with AskUserQuestion. The deploy workflow is `owner: human`, so a fix goes through the mentor flow in ③, not to the implementer. The PR is already merged, so this does not count as a send-back in ④; handle it as a new issue and PR (a revert or fix) that goes through ① to ⑤ again.
-4. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. When post-merge verification applied, also report the workflow run result and, if the run deployed, the smoke test result.
-5. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
+4. **Retrospective.** After every merged /ship run, whatever the PR size, post one retrospective as a comment on the merged PR: `gh pr comment <PR> --body-file <file>`. Write the body in Traditional Chinese, and start it with the fixed heading `## /ship 回顧`. It is not a human gate: it needs no user approval and does not block step 5. Also write it when post-merge verification (step 3) failed, and list that failure as material.
+   - Evidence: every item under "what happened" carries evidence (a comment URL, a commit SHA or `file:line`, in the same spirit as the Evidence rule for 🔴 in `.claude/agents/verifier.md` and the `file:line` citations in `.claude/agents/spec-writer.md`). Every number in it (send-back count, changed file count and so on) must be re-fetched with `gh`/`git` while writing the comment, never copied from memory or an older PR description.
+   - Required items; write `無` when there is nothing, never omit one:
+     - (a) The number of ④ send-backs and the reason for each, citing the matching verifier report comment.
+     - (b) Whether ② produced a 2nd or later version of the criteria, and why.
+     - (c) Each ⚪ (`無法執行` / `待確認`): its source (environment problem, unclear rule, verifier inference error, or other) and how it was finally handled.
+     - (d) Which agent's output (spec-writer, implementer, verifier or mentor) you had to correct, and what you corrected.
+     - (e) Environment or tool problems (for example a tool not installed, Docker or emulation trouble, a stale local ref, a sandbox-denied command).
+     - (f) Recommendations. Tag each one as exactly one of: 改規則 (change a rule), 改成腳本 (turn it into a script; note that it is a candidate for #80), 另開 issue (attach the issue number), or 不處理 (attach the reason).
+   - The comment must not contain host addresses, accounts, passwords or tokens (the same principle as "the host address is never written in the repo" in step 3).
+   - The retrospective does not update `docs/PROGRESS.md`; when a docs PR later updates it, organize the valuable retrospectives into §8 there.
+5. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. When post-merge verification applied, also report the workflow run result and, if the run deployed, the smoke test result. Also include the URL of the retrospective comment.
+6. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
 
 ## Rules
 
