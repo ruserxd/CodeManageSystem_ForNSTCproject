@@ -1,22 +1,23 @@
-FROM openjdk:21-jdk-slim
+# 把 Maven, 程式碼, 工具建立 jar
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
 
-LABEL authors="ruserxd"
+# 只先放「建置工具」和「套件清單」
+COPY mvnw pom.xml ./
+COPY .mvn ./.mvn
+RUN ./mvnw dependency:go-offline -B
 
-# 常數
-ENV APP_DIR=/app
+# 放程式碼
+COPY src ./src
+RUN ./mvnw package -DskipTests -B
 
-# 建立目錄
-RUN mkdir -p ${APP_DIR}/config
+FROM eclipse-temurin:21-jre
 
-# 設定工作目錄
-WORKDIR ${APP_DIR}
+WORKDIR /app
+RUN useradd -m appuser && mkdir -p ./src/cloneCode ./src/log && chown -R appuser ./src/cloneCode ./src/log
 
-# 複製 jar 檔案 
-COPY ./target/CodeManageSystem-0.0.1-SNAPSHOT.jar ${APP_DIR}/app.jar
-COPY ./src/main/resources/application.properties ${APP_DIR}/config/
-
-# 端口
+COPY --from=build /workspace/target/CodeManageSystem-0.0.1-SNAPSHOT.jar ./app.jar
 EXPOSE 8080
 
-# 執行 jar 檔案
-CMD ["java", "-Dspring.config.location=config/", "-jar", "app.jar", "--spring.config.name=application"]
+USER appuser
+CMD ["java", "-jar", "app.jar"]
