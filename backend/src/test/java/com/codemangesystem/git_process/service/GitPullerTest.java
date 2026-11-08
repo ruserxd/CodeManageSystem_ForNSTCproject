@@ -3,6 +3,7 @@ package com.codemangesystem.git_process.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 class GitPullerTest {
@@ -73,8 +75,8 @@ class GitPullerTest {
         assertEquals(excepted, actual);
 
         verify(pullResult, times(1)).isSuccessful();
+        verify(git, times(1)).close();
       }
-      git.close();
     }
 
     @Test
@@ -108,14 +110,17 @@ class GitPullerTest {
         assertEquals(excepted, actual);
 
         verify(pullResult, times(1)).isSuccessful();
+        verify(git, times(1)).close();
+        // 先關閉 git 再分析
+        InOrder inOrder = inOrder(git, gitDiffAnalyzer);
+        inOrder.verify(git).close();
+        inOrder.verify(gitDiffAnalyzer).analyzePartCommits(anyString(), anyString());
       }
-      git.close();
     }
 
     @Test
     @DisplayName("測試 IOException")
     void throwIOExceptionTest() {
-      Git git = mock(Git.class);
       try (MockedStatic<Git> gitMock = mockStatic(Git.class)) {
         gitMock.when(() -> Git.open(any(File.class))).thenThrow(IOException.class);
 
@@ -129,7 +134,6 @@ class GitPullerTest {
         GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
         assertEquals(excepted, actual);
       }
-      git.close();
     }
 
     @Test
@@ -157,6 +161,7 @@ class GitPullerTest {
         //執行測試
         GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
         assertEquals(excepted, actual);
+        verify(git, times(1)).close();
       }
     }
   }
