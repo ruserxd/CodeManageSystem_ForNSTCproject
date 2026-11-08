@@ -13,10 +13,11 @@ services:
 
   # 前端: React
   frontend:
-    build: 
+    build:
       context: ./frontend
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
+      args:
+        - VITE_API_URL=${VITE_API_URL:-}
+    image: ghcr.io/ruserxd/codemanager_frontend
     restart: unless-stopped
 
   # 後端: Spring-Boot
@@ -25,14 +26,18 @@ services:
       db:
         condition: service_healthy
     build: ./backend
+    image: ghcr.io/ruserxd/codemanager_backend
     env_file:
       - .env
     environment:
       - SPRING_DATASOURCE_URL=${DOCKER_DATASOURCE_URL}
       - SPRING_DATASOURCE_USERNAME=${DOCKER_DATASOURCE_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${DOCKER_DATASOURCE_PASSWORD}
-      - SPRING_PROFILES_ACTIVE=production  
+      - SPRING_PROFILES_ACTIVE=production
       - SERVER_PORT=8080
+    volumes:
+      - backend_clonecode:/app/src/cloneCode
+      - backend_log:/app/src/log
     restart: unless-stopped
 
   # 資料庫: MySQL
@@ -40,7 +45,7 @@ services:
     image: mysql:8.0
     environment:
       - MYSQL_DATABASE=myjdbc
-      - MYSQL_ROOT_PASSWORD=${DOCKER_DATASOURCE_PASSWORD} 
+      - MYSQL_ROOT_PASSWORD=${DOCKER_DATASOURCE_PASSWORD}
       - MYSQL_ROOT_HOST=%
     volumes:
       - mysql_data:/var/lib/mysql
@@ -55,3 +60,5 @@ services:
 
 volumes:
   mysql_data:
+  backend_clonecode:
+  backend_log:
