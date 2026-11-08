@@ -17,6 +17,8 @@
 
 **其他可行做法**：先容器化（Phase 3）再修架構，好處是很早就能練 K8s。但 Phase 1 會改到資料庫 schema 和 API，部署設定得重寫一遍，所以不建議。
 
+**順序的例外**：使用者在 2026-11-04 決定，compose 部署（#43–#47）提前到 Phase 1 完成之前；K8s（P3-05 之後）維持原順序。詳見 §4.3。
+
 ---
 
 ## 1. 目標架構
@@ -225,8 +227,8 @@ Backend 這一側要新增：
 
 | 步驟 | 內容 | 學習重點 |
 |---|---|---|
-| P3-01 | 重寫 backend 的 Dockerfile：multi-stage build（在容器裡建置 jar）、`eclipse-temurin` 映像、非 root 使用者 | 映像分層、建置快取、為什麼 `openjdk` 映像已被棄用 |
-| P3-02 | 重寫 frontend 的 Dockerfile：建置階段 `vite build` → 用 nginx 提供靜態檔（修正 A9） | dev server 和正式環境的差別 |
+| P3-01 | 重寫 backend 的 Dockerfile：multi-stage build（在容器裡建置 jar）、`eclipse-temurin` 映像、非 root 使用者（已完成：#65） | 映像分層、建置快取、為什麼 `openjdk` 映像已被棄用 |
+| P3-02 | 重寫 frontend 的 Dockerfile：建置階段 `vite build` → 用 nginx 提供靜態檔（修正 A9）（已完成：#72） | dev server 和正式環境的差別 |
 | P3-03 | 新增 llm-service 的 Dockerfile（uv 官方映像） | Python 映像的瘦身做法 |
 | P3-04 | 擴充 compose：加入 llm-service、Qdrant、healthcheck、內部網路，只有 nginx 對外開 port | 網路隔離、`expose` 和 `ports` 的差別 |
 | P3-05 | 本機 K8s（k3d 或 kind）：把 compose 的每個服務翻成 Deployment＋Service | 見下方對照表 |
@@ -234,7 +236,7 @@ Backend 這一側要新增：
 | P3-07 | readiness／liveness probe（Spring Boot Actuator 的 health groups） | K8s 用 probe 取代 compose 的 `depends_on` |
 | P3-08 | Ingress＋TLS（cert-manager） | 取代手寫的 nginx 反向代理 |
 | P3-09 | 打包：Kustomize（dev/prod overlay）或 Helm | 同一份設定如何部署到多個環境 |
-| P3-10 | CI/CD：GitHub Actions 建置多架構映像（amd64＋arm64）→ 推到 GHCR | M4 是 arm64，伺服器多半是 amd64 |
+| P3-10 | CI/CD：GitHub Actions 只建置 `linux/amd64` 映像 → 推到 GHCR（實驗室主機確認是 amd64，不做 multi-arch；M4 上用 amd64 模擬建置 backend 會失敗，所以 amd64 映像要在 CI 原生產生，見 §4.3） | M4 是 arm64、實驗室與 CI runner 是 amd64，本機只用原生 arm64 驗證 Dockerfile |
 | P3-11 | 實驗室 5080 主機：安裝 NVIDIA driver、Container Toolkit；worker 和 Ollama 用 compose 或 k3s 執行 | GPU 容器化 |
 | P3-12 | 雲端（AWS）：網站部署到雲端，worker 留在實驗室主動連線（D3） | 混合部署 |
 
@@ -259,6 +261,30 @@ Backend 這一側要新增：
 GPU 推論留在實驗室。雲端上的 GPU 機器費用很高，而且 D3 的 pull 設計本來就讓 worker 可以放在任何地方。
 
 > 🔍 **上線前審查 D** → 見 §5
+
+### 4.3 compose 部署軌道（提前）
+
+使用者在 2026-11-04 決定：compose 部署提前到 Phase 1 完成之前，K8s（P3-05 之後）維持原本的順序。目標是 push 到 `main` 後，自動在實驗室機器上以 compose 更新並部署。
+
+| 順序 | issue | 內容 | 狀態 |
+|---|---|---|---|
+| 1 | #43 | 重寫 backend Dockerfile（P3-01，PR #65） | 已完成 |
+| 2 | #44 | 重寫 frontend Dockerfile，nginx 提供靜態檔（P3-02，PR #72） | 已完成 |
+| 3 | #45 | compose 調整為可部署版本：named volume、只開 nginx port、GHCR 映像名稱（PR #75） | 已完成 |
+| 4 | #46 | CI：push 到 `main` 且測試通過後建置 backend、frontend 映像並推到 GHCR（P3-10） | 未完成 |
+| 5 | #47 | 實驗室 self-hosted runner 執行 `docker compose pull && docker compose up -d` 自動部署 | 未完成 |
+
+**2026-11-08 規劃審查整理的實作注意事項**（做 #46、#47 時要處理）：
+
+1. **`.env` 會被 `actions/checkout` 清掉**：checkout 預設會執行 `git clean -ffdx`，放在工作目錄裡的 `.env` 會消失。要把 `.env` 放在工作目錄以外的固定路徑，compose 用 `--env-file` 指定。
+2. **volume 名稱跟 compose project name 走**：project name 預設取自目錄名，runner 的工作目錄變了，`backend_clonecode`、`backend_log` 與 MySQL 的 volume 就會換成新的，舊資料看起來像不見。用頂層 `name:` 或 `-p` 固定 project name。
+3. **test → build → deploy 怎麼串**：做法一是同一個 workflow 內用 `needs` 串 job，簡單且能保證順序；做法二是另一個 workflow 用 `workflow_run` 接在測試之後，可以拆開檔案，但要自己處理「測試失敗時不部署」的條件與 commit 對應。
+4. **部署後煙霧測試有限制**：目前沒有免登入的 health endpoint，而 `/actuator/**` 需要 ADMIN，無法直接拿來探測。可行的探測是 `GET /` 回 200，以及 `POST /api/login {}` 的回應：`@WebMvcTest` 確認回 200 且 body 含 `"success":false`（PR #83）；尚未在 compose／實驗室環境實測。
+5. **部署前先用 `mysqldump` 備份資料庫**：R2 的 V2 migration 合併後會在部署時自動執行，並清掉實驗室既有資料，沒有備份就無法復原。
+6. **`IMAGE_TAG` 回退與映像清理**：CI 同時推 commit SHA 與 `latest`，compose 的 image 改成 `:${IMAGE_TAG:-latest}`，並在 `.env.example` 新增 `IMAGE_TAG`，出問題時可以指定舊版本回退。每次部署會累積舊映像，要定期執行 `docker image prune`，避免實驗室機器磁碟被塞滿。
+7. **deploy job 的安全與並行限制**：加上 `concurrency` 避免兩次部署同時執行；只允許 `push: main` 與 `workflow_dispatch` 觸發，不可用 `pull_request`（repo 公開，fork PR 可能在實驗室機器上執行程式碼）；確認 GHCR package 的可見性（repo 公開時預設公開，映像內不能有密鑰）；`.env`（`JWT_SECRET`、DB 密碼）只放在實驗室機器上，不進版本控制、不進映像。
+
+**架構限制**：實驗室主機確認是 amd64（#46 留言，2026-11-08），只建置 `linux/amd64`，不做 multi-arch。M4 上用 amd64 模擬建置 backend 會穩定失敗（`./mvnw dependency:go-offline` 解壓縮 Maven 時出現 `Function not implemented`；#46 留言，2026-11-08，來自 PR #83 verifier 的實測），同一個 Dockerfile 用原生 arm64 建置則成功，所以 amd64 映像要在 CI（`ubuntu-latest` 本身是 amd64）原生產生。
 
 ---
 
