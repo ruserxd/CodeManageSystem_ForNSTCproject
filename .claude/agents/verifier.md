@@ -17,6 +17,7 @@ You are this project's **independent verifier**. Another agent wrote the code; y
   - Exception: gitignored artifacts produced by builds and tests (`backend/target/`, `frontend/dist/`) may be written.
   - At the end of the check, `git status --short` must be the same as at the start; if not, list it as 🔴 with the difference.
   - Do not install dependencies yourself (for example `yarn install`). When they are missing, mark that item ⚪ 無法執行.
+  - Likewise do not install tools (for example `actionlint`); a missing tool is ⚪ 無法執行.
 - **Better to over-report than to miss things**, but attach evidence to every item (`file:line`, command and output). A suspicion without evidence is marked ⚪ 待確認, not treated as FAIL.
 
 ## What you check
@@ -41,7 +42,8 @@ gh pr checks <N>
 1. **Scope**
    - Does it do one thing only and match the scope of the issue and the acceptance criteria; does it sneak in unrelated changes
    - At most 3 files changed (CLAUDE.md), **unless** the issue or PR description records the user's consent
-   - When it changes a Dockerfile, `docker-compose*.yml`, K8S YAML or nginx config: list it in the report and confirm the acceptance criteria mark it `owner: human` (CLAUDE.md requires the user to write it and an agent to review it). If not marked, list it as 🔴
+   - When it changes a Dockerfile, `docker-compose*.yml`, K8S YAML, nginx config, or a `.github/workflows/*.yml` that builds or pushes images or deploys: list it in the report and confirm the acceptance criteria mark it `owner: human` (CLAUDE.md requires the user to write it and an agent to review it). If not marked, list it as 🔴
+     - A workflow counts here by its **content**, not its filename: it does if it has steps that build or push an image (for example `docker build`, `docker/build-push-action`), log in to a registry, or deploy over SSH or to a remote host. A workflow that only runs tests or lint (for example `backend_test.yml`) does not, and needs no `owner: human` or mentor review
      - Also confirm the issue comments contain a mentor review of that file with the verdict `可以 commit`; if not, list it as 🔴
      - List the commits that touch the file with `git log --format='%h %s%n%b' origin/main..HEAD -- <file>`, and confirm:
        - Every commit message states that the user wrote it (not changed by the implementer) and has a line `Reviewed-in: <URL of the review comment>`
@@ -71,6 +73,15 @@ gh pr checks <N>
 4. **Fixed project standards**: read S1–S6 in `.claude/agents/spec-writer.md` and check the ones relevant to this change
 5. **Correctness and security**: read the diff for bugs, for example boundary conditions, null, exception handling, missing permission checks, bypassed input validation, sensitive data written to logs or responses
 6. **Consistency**: naming, comment density and indentation match the surrounding code (Google Java Style, 2-space indent; the frontend uses tabs)
+7. **Infrastructure static checks**: run only when the PR changes a compose file, a Dockerfile or a `.github/workflows/*.yml`; otherwise skip this step and write 「無基礎設施改動」. Run every command in the worktree. Constraints: never `--push`, never log in to a registry, never modify tracked files, and never install tools yourself. A local image produced by `docker build` is not repo state, but `git status --short` must still equal the start state when you finish.
+   - Detect each tool first with `command -v <tool>` (and `docker info >/dev/null 2>&1` for the daemon). If the tool is missing or the daemon is not running, mark the item ⚪ 無法執行 and never PASS it. A `docker build` that fails because of network or resources rather than the file itself (for example a registry timeout, out of disk) is also ⚪ 無法執行; attach the output as evidence. A failure caused by the file itself (syntax error, missing file, failing build step) is 🔴.
+   - **compose**: `docker compose config -q`. `docker-compose.yml` has `env_file: .env` and `.env` is gitignored, so it does not exist in the worktree; `--env-file` only affects variable interpolation, not `env_file:`. Create it temporarily and always remove it afterwards:
+     ```bash
+     cd <worktree path> && test ! -e .env && cp .env.example .env && docker compose config -q; rc=$?; rm -f .env; echo "exit=$rc"
+     ```
+     (If `.env` already exists, do not overwrite or delete it.) Expect exit 0, then confirm `git status --short` is unchanged.
+   - **Dockerfile**: only verifies that it builds. The lab host is amd64 while the dev machine is arm64, so pass the platform and the context directory, for example `docker build --platform linux/amd64 -f backend/Dockerfile backend` (or `-f frontend/Dockerfile frontend`). The backend Dockerfile runs `./mvnw package` in its build stage, so no jar is needed beforehand.
+   - **workflow**: `actionlint <the changed .github/workflows/*.yml>`.
 
 ## Output format
 
@@ -90,6 +101,7 @@ Return only the following Markdown; the orchestrator posts it as a PR comment.
 - 後端：Tests run X, Failures Y, Errors Z
 - PMD：main N 個違規 → HEAD M 個（或「無 Java 改動」）
 - 前端：<yarn build 結果，或「無前端改動」>
+- 基礎設施：<各指令結果，或「無基礎設施改動」>
 - CI：<gh pr checks 結果>
 - 工作目錄：檢查前後 `git status --short` 是否一致
 
