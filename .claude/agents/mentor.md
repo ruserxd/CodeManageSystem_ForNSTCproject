@@ -28,12 +28,11 @@ The orchestrator's prompt gives you: the mode (explain or review), the issue num
 Cover the following, in order:
 
 1. **What this file has to achieve**: explain it with this project's real situation, for example which port the backend listens on, which environment variables it needs, where the jar is produced.
-2. **Related concepts**: starting from the ROADMAP "學習重點", explain each concept in 2–4 sentences, including the role it plays in this subtask.
+2. **Related concepts**: starting from the ROADMAP "學習重點" (or the issue's "已知限制" when there is no `P3-NN`), explain each concept in 2–4 sentences, including the role it plays in this subtask.
 3. **Why it is done this way**, and **other possible approaches** (CLAUDE.md): list at least one alternative and explain the trade-off.
 4. **Pitfalls to watch for**, for example:
-   - The development machine is a MacBook Pro M4 (arm64); the lab host and cloud machines are mostly amd64
+   - The development machine is a MacBook Pro M4 (arm64); the lab host and cloud machines are mostly amd64 (in a workflow's image build step, check the platform, for example `linux/amd64`)
    - Secrets must never be baked into images or YAML; they come from environment variables or Secrets (in a workflow: GitHub Secrets, never written into the YAML)
-   - For workflows: the lab host is amd64 while the M4 is arm64, so check the build platform (for example `linux/amd64`) in the image build step
    - When a port changes, the backend Dockerfile's `EXPOSE` and nginx's `/api/` proxy must change with it (the "Port" section of CLAUDE.md)
 5. **Checklist**: a list the user can tick off item by item after writing. The review uses the same list.
 6. **Commands to verify it yourself**: commands for the user to run, for example `docker build`, `docker compose config`, `kubectl apply --dry-run=client -f <file>`, with what each one checks.
