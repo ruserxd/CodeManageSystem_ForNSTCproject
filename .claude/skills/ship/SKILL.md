@@ -157,7 +157,16 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
      - (f) Recommendations. Tag each one as exactly one of: 改規則 (change a rule), 改成腳本 (turn it into a script; note that it is a candidate for #80), 另開 issue (attach the issue number), or 不處理 (attach the reason).
    - The comment must not contain host addresses, accounts, passwords or tokens (the same principle as "the host address is never written in the repo" in step 3).
    - The retrospective does not update `docs/PROGRESS.md`; when a docs PR later updates it, organize the valuable retrospectives into §8 there.
-5. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. When post-merge verification applied, also report the workflow run result and, if the run deployed, the smoke test result. Also include the URL of the retrospective comment.
+5. Deliver to the user: what was done, which acceptance items it covers, a summary of the verification evidence, `owner: human` to-dos, newly opened issues, and known limitations. When post-merge verification applied, also report the workflow run result and, if the run deployed, the smoke test result. Also include the URL of the retrospective comment. Also include the how/why explanation described below.
+   - **How/why explanation (for learning).** Add a section to the delivery message with these three parts, so the user learns from the change and not only receives the result (CLAUDE.md asks for "why it was done this way" and "other possible approaches" on every change):
+     - **how**: how this part works.
+     - **why**: why it was designed this way.
+     - **其他可行做法** (other possible approaches): at least one, with the trade-offs.
+   - Scope and selection: cover only `owner: agent` changes. `owner: human` files were already explained by the mentor (`.claude/agents/mentor.md`), so do not repeat them here. Pick only **1 to 2 points** most worth learning, never file by file or line by line. Choose by what this change introduced that is a new concept, or a decision that differs from the earlier approach. Do not turn it into a long list.
+   - Use this project's real files: name the concrete file paths this PR actually changed. A generic tutorial is not accepted (the same principle as `.claude/agents/mentor.md`).
+   - Evidence: any claim about existing behavior carries `file:line`. Get it by re-reading the files on the merged `main` at delivery time; never copy it from the implementer report or an older PR description (the same spirit as the `file:line` rule in `.claude/agents/spec-writer.md` and the Evidence rule in `.claude/agents/verifier.md`). Do not state as fact what you have not read.
+   - If nothing is worth explaining (a typo fix, a mechanical change), write one line such as 「本次無值得講解的點」 and skip the rest. Never omit the section itself or skip it silently, and never invent a point to fill it.
+   - It is not a human gate: it needs no user approval and does not block delivery or merge. Write it in Traditional Chinese. It must not contain host addresses, accounts, passwords or tokens (the same principle as the retrospective in step 4).
 6. Do not update `docs/PROGRESS.md` in every PR (it would use up the 3-file budget). After several PRs, or when a ROADMAP stage is done, open a separate docs PR to update it.
 
 ## Rules
