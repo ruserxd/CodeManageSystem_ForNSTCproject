@@ -66,15 +66,25 @@ if printf '%s\n' "$files" | grep -qE '^frontend/(package\.json|yarn\.lock)$'; th
 mkdir -p "$base_abs/wt" || exit 1
 git worktree add --detach "$target" "$local_sha" >&2 || { echo "git worktree add 失敗" >&2; exit 1; }
 
+# 準備環境失敗時，移除剛建好的 worktree，讓重跑不會被「目標路徑已存在」擋下
+fail_cleanup() {
+  echo "$1" >&2
+  if git worktree remove --force "$target" >&2; then
+    echo "已移除失敗的 worktree：${target}" >&2
+  else
+    echo "移除失敗，請手動執行 git worktree remove --force ${target}" >&2
+  fi
+  exit 1
+}
+
 if [ "$touch_deps" -eq 1 ]; then
   echo "PR 動到 package.json／yarn.lock，執行 yarn install --immutable" >&2
-  (cd "$target/frontend" && yarn install --immutable) >&2 || { echo "yarn install --immutable 失敗" >&2; exit 1; }
+  (cd "$target/frontend" && yarn install --immutable) >&2 || fail_cleanup "yarn install --immutable 失敗"
 elif [ "$touch_frontend" -eq 1 ]; then
   if [ ! -d "$main_wt/frontend/node_modules" ]; then
-    echo "PR 動到前端，但主工作目錄沒有 $main_wt/frontend/node_modules，無法建立 symlink" >&2
-    exit 1
+    fail_cleanup "PR 動到前端，但主工作目錄沒有 $main_wt/frontend/node_modules，無法建立 symlink"
   fi
-  ln -s "$main_wt/frontend/node_modules" "$target/frontend/node_modules" || exit 1
+  ln -s "$main_wt/frontend/node_modules" "$target/frontend/node_modules" || fail_cleanup "建立 node_modules symlink 失敗"
   echo "已建立 frontend/node_modules symlink -> $main_wt/frontend/node_modules" >&2
 fi
 

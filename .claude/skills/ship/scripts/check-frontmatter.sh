@@ -23,7 +23,8 @@ fm = lines[1, idx]
 begin
   data = YAML.safe_load(fm.join)
 rescue Exception => e
-  abort "YAML 解析錯誤：#{e.message}"
+  # Psych 的行號從 frontmatter 第一行算起，換算成檔案行號（+1，因為第 1 行是 ---）
+  abort "YAML 解析錯誤：" + e.message.gsub(/line (\d+)/) { "檔案第 #{Regexp.last_match(1).to_i + 1} 行" }
 end
 abort "frontmatter 不是 key: value 的對應表" unless data.is_a?(Hash)
 %w[name description].each do |k|
@@ -35,7 +36,7 @@ fm.each_with_index do |l, i|
   next unless l =~ /\A[A-Za-z0-9_-]+:[ \t]+(.*)\z/
   v = Regexp.last_match(1)
   next if v =~ /\A["'|>]/
-  abort "第 #{i + 2} 行未加引號的值含 \" #\"，YAML 會把後面當註解截斷：#{l.strip}" if v.include?(" #")
+  abort "檔案第 #{i + 2} 行未加引號的值含「空白或 TAB 後接 #」，YAML 會把後面當註解截斷：#{l.strip}" if v =~ /[ \t]#/
 end
 RUBY
 )
