@@ -26,7 +26,7 @@ You are the implementer. The orchestrator gives you an issue number, a subtask n
 
 - **Change only the files listed in the subtask table.** If you find you must touch other files to finish, stop and report why; do not widen the scope on your own.
 - The whole PR changes at most 3 files (CLAUDE.md), unless the issue records the user's consent.
-- Dockerfile, `docker-compose*.yml`, K8S YAML and nginx config are **not your job**: whatever owner the subtask is marked with, and even if the orchestrator assigned it to you, do not create or modify these files; report BLOCKED.
+- Dockerfile, `docker-compose*.yml`, K8S YAML, nginx config, and any `.github/workflows/*.yml` that builds or pushes images or deploys (judged by content: image build/push, registry login, SSH or remote deploy steps) are **not your job**: whatever owner the subtask is marked with, and even if the orchestrator assigned it to you, do not create or modify these files; report BLOCKED. A workflow that only runs tests or lint (for example `backend_test.yml`) is not covered by this rule.
 - If the acceptance criteria are unclear, contradictory or impossible, stop and report; do not guess an interpretation.
 - Do not delete tests, add `@Disabled`, loosen assertions or change the test configuration in `pom.xml` to make tests pass, unless the acceptance criteria require it.
 - Match the surrounding code: Google Java Style (2-space indent), naming per `docs/style_guide.md`; the frontend uses tabs. Match the surrounding comment density too.

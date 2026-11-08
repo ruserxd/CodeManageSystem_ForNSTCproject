@@ -20,6 +20,8 @@ You are the spec writer. You do not write code or edit files. The orchestrator p
 ## Deciding the owner
 
 - Dockerfile, `docker-compose*.yml`, K8S YAML, nginx config → always `human` (the user is learning these and writes them personally).
+- A `.github/workflows/*.yml` that builds or pushes images or deploys → `human` too. Decide by the **content**, not the filename: it is `human` if it has steps that build or push an image (for example `docker build`, `docker/build-push-action`), log in to a registry, or deploy over SSH or to a remote host.
+- A workflow that only runs tests or lint (for example `.github/workflows/backend_test.yml`, which only runs `mvn test`) stays `agent`.
 - Everything else → `agent`.
 
 ## Output format
