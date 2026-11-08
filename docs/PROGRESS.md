@@ -4,7 +4,7 @@
 >
 > **更新方式**：每完成一批 PR 就在「已完成」補上一節，並更新「進度總表」和「下一步」。每一項都附上 issue／PR 編號，細節以 GitHub 上的 PR 描述和 verifier 留言為準。
 
-最後更新：2026-11-04
+最後更新：2026-11-08
 
 ---
 
@@ -12,11 +12,11 @@
 
 | 項目 | 數字 |
 |---|---|
-| 本次產品化工作已合併的 PR | 19 個（#4、#6–#8、#10、#11、#13、#14、#16、#19、#22、#24、#27、#28、#31、#33、#35、#37、#39）；另有 2025-02 的舊 PR #1、#2 |
-| 已關閉的 issue | 14 個（#3、#5、#9、#12、#15、#17、#18、#21、#23、#29、#30、#32、#36、#38） |
-| 尚未處理的 issue | 4 個（#20、#25、#26、#34），見 §5 |
-| 後端測試 | 135 個全部通過（開始時是 104 個，其中 3 個失敗，但 CI 仍然顯示成功）；#27 之後的 PR 都沒有改後端 |
-| 目前階段 | Phase 1：安全問題 R1、R3–R6 已修正，下一個是 R2（需要先完成的 Flyway 已經做好）。/ship 多 agent 流程已經可以使用（§3.5） |
+| 本次產品化工作已合併的 PR | 39 個（#4、#6–#8、#10、#11、#13、#14、#16、#19、#22、#24、#27、#28、#31、#33、#35、#37、#39、#41、#42、#48、#50、#53、#55、#57、#60、#64、#65、#67、#70、#72、#75、#78、#83–#87）；另有 2025-02 的舊 PR #1、#2。2026-11-08 以 `gh pr list --state merged` 取得 |
+| 已關閉的 issue | 33 個（#3、#5、#9、#12、#15、#17、#18、#21、#23、#25、#26、#29、#30、#32、#36、#38、#40、#43、#44、#45、#49、#52、#54、#56、#58、#62、#66、#69、#71、#77、#79、#81、#82） |
+| 尚未處理的 issue | 13 個（#20、#34、#46、#47、#51、#59、#61、#63、#68、#73、#74、#76、#80），見 §5；另有進行中的 #88（本次文件同步） |
+| 後端測試 | 185 個全部通過（PR #60、#64 的 `./mvnw test` 輸出：`Tests run: 185, Failures: 0, Errors: 0`）；開始時是 104 個，其中 3 個失敗，但 CI 仍然顯示成功。#64 之後沒有改後端，未重新統計 |
+| 目前階段 | Phase 1：安全問題 R1、R3–R6 已修正，R2 進行中（ADR 0001、V2 migration、`normalizeRepoUrl` 已完成，其餘步驟見 §6.1）。另有一條提前的 compose 部署軌道（2026-11-04 使用者決定，見 ROADMAP §4.3）：#43–#45 已完成，下一步是 #46、#47。/ship 多 agent 流程已經可以使用（§3.5、§3.9） |
 
 ---
 
@@ -27,12 +27,12 @@
 | ID | 問題 | 狀態 | issue | PR |
 |---|---|---|---|---|
 | R1 | CI 永遠不會失敗 | ✅ 完成 | — | #4 |
-| R2 | 專案用 repo 名稱識別 | ⏳ 下一步 | — | — |
+| R2 | 專案用 repo 名稱識別 | ⏳ 進行中（ADR、V2 migration、`normalizeRepoUrl` 已完成） | #52、#54、#56 | #53、#55、#57 |
 | R3 | 寫死的管理員帳號 `123/123` | ✅ 完成 | #9 | #10、#11 |
 | R4 | 註冊 API 可以覆蓋既有使用者 | ✅ 完成（暫時的止血，DTO 屬於 P1-03） | #15 | #16 |
 | R5 | API 回應與 log 洩漏密碼雜湊 | ✅ 完成（暫時的止血，DTO 屬於 P1-03） | #5 | #6、#7 |
 | R6 | clone 任意 URL（SSRF、讀取本機檔案、路徑穿越） | ✅ 完成（repo 大小上限要等 P1-10） | #12 | #13、#14 |
-| A6 | 用 `ddl-auto=update` 管理 schema | ✅ 完成 | #17 | #22 |
+| A6 | 用 `ddl-auto=update` 管理 schema | ✅ 完成（#42 起 CI 實際驗證 migration） | #17、#25 | #22、#42 |
 | A10 | 建置環境沒有固定（JDK、Maven Wrapper） | ✅ 完成 | #3 | #4 |
 | A1–A5、A7–A9 | 其他架構問題 | 尚未開始 | — | — |
 
@@ -47,11 +47,13 @@
 | P1-04 | 移除寫死的管理員帳號 | ✅ #10、#11 |
 | P1-05 | 臨時分析的 URL 白名單、逾時、repo 大小上限 | ✅ 部分完成 #13、#14（大小上限要等 P1-10） |
 | P1-06 | 導入 Flyway | ✅ #22 |
-| P1-07 | 專案識別重新設計（R2） | ⏳ 下一步，拆法見 §6 |
+| P1-07 | 專案識別重新設計（R2） | ⏳ 進行中：#53（ADR）、#55（V2 migration）、#57（`normalizeRepoUrl`）完成，其餘依 ADR 0001 的後續步驟，見 §6.1 |
 | P1-08 ～ P1-17 | 錯誤格式、REST 化、非同步 job、拆分分析器、版本升級、前端等 | 尚未開始 |
 | — | 架構審查 A | Phase 1 結束時進行 |
 
-ROADMAP 以外新增的項目：可執行 jar（#23 → #24）、忽略 `frontend/dist`（#8）、verifier agent（#18 → #19）、/ship 多 agent 流程（#28–#39，見 §3.5）。
+ROADMAP 以外新增的項目：可執行 jar（#23 → #24）、忽略 `frontend/dist`（#8）、verifier agent（#18 → #19）、/ship 多 agent 流程（#28–#39，見 §3.5；之後的調整見 §3.9）、移除 h2（#26 → #48）、修正 PMD plugin 版本（#58 → #60）、關閉 `Git` 資源（#62 → #64）。
+
+compose 部署軌道（ROADMAP §4.3，提前進行）：P3-01 完成於 #65（含 #67 修正）、P3-02 完成於 #72、compose 調整完成於 #75；P3-10 對應的 #46 與自動部署 #47 尚未開始。
 
 ---
 
@@ -116,6 +118,53 @@ R4、R5 都**先寫測試、確認修正前會失敗**，再修正（錯誤訊�
 
 #35、#37、#39 都是先前 PR 的 verifier 或 spec-writer 列在範圍外、另開 issue 後接著處理的：#30 來自 #28 的 verifier，#36 來自 #35 的 verifier，#38 來自 #36 的驗收標準。
 
+### 3.6 CI、相依套件與後端小修（#42、#48、#60、#64）
+
+| PR | issue | 改了什麼 | 為什麼 |
+|---|---|---|---|
+| #42 | #25 | 新增 `FlywaySchemaValidationTest`（`@SpringBootTest` ＋ Testcontainers MySQL），CI 移除 `ddl-auto=create-drop` 的覆寫與 MySQL service，改成 MySQL 8.0／8.4 的 matrix | 原本 CI 的 `create-drop` 蓋掉了 `validate`，而且沒有任何測試會啟動完整 context，所以 Flyway migration 與 Hibernate validate 從來沒被驗過 |
+| #48 | #26 | 刪掉 `pom.xml` 的 `h2` 相依 | 主程式和測試都沒用到 H2（schema 用 MySQL 的 Flyway migration，H2 驗不出相容性）；正式 jar 少一個要追 CVE 的套件 |
+| #60 | #58 | `pom.xml` `<reporting>` 的 `maven-pmd-plugin` 從 `4.0.0-beta-1`（Maven Central 上不存在）改為 `3.28.0` | Docker multi-stage build（#43）執行 `./mvnw dependency:go-offline` 會因找不到這個 artifact 失敗；`test`／`package` 不解析 reporting plugin，所以先前沒被發現 |
+| #64 | #62 | `GitPuller.pullLocalRepository` 改用 try-with-resources 管理 `Git` | pull 失敗提早 return 或 `call()` 丟例外時 `Git` 不會被關閉；`deleteGitRepository` 的重複 close 因 3 檔上限拆到 #63（尚未處理） |
+
+### 3.7 R2：專案識別（#53、#55、#57）
+
+依 ADR 0001（`docs/adr/0001-project-identity.md`）的決定：唯一鍵改用正規化的 `repo_url`，同一個 repo 全域只有一個 Project，舊資料清掉重新分析。
+
+| PR | issue | 改了什麼 | 為什麼 |
+|---|---|---|---|
+| #53 | #52 | 新增 ADR 0001；ROADMAP §7 的「現有資料的遷移」改成已決定 | R2 要先把識別方式、正規化規則、舊資料處理與後續步驟定案，再動 schema |
+| #55 | #54 | `V2__project_repo_url.sql`：清空 `project`、`files`、`method`、`diff_info`、`personal_info`，`project` 新增 `repo_url` 與唯一鍵；`Project` 加欄位；`FlywaySchemaValidationTest` 新增 5 個測試 | 這是破壞性的 migration，套用後要手動刪除 `backend/src/cloneCode/` 底下舊的 clone；`repo_url` 先允許 NULL，因為現有程式碼建立 Project 時還不會寫入 |
+| #57 | #56 | `GitFunction`：`validateRepoUrl` 允許一個結尾 `/`，新增 `normalizeRepoUrl`（host 與 path 轉小寫、去結尾 `/` 與 `.git`），新增 25 個參數化案例 | 提供 ADR 規定的正規化函式；還沒接到 clone 流程（ADR 後續第 2 步才接） |
+
+### 3.8 compose 部署軌道（#65、#67、#72、#75）
+
+ROADMAP §4.3 的前三步。Dockerfile、compose、nginx 設定由使用者撰寫（owner: human），Claude 負責講解與 review，PR 描述附有 mentor review 紀錄。
+
+| PR | issue | 改了什麼 | 為什麼 |
+|---|---|---|---|
+| #65 | #43 | backend Dockerfile：改用 `eclipse-temurin`（建置 `21-jdk`、執行 `21-jre`）、multi-stage build（容器內 `./mvnw package`）、非 root 的 `appuser`；新增 `.dockerignore` | 官方 `openjdk` 映像已從 Docker Hub 移除；建置不再依賴主機的 JDK 與 Maven；後端會寫入 `src/cloneCode`、`src/log`，這兩個目錄預先建立並授權給 `appuser` |
+| #67 | #66 | frontend Dockerfile 啟用 corepack 並複製 Yarn 4 設定；`.dockerignore` 排除 `node_modules` 等 | `node:24-alpine` 內建 Yarn 1，無法執行 `packageManager: yarn@4.12.0` 的專案；macOS 的 `node_modules` 原生套件會經 `COPY . .` 蓋掉 Linux 版本 |
+| #72 | #44 | frontend Dockerfile 改為 multi-stage（`yarn build` → nginx 只提供 `dist/`），新增 `frontend/nginx.conf`（SPA 路由 fallback 到 `index.html`），`ARG VITE_API_URL` | 不再用 Vite dev server 對外服務（ROADMAP A9）；SPA 路由重新整理才不會 404 |
+| #75 | #45 | `docker-compose.yml`：backend 用 named volume `backend_clonecode`、`backend_log`；frontend 改用 `build.args`；backend、frontend 加 GHCR `image:` 名稱；只有 nginx 對外開 80。`nginx/nginx.conf` 的 `location /` 轉 `frontend:80`。`.env.example` 的 `VITE_API_URL` 改為空值 | 讓 compose 成為可部署版本：資料持久化、只開一個對外 port、映像名稱與 #46 的 CI 推送一致、前端與 API 走同源 |
+
+### 3.9 /ship 後續調整（#50、#70、#78、#83–#87）
+
+這一批 PR 只改 agent／skill 定義與 `.claude/skills/ship/scripts/`，沒有改產品程式碼。
+
+| PR | issue | 改了什麼 | 為什麼 |
+|---|---|---|---|
+| #50 | #49 | 4 個 agent 定義的 frontmatter 加上 `model` 與 `effort`（spec-writer、implementer、mentor 為 sonnet，verifier 為 opus） | 依角色降低 token 消耗 |
+| #70 | #69 | `SKILL.md` 與 4 個 agent 定義改寫為英文，規則語意不變；新增「給使用者看的產出一律用繁體中文」；agent 之間比對的字串（`📋 驗收標準`、`PASS`／`FAIL`、🔴🟡⚪ 等）維持中文 | 定義檔改英文；舊的 issue／PR 因固定字串不變而不受影響 |
+| #78 | #71 | spec-writer、implementer、mentor 的 owner 規則：會建置／推送映像或部署的 workflow 視為 `owner: human`，依內容判斷，純測試 workflow 仍是 `agent` | 為 #46、#47 做準備，使用者的 workflow 由使用者撰寫 |
+| #83 | #77 | verifier 新增基礎設施靜態檢查（compose、Dockerfile、workflow）；`SKILL.md` ⑤ 新增部署類 PR 的合併後驗證與煙霧測試 | 讓 /ship 能驗證部署類任務；煙霧測試的 `/api/login` 預期（回 200 且 body 含 `"success":false`）由 `@WebMvcTest` 確認，尚未在 compose／實驗室環境實測 |
+| #84 | #79 | verifier 新增「🔴 必須附證據」規則；mentor 的 🔴 附使用者可執行的指令；spec-writer 對既有行為的斷言要引用 `file:line` | #77 的「`/api/login` 回 4xx」是沒有查程式碼的斷言，一路傳到驗收標準 |
+| #85 | #81 | `SKILL.md` ⑤ 新增「回顧」步驟：合併後在 PR 貼 `## /ship 回顧` 留言 | 借鏡 pstack reflect，讓每次執行的教訓留下紀錄 |
+| #86 | #82 | `SKILL.md` ⑤ 交付時加入 how／why／其他可行做法的講解（只講 `owner: agent` 的改動） | 借鏡 pstack teach，輔助學習 |
+| #87 | #80（`Refs`） | 新增 `verify-worktree.sh`、`check-frontmatter.sh`，`SKILL.md` 對應改寫 | 把 /ship 最常重複的兩組步驟（等 `headRefOid` 並建 worktree、檢查 frontmatter）寫成腳本；其餘候選留在 #80 |
+
+#41 是先前 PR 的文件補述（PROGRESS 補上 /ship 流程），沒有另外列在這裡。
+
 ---
 
 ## 4. 已建立的工作流程
@@ -152,27 +201,44 @@ issue（為什麼要改、驗收條件）
 
 ## 5. 待處理的 issue
 
+2026-11-08 以 `gh issue list --state open` 取得，共 13 個（不含進行中的 #88）。
+
 | issue | 內容 | 建議時機 |
 |---|---|---|
-| #20 | CLAUDE.md 有過時描述（`testFailureIgnore`、JaCoCo 路徑、超級帳號 `"123"`）；spec-writer S3 的部分已在 #31 修正 | 和 P1-17 一起處理 |
-| #25 | CI 沒有實際驗證 Flyway migration 和 validate | R2 之前或同時處理，因為 R2 會新增 V2 migration |
-| #26 | h2 被打包進正式 jar | 和 #25 一起考慮 |
+| #20 | CLAUDE.md 與 spec-writer S3 仍描述已移除的 `testFailureIgnore` | 和 #61、P1-17 一起處理 |
 | #34 | 一個子任務有多個 `owner: human` 檔案時，mentor review 與 `Reviewed-in` 怎麼對應 | Phase 3 開始前 |
+| #46 | push main 時建置 backend／frontend 映像並推到 GHCR（P3-10） | compose 部署軌道的下一步（ROADMAP §4.3） |
+| #47 | 實驗室 self-hosted runner 自動以 compose 部署 | 接在 #46 之後 |
+| #51 | SKILL.md 寫明呼叫 agent 時不要帶 model／effort 參數 | /ship 小改動，可隨時處理 |
+| #59 | `ApiController.deleteUser` 有不必要的括號，`pmd:check` 失敗 | 後端小修，可隨時處理 |
+| #61 | CLAUDE.md 仍寫 Surefire 設了 `testFailureIgnore=true`，但 pom 已移除 | 和 #20 一起處理 |
+| #63 | `deleteGitRepository` 對 JGit Repository 重複 close | 後端小修（由 #64 拆出） |
+| #68 | `vite server.open` 在容器內造成 `spawn xdg-open ENOENT` | 前端小修 |
+| #73 | 前端 nginx 的 `/assets/` 不存在時回 404，並加上快取標頭 | 前端小修（由 #72 帶出） |
+| #74 | 新增 `.editorconfig` 統一各類檔案的縮排與檔尾換行 | 小改動，可隨時處理 |
+| #76 | `.env.example` 佔位值照抄會啟動失敗（`JWT_SECRET` 長度、DB 帳號與 compose 不符） | 在 #47 之前處理較好 |
+| #80 | /ship 重複的規則改寫成腳本（第 1 批已由 #87 完成，其餘候選待處理） | 之後依回顧結果挑選 |
 
 ---
 
 ## 6. 下一步
 
+### 6.0 提前進行：compose 部署軌道
+
+使用者在 2026-11-04 決定：compose 部署提前到 Phase 1 完成之前；K8s（P3-05 之後）維持原本的順序。#43–#45 已完成，接下來是 #46（CI 建置映像推到 GHCR）→ #47（實驗室 self-hosted runner 部署）。兩者的 workflow 屬 `owner: human`，實作注意事項見 ROADMAP §4.3。這條線與 Phase 1 的順序互不影響，Phase 1 剩餘任務的順序不變。
+
 ### 6.1 R2：專案識別重新設計（P1-07）
 
-**已經決定**：資料庫裡的舊分析資料**清掉、重新分析**，不做遷移（2026-11-03，使用者決定）。這個決定之後要寫進 P1-07 的 ADR，並同步更新 ROADMAP §7 的「待決事項」。
+**已經決定**：資料庫裡的舊分析資料**清掉、重新分析**，不做遷移（2026-11-03，使用者決定），已寫入 ADR 0001（#53）。
 
-預計拆成幾個小 PR，實作時可能再調整：
+已完成：ADR（#53）、V2 migration（#55）、`normalizeRepoUrl` 與放寬結尾 `/`（#57，屬 ADR 後續第 2 步的一部分）。
 
-1. **V2 migration**：清空 project、files、method、diff_info、personal_info；`project` 新增 `repo_url` 欄位並加上唯一鍵；entity 加上對應的欄位
-2. **以 URL 識別專案**：clone 與分析時存入正規化後的 URL，查詢改用 URL
-3. **clone 路徑**：改用 projectId，或 `host/owner/repo`，不再用 repo 名稱
-4. **API 與前端改用 projectId**：保留擁有權檢查
+剩餘步驟依 ADR 0001「後續 issue」清單（R2 的第 2 到第 6 步，各跑一次 /ship；R2 第 1 步是 ADR 本身，所以清單的第 1 項 V2 migration 是 R2 第 2 步）：
+
+- R2 第 3 步：**存入正規化 URL 並改查詢**，含放寬驗證器的結尾 `/`（#57 已完成）、clone 使用正規化 URL、加入時不接受 `commitId`、加入時不再 pull 與增量分析（#57 只提供函式，尚未接到 clone 流程）
+- R2 第 4 步：**clone 路徑**改用 projectId
+- R2 第 5 步：**API 改用 projectId**（保留擁有權檢查）
+- R2 第 6 步：**前端改用 projectId**
 
 ### 6.2 Phase 1 剩下的任務（建議順序）
 
