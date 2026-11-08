@@ -280,9 +280,9 @@ GPU 推論留在實驗室。雲端上的 GPU 機器費用很高，而且 D3 的 
 2. **volume 名稱跟 compose project name 走**：project name 預設取自目錄名，runner 的工作目錄變了，`backend_clonecode`、`backend_log` 與 MySQL 的 volume 就會換成新的，舊資料看起來像不見。用頂層 `name:` 或 `-p` 固定 project name。
 3. **test → build → deploy 怎麼串**：做法一是同一個 workflow 內用 `needs` 串 job，簡單且能保證順序；做法二是另一個 workflow 用 `workflow_run` 接在測試之後，可以拆開檔案，但要自己處理「測試失敗時不部署」的條件與 commit 對應。
 4. **部署後煙霧測試有限制**：目前沒有免登入的 health endpoint，而 `/actuator/**` 需要 ADMIN，無法直接拿來探測。可行的探測是 `GET /` 回 200，以及 `POST /api/login {}` 的回應：`@WebMvcTest` 確認回 200 且 body 含 `"success":false`（PR #83）；尚未在 compose／實驗室環境實測。
-5. **部署前先用 `mysqldump` 備份資料庫**：R2 的 V2 migration 合併後會在部署時自動執行，並清掉實驗室既有資料，沒有備份就無法復原。
+5. **部署前先用 `mysqldump` 備份資料庫**：V2 migration（PR #55）已在 main，第一次自動部署時 Flyway 就會對實驗室資料庫執行並清空既有分析資料，所以第一次部署前一定要先 `mysqldump`；之後每次部署前也備份。
 6. **`IMAGE_TAG` 回退與映像清理**：CI 同時推 commit SHA 與 `latest`，compose 的 image 改成 `:${IMAGE_TAG:-latest}`，並在 `.env.example` 新增 `IMAGE_TAG`，出問題時可以指定舊版本回退。每次部署會累積舊映像，要定期執行 `docker image prune`，避免實驗室機器磁碟被塞滿。
-7. **deploy job 的安全與並行限制**：加上 `concurrency` 避免兩次部署同時執行；只允許 `push: main` 與 `workflow_dispatch` 觸發，不可用 `pull_request`（repo 公開，fork PR 可能在實驗室機器上執行程式碼）；確認 GHCR package 的可見性（repo 公開時預設公開，映像內不能有密鑰）；`.env`（`JWT_SECRET`、DB 密碼）只放在實驗室機器上，不進版本控制、不進映像。
+7. **deploy job 的安全與並行限制**：加上 `concurrency` 避免兩次部署同時執行；只允許 `push: main` 與 `workflow_dispatch` 觸發，不可用 `pull_request`（repo 公開，fork PR 可能在實驗室機器上執行程式碼）；GHCR package 的可見性要在第一次推送後實際確認（#46 本文推測 repo 公開時 package 也會公開，尚未驗證；不論公開與否，映像內都不能有密鑰）；`.env`（`JWT_SECRET`、DB 密碼）只放在實驗室機器上，不進版本控制、不進映像。
 
 **架構限制**：實驗室主機確認是 amd64（#46 留言，2026-11-08），只建置 `linux/amd64`，不做 multi-arch。M4 上用 amd64 模擬建置 backend 會穩定失敗（`./mvnw dependency:go-offline` 解壓縮 Maven 時出現 `Function not implemented`；#46 留言，2026-11-08，來自 PR #83 verifier 的實測），同一個 Dockerfile 用原生 arm64 建置則成功，所以 amd64 映像要在 CI（`ubuntu-latest` 本身是 amd64）原生產生。
 
