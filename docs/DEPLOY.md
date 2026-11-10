@@ -44,7 +44,7 @@ sudo usermod -aG docker gh-runner
 
    `--name` 建議用中性名稱（例如 `lab-runner`）。不加的話預設是主機名稱，而公開 repo 的 Actions log 任何人都看得到 runner 名稱，主機名稱常帶有個人姓名。注意 log 另外還會顯示 `Machine name`，那是作業系統的 hostname，`--name` 改不到；要改得用 `hostnamectl`，共用機器請先問過管理者。
 
-   已經註冊的 runner 要改名（在 runner 目錄執行）：
+   已經註冊的 runner 要改名（在 runner 目錄 `/home/gh-runner/actions-runner` 執行；管理帳號 `cd` 被拒時見第 3 步最後的替代做法）：
 
    ```bash
    sudo ./svc.sh stop && sudo ./svc.sh uninstall                  # 管理帳號
@@ -60,7 +60,7 @@ sudo usermod -aG docker gh-runner
    sudo ./svc.sh install gh-runner
    sudo ./svc.sh start
    sudo ./svc.sh status                          # 要看到 active (running)
-   ps -o user=,pid= -C Runner.Listener           # 應該印出 gh-runner
+   ps -o user=,pid= -C Runner.Listener           # 第一欄應為 gh-runner；沒有輸出表示 runner 沒在跑
    ```
 
    新版 Ubuntu 的 `useradd -m` 可能把家目錄建成 `0750`，管理帳號 `cd` 會被拒絕。這時改用 `sudo bash -c 'cd /home/gh-runner/actions-runner && ./svc.sh install gh-runner && ./svc.sh start'`。
