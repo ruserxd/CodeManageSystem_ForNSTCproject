@@ -39,31 +39,62 @@ sudo usermod -aG docker gh-runner
 2. 以 `gh-runner` 登入，照頁面指示下載並執行 `config.sh`。註冊時的 labels 輸入 `lab`（`self-hosted`、`linux`、`x64` 會自動帶上）：
 
    ```bash
-   ./config.sh --url https://github.com/ruserxd/CodeManageSystem_ForNSTCproject --token <頁面顯示的一次性註冊碼> --labels lab
+   ./config.sh --url https://github.com/ruserxd/CodeManageSystem_ForNSTCproject --token <頁面顯示的一次性註冊碼> --labels lab --name lab-runner
    ```
-3. 安裝成開機自動啟動的服務：
+
+   `--name` 建議用中性名稱（例如 `lab-runner`）。不加的話預設是主機名稱，而公開 repo 的 Actions log 任何人都看得到 runner 名稱，主機名稱常帶有個人姓名。已經註冊的 runner 要改名，需先 `sudo ./svc.sh uninstall`、`./config.sh remove --token <移除碼>`，再重新註冊。
+3. 安裝成開機自動啟動的服務。`gh-runner` **沒有也不該有** sudo 權限（以它執行 `sudo` 會被拒絕），所以這一步要先 `exit` 回到有 sudo 的管理帳號，在 runner 目錄執行。最後的 `gh-runner` 參數指定服務以哪個帳號執行：
 
    ```bash
+   cd /home/gh-runner/actions-runner
    sudo ./svc.sh install gh-runner
    sudo ./svc.sh start
-   sudo ./svc.sh status
+   sudo ./svc.sh status                          # 要看到 active (running)
+   ps -o user= -p "$(pgrep -f Runner.Listener)"  # 應該印出 gh-runner
    ```
-4. 回到 Runners 頁面，確認 runner 狀態為 Idle，且 labels 包含 `lab`。
+
+   runner 的 log：`journalctl -u 'actions.runner.*' -f`。
+4. 回到 Runners 頁面，確認 runner 狀態為 Idle（不是 Offline），且 labels 包含 `lab`。只註冊、還沒 `start` 時會顯示 Offline。
 
 ## 4. 放置 `.env`
 
 `.env` 只存在實驗室機器上，**不進 git、不進映像**。放在 runner 工作目錄之外（checkout 會清掉工作目錄內的檔案），deploy 時 workflow 會在工作目錄建一個指向它的符號連結。
 
+以下全部在**有 sudo 的管理帳號**下執行，不用切換到 `gh-runner`。寫 `.env` 時用 `sudo -u gh-runner` 暫時借用它的身分，檔案的擁有者才會是 `gh-runner`。不要用 `sudo nano` 直接編輯，那樣檔案會變成 root 擁有，runner 讀不到。
+
 ```bash
 sudo mkdir -p /opt/codemanager/env /opt/codemanager/backup
 sudo chown -R gh-runner:gh-runner /opt/codemanager
 sudo chmod 700 /opt/codemanager/env /opt/codemanager/backup
-# 以 gh-runner 身分，依 .env.example 的欄位填入實際值
-cp .env.example /opt/codemanager/env/.env     # 或自行建立
-chmod 600 /opt/codemanager/env/.env
+# 以 gh-runner 身分建立並編輯，欄位依 .env.example
+sudo -u gh-runner nano /opt/codemanager/env/.env
+sudo -u gh-runner chmod 600 /opt/codemanager/env/.env
+sudo ls -l /opt/codemanager/env/.env     # 預期 -rw------- gh-runner gh-runner
 ```
 
-欄位請參照 repo 根目錄的 `.env.example`，部署至少要填 `JWT_SECRET`（至少 32 字元）、`DOCKER_DATASOURCE_URL`、`DOCKER_DATASOURCE_USERNAME`、`DOCKER_DATASOURCE_PASSWORD`。
+`chmod 700` 之後，管理帳號自己執行 `ls` 也會出現 `Permission denied`，這是預期結果，表示只有 `gh-runner` 進得去。要查看時請加 `sudo`。
+
+欄位請參照 repo 根目錄的 `.env.example`，部署至少要填 `JWT_SECRET`（至少 32 字元）、`DOCKER_DATASOURCE_URL`、`DOCKER_DATASOURCE_USERNAME`、`DOCKER_DATASOURCE_PASSWORD`。**不要照抄 `.env.example` 的佔位值**（#76），有兩個值必須和 `docker-compose.yml` 的 `db` service 一致：
+
+| 欄位 | 必須是 | 原因 |
+|---|---|---|
+| `DOCKER_DATASOURCE_URL` | `jdbc:mysql://db:3306/myjdbc?...`（`?` 之後的參數照 `.env.example`） | 主機名稱是 compose service 名稱 `db`（不是 `localhost`），資料庫名稱是 `MYSQL_DATABASE=myjdbc` |
+| `DOCKER_DATASOURCE_USERNAME` | `root` | compose 只設定了 `MYSQL_ROOT_PASSWORD`，沒有建立其他帳號 |
+
+`JWT_SECRET` 可用 `openssl rand -base64 48` 產生。`APP_ADMIN_ACCOUNT`／`APP_ADMIN_PASSWORD` 兩個都留空就不會建立管理員。
+
+`.env` 裡的 `SPRING_DATASOURCE_*` 是本機開發用的，部署時不會生效：compose 的 `environment:` 會用 `DOCKER_DATASOURCE_*` 覆蓋它們（`environment:` 優先於 `env_file`）。
+
+填完後可用下面的指令自我檢查，密碼和 secret 只會顯示長度，輸出可以直接貼給別人看：
+
+```bash
+sudo -u gh-runner awk -F= '
+  /^#/||NF<2 {next}
+  $1 ~ /PASSWORD|SECRET/ {print $1 " = (len " length(substr($0, index($0,"=")+1)) ")"; next}
+  {print}' /opt/codemanager/env/.env
+```
+
+預期：`JWT_SECRET` 長度 ≥ 32，URL 含 `db:3306/myjdbc`，`DOCKER_DATASOURCE_USERNAME=root`。注意：這段只遮住**名稱含 PASSWORD 或 SECRET** 的欄位，其他欄位（例如 `APP_ADMIN_ACCOUNT` 的管理員帳號名稱）會原樣印出，貼到公開的地方（issue、PR、Actions log）之前要先遮掉。
 - `IMAGE_TAG`（`.env.example` 預設是 `latest`）保留或刪除都可以：workflow 會以環境變數（commit SHA 或手動輸入的 tag）覆蓋它，`.env` 裡的值不會生效。要回退請用第 7 節的方式。
 - `VITE_API_URL` 維持空字串（同源）。這個值是 build 映像時寫入的，部署只 pull 已建好的映像，改了不會生效。
 - `DOCKER_DATASOURCE_PASSWORD` 同時是 MySQL root 的初始密碼，只在 `mysql_data` volume 第一次建立時生效，之後再改 `.env` 不會改到資料庫裡的密碼。
@@ -80,9 +111,23 @@ deploy workflow 本身只由 `workflow_run`（main 上的 `Run Tests` 完成）�
 
 ## 6. 第一次部署前：備份資料庫並清空 clone volume
 
-V2 migration 會在第一次部署時清空 Project 等 5 張表，而 `backend_clonecode` volume 裡舊的 clone 還在。若不清掉，加入同名 repo 時 `GitCloner` 會走 pull 路徑，去找已被清掉的 Project。
+### 6.0 所有機器都要先檢查：port 80 與其他 compose 專案
 
-以下只在**實驗室機器上已經有舊的 compose 部署**時需要；全新機器沒有舊容器與 volume，跳過即可。
+實驗室機器常常是共用的。不同 compose project 的網路、volume、容器名稱互不影響，但 **主機 port** 和 **映像快取** 是整台機器共用的：
+
+```bash
+docker compose ls -a                                  # 機器上有哪些 compose 專案
+docker ps --format '{{.Names}}\t{{.Ports}}'           # 各容器佔用的 port
+sudo ss -ltnp | grep -E ':80\s'                       # 有輸出 = port 80 已被佔用
+```
+
+- port 80 被其他容器或主機上的服務（apache、nginx 等）佔用時，`up -d` 會失敗，要先停掉對方或改它的 port。
+- 不需要停掉其他專案；真的要停時，建議用 `docker compose -p <專案> stop`，不要用 `down`。原因見「已知限制」的 `image prune`。
+- 判斷是不是全新機器：`docker volume ls | grep -E "mysql_data|backend_clonecode"` 沒有輸出，而且 `docker compose ls -a` 裡沒有本專案，就可以跳過 6.1–6.3。
+
+**6.1–6.3 只在實驗室機器上已經有舊的 compose 部署時需要**；全新機器沒有舊容器與 volume，跳過即可。
+
+V2 migration 會在第一次部署時清空 Project 等 5 張表，而 `backend_clonecode` volume 裡舊的 clone 還在。若不清掉，加入同名 repo 時 `GitCloner` 會走 pull 路徑，去找已被清掉的 Project。
 
 **手動指令的執行目錄**：第 6、7 節所有 `docker compose` 指令，都要在放有 `docker-compose.yml` 的目錄（repo checkout，例如 runner 的工作目錄 `_work/<repo>/<repo>`，或你自己 clone 的一份）執行，並以 `gh-runner` 身分。該目錄要有 `.env`，沒有的話先建符號連結（和 workflow 做法相同）：
 
@@ -172,6 +217,6 @@ docker compose -p codemanager exec -T db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
 ## 已知限制
 
 - `compose up -d` 重建容器時服務會短暫中斷。零停機部署要等之後換成 k3s。
-- 部署最後的 `docker image prune -af --filter "until=168h"` 是**整台機器範圍**：只要映像超過 7 天且沒有被任何容器使用，就會被刪，包含實驗室機器上其他專案的映像。若這台機器還有別的用途，請先確認。
+- 部署最後的 `docker image prune -af --filter "until=168h"` 是**整台機器範圍**：只要映像超過 7 天且沒有被任何容器使用，就會被刪，包含實驗室機器上其他專案的映像。若這台機器還有別的用途，請先確認。已停止（`stop`）的容器仍算「在使用」，它的映像不會被刪；`down` 會移除容器，映像就沒人使用，7 天後會被清掉。
 - 備份資料夾不會自動輪替清理，也沒有遠端備份，請定期手動整理。
 - runner 帳號等同 root（見第 2 節），runner 工作目錄不會自動清空，所以 workflow 以 `persist-credentials: false` 避免憑證留在硬碟上，並在結束時 `docker logout ghcr.io`。
