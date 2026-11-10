@@ -1,0 +1,132 @@
+name: Deploy
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      images-tag:
+        description: "要部署的映像 tag(latest 或 40 碼 commit SHA)"
+        required: false
+        default: latest
+
+# 部署做到一半被取消會留下不一致的狀態，所以新的部署要排隊等待，且不取消進行中的部署
+concurrency:
+  group: 'GHCR-Deploy'
+  cancel-in-progress: false
+
+jobs:
+  full-deploy:
+    name: deploy to lab
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push')
+    runs-on: [self-hosted, linux, x64, lab]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    env:
+      ENV_FILE: /opt/codemanager/env/.env
+      PROJECT: codemanager
+      IMAGE_TAG: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.images-tag}}
+      BACKUP_DIR: /opt/codemanager/backup
+    steps:
+      - name: check have env or not
+        run: |
+          [ -f "$ENV_FILE" ] || {
+            echo "Can't find $ENV_FILE" >&2
+            exit 1
+          }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # workflow_run（CI 完成後自動觸發）：用 head_sha，也就是 CI 實際 build 的 commit。
+          #  不能用 github.sha，因為它是 main 當下最新的 commit，CI 期間若有新 push 就會不一致。
+          # workflow_dispatch（手動）：沒有 workflow_run，fallback 到 github.sha（所選分支的 HEAD）。
+          #  風險：手動時 images-tag 是另外輸入的，可能跟 checkout 的程式碼/設定不是同一版
+          ref: ${{github.event.workflow_run.head_sha || github.sha}}
+          # checkout 預設會把 GITHUB_TOKEN 寫進 .git/config，方便之後的步驟執行 git push.
+          # 但 deploy 根本不需要 push.
+          # 而且 self-hosted runner 不會清理工作目錄，token 會留在實驗室電腦的硬碟上.
+          # 設成 false 就不會寫入
+          persist-credentials: false
+      - name: Ready .env
+        # 用符號連結而非複製：密碼只存在固定路徑一份，workspace 不留副本
+        # -f：已經有 .env 就取代
+        # 必須在 checkout 之後執行，否則會被 checkout 的 clean 刪掉
+        run: |
+          ln -sfn "$ENV_FILE" .env
+      - name: Login ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          # GITHUB_TOKEN 由 GitHub 在每個 job 自動產生，僅限本 repo job 結束即失效,
+          #  permissions: packages: read(pull image)就夠, push 是 publish job 的事
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: backup database
+        shell: bash -eo pipefail {0}
+        # 只備份 App 的資料庫，不備份 MySQL 的帳號密碼：
+        # 1. 帳號密碼本來就寫在 .env, 容器第一次啟動會自動建立(資料目錄為空), 不需要備份
+        # 2. 還原時不會把 root 密碼改回舊的，避免跟 .env 對不上而登不進去
+        # 3. 加 --databases, 備份檔才會自帶 CREATE DATABASE, 還原時直接匯入即可
+        run: |
+          umask 077
+          cid=$(docker compose -p "$PROJECT" ps --status running -q db)
+          if [ -n "$cid" ]; then
+            mkdir -p "$BACKUP_DIR"
+            file="$BACKUP_DIR/db-$(date +%Y%m%d-%H%M%S)-${IMAGE_TAG:0:7}.sql"
+            docker compose -p "$PROJECT" exec -T db sh -c \
+             'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump -uroot --databases "$MYSQL_DATABASE" --single-transaction --routines --triggers' > "$file" || {
+              rm -f "$file"
+              echo "backup failed,so no deploy" >&2
+              exit 1
+            }
+            echo "backup success: $file"
+          else
+            echo "can't find db container, maybe first time deploy"
+          fi
+      - name: pull image
+        # 只拉我們寫好的 image，官方的 SQL, nginx 的版本 tag 是浮動的，避免每次部署都更新
+        # 例子:目前指向 MYSQL 8.0，若官方的 image 升級到 8.0.x 可能會影響到
+        run: |
+          docker compose -p "$PROJECT" pull frontend backend
+      - name: start container
+        # --remove-orphans, 假設 compose 刪掉了一個 service, container 永遠不會自動關閉, 仍在背景運行,透過這道指令會自動把不在清單且運行的刪除(相同 project name)
+        # 風險!是別人用同名 project,且某一個 container 已經沒在 compose 中被定義,就會被刪掉
+        run: |
+          docker compose -p "$PROJECT" up -d \
+           --no-build \
+           --remove-orphans
+      - name: smoke test
+        run: |
+          tmp=$(mktemp) # 建立一個暫存檔，用來存登入 API 的回應內容
+          ok=0
+          for i in $(seq 1 30); do
+            home=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost/) || home=000
+            login=$(curl -s -o "$tmp" -w '%{http_code}' --max-time 5 -X POST -H 'Content-Type: application/json' -d '{}' http://localhost/api/login) || login=000
+            if [ "$home" = "200" ] && [ "$login" = "200" ] && grep -q '"success":false' "$tmp"; then
+              ok=1
+              break
+            fi
+            echo "第 $i 次未通過(home=$home login=$login), 5 秒後重試"
+            sleep 5
+          done
+          rm -f "$tmp"
+          if [ "$ok" != 1 ]; then
+            docker compose -p "$PROJECT" ps
+            docker compose -p "$PROJECT" logs --tail 100
+            exit 1
+          fi
+      - name: prune images
+        # -f 只會跳過確認
+        # -a 刪掉整台電腦所有沒被 container 使用的 image, 且 image 建立超過 168h
+        run: |
+          docker image prune -af --filter "until=168h"
+      - name: logout ghcr.io
+        if: always()
+        run: |
+          docker logout ghcr.io

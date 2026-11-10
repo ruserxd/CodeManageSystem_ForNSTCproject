@@ -67,6 +67,15 @@ jobs:
     name: Publish to GHCR
     needs: test
     runs-on: ubuntu-latest
+    concurrency:
+      # 為何這邊的 group 要這樣做:
+      # 1. 為什麼 group 要含 ref，因為不同的 pr 也要排在不一樣的隊伍中，如果有三個要 run，一個已經在 run 了，會被最新的擠掉.
+      # 2. 為什麼 PR 不會和 main 同組，因為為了避免 main 的 run 如果被擠掉，那次 commit 的 SHA 就沒有映像，之後 deploy 會找不到，ref 是 refs/pull/<N>/merge，不可能等於 refs/heads/main.
+      # 3. 手動觸發 workflow_dispatch 會和 main 的 push 同組的取捨，但只有有權限的人才能處理，所以可以接受.
+      # 4. cancel-in-progress 同一個 pr 的就可以不用一直不斷地等待 build 而是有出現新的就可以直接跑新的，不浪費時間，而 main 的則要確保每次的 commit 都有對應的 image 可以復原.
+      # 5. 這一組和 deploy.yml (尚未出現) 的 group 是分開的關係，不會一樣，因為希望部署的時候能夠正確的把整份部署上去, 不要出現部署到一半被擠掉，而造成失敗的問題
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
     permissions:
       contents: read
       packages: write
@@ -104,5 +113,5 @@ jobs:
           tags: |
             ghcr.io/ruserxd/codemanager_frontend:${{ github.sha }}
             ghcr.io/ruserxd/codemanager_frontend:latest
-          build-args:
+          build-args: |
             VITE_API_URL=
