@@ -30,6 +30,7 @@ jobs:
       packages: read
     env:
       ENV_FILE: /opt/codemanager/env/.env
+      CLOUDFLARED_ENV_FILE: /opt/codemanager/env/cloudflared.env
       PROJECT: codemanager
       IMAGE_TAG: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.images-tag}}
       BACKUP_DIR: /opt/codemanager/backup
@@ -38,6 +39,12 @@ jobs:
         run: |
           [ -f "$ENV_FILE" ] || {
             echo "Can't find $ENV_FILE" >&2
+            exit 1
+          }
+      - name: check have cloudflared_env or not
+        run: |
+          [ -f "$CLOUDFLARED_ENV_FILE" ] || {
+            echo "Can't find $CLOUDFLARED_ENV_FILE" >&2
             exit 1
           }
       - name: Checkout
@@ -59,6 +66,9 @@ jobs:
         # 必須在 checkout 之後執行，否則會被 checkout 的 clean 刪掉
         run: |
           ln -sfn "$ENV_FILE" .env
+      - name: Ready cloudflared.env
+        run: |
+          ln -sfn "$CLOUDFLARED_ENV_FILE" cloudflared.env
       - name: Login ghcr.io
         uses: docker/login-action@v4
         with:
@@ -98,11 +108,18 @@ jobs:
         # --remove-orphans, 假設 compose 刪掉了一個 service, container 永遠不會自動關閉, 仍在背景運行,透過這道指令會自動把不在清單且運行的刪除(相同 project name)
         # 風險!是別人用同名 project,且某一個 container 已經沒在 compose 中被定義,就會被刪掉
         run: |
-          docker compose -p "$PROJECT" up -d \
+          docker compose -p "$PROJECT" --profile tunnel up -d \
            --no-build \
            --remove-orphans
       - name: smoke test
         run: |
+          # 失敗時印出容器狀態和 log, 方便排錯
+          dump() {
+            docker compose -p "$PROJECT" --profile tunnel ps -a >&2
+            docker compose -p "$PROJECT" --profile tunnel logs --tail 100 >&2
+          }
+
+          # ---- 1. 健康檢查：首頁與登入 API ----
           tmp=$(mktemp) # 建立一個暫存檔，用來存登入 API 的回應內容
           ok=0
           for i in $(seq 1 30); do
@@ -117,10 +134,35 @@ jobs:
           done
           rm -f "$tmp"
           if [ "$ok" != 1 ]; then
-            docker compose -p "$PROJECT" ps
-            docker compose -p "$PROJECT" logs --tail 100
+            echo "::error::健康檢查失敗(home=$home login=$login)" >&2
+            dump
             exit 1
           fi
+
+          # ---- 2. cloudflared 檢查 ----
+          # 只檢查一次 running 不夠:token 錯誤時容器會反覆重啟，單次檢查可能剛好撞到 running。
+          # 所以改成觀察 15 秒內是否持續 running 且沒有重啟。
+          # 限制：只能證明容器穩定運作，不能證明已連上 Cloudflare。
+          cid2=$(docker compose -p "$PROJECT" --profile tunnel ps --status running -q cloudflared)
+          if [ -z "$cid2" ]; then
+            echo "::error::cloudflared 沒有在執行" >&2
+            dump
+            exit 1
+          fi
+
+          # 比較前後差異而不是要求等於 0:設定沒變時 compose 不會重建容器，
+          # RestartCount 可能保留以前累積的次數
+          before=$(docker inspect -f '{{.RestartCount}}' "$cid2")
+          sleep 15
+          running=$(docker inspect -f '{{.State.Running}}' "$cid2")
+          after=$(docker inspect -f '{{.RestartCount}}' "$cid2")
+
+          if [ "$running" != "true" ] || [ "$after" != "$before" ]; then
+            echo "::error::cloudflared 不穩定(running=$running, 重啟次數 $before -> $after)" >&2
+            dump
+            exit 1
+          fi
+          echo "cloudflared 15 秒內持續執行，未重啟"
       - name: prune images
         # -f 只會跳過確認
         # -a 刪掉整台電腦所有沒被 container 使用的 image, 且 image 建立超過 168h

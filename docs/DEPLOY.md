@@ -2,7 +2,7 @@
 
 push 到 `main` 且 `Run Tests` 成功後，實驗室機器上的 self-hosted runner 會執行 `.github/workflows/deploy.yml`：備份資料庫、登入 ghcr.io、`docker compose pull`、`up -d`、煙霧測試。本文件說明實驗室機器要事先完成的一次性設定。
 
-實驗室在校園網路內，GitHub 連不進來。runner 由實驗室機器主動對外連線到 GitHub，所以**不用開放任何對外 port**（對外只有 nginx 的 80，給使用者瀏覽網頁用）。
+實驗室在校園網路內，GitHub 連不進來。runner 由實驗室機器主動對外連線到 GitHub，所以**不用開放任何對外 port**。使用者瀏覽網頁的入口是 Cloudflare Tunnel：compose 內的 `cloudflared` 也是由實驗室機器主動往外連到 Cloudflare，HTTPS 在 Cloudflare 終止，再經 compose 內網轉給 nginx。nginx 的 80 只綁在 `127.0.0.1`（給本機煙霧測試用），校內其他機器連不進來。一次性設定見第 4.5 節。
 
 下列固定值與 `deploy.yml` 一致，改動時兩邊要一起改：
 
@@ -10,6 +10,7 @@ push 到 `main` 且 `Run Tests` 成功後，實驗室機器上的 self-hosted ru
 |---|---|
 | runner label | `self-hosted`、`linux`、`x64`、`lab` |
 | `.env` 路徑 | `/opt/codemanager/env/.env` |
+| tunnel token 檔路徑 | `/opt/codemanager/env/cloudflared.env`（compose 的 profile 名稱是 `tunnel`） |
 | 備份資料夾 | `/opt/codemanager/backup` |
 | compose project name | `codemanager`（`docker compose -p codemanager`） |
 | 手動部署的輸入名稱 | `images-tag`（job 內對應環境變數 `IMAGE_TAG`） |
@@ -112,6 +113,87 @@ sudo -u gh-runner awk -F= '
 
 預期：`JWT_SECRET` 長度 ≥ 32，URL 含 `db:3306/myjdbc`，`DOCKER_DATASOURCE_USERNAME=root`。其他欄位（例如 `APP_ADMIN_ACCOUNT` 的管理員帳號名稱）會原樣印出，**輸出貼到公開的地方（issue、PR、Actions log）之前要先遮掉**。
 
+## 4.5 設定 Cloudflare Tunnel（HTTPS 對外網址）
+
+nginx 只綁 `127.0.0.1:80`，外部使用者要透過 Cloudflare Tunnel 才連得到網站。**這一節要在 PR 合併前完成**：`deploy.yml` 找不到 `/opt/codemanager/env/cloudflared.env` 會直接失敗，不會靜默略過（沒有 tunnel 就等於誰都連不到網站，靜默略過會讓人以為部署成功）。
+
+**對外開放前**，先確認學校或計中對於把校內服務放上外網的規範。
+
+### 4.5.1 Cloudflare 帳號與網域
+
+1. 申請 Cloudflare 帳號。
+2. 取得一個網域，並把 DNS 交給 Cloudflare 管理（在網域註冊商把 nameserver 改成 Cloudflare 指定的值）。
+
+### 4.5.2 建立 tunnel 並取得 token
+
+1. 到 Cloudflare Zero Trust 後台：Networks -> Tunnels -> Create a tunnel，類型選 **Cloudflared**（remotely-managed）。
+2. 名稱自訂。建立後頁面會顯示安裝指令，其中 `--token` 後面那一長串就是 tunnel token。**只複製 token，不要在機器上執行頁面給的安裝指令**（我們用 compose 跑 `cloudflared`）。
+
+### 4.5.3 Public Hostname
+
+在該 tunnel 的 Public Hostname 新增一筆：
+
+| 欄位 | 值 |
+|---|---|
+| Subdomain／Domain | 自訂，例如 `codemanager.<你的網域>` |
+| Service type | `HTTP` |
+| URL | `nginx:80`（即 `http://nginx:80`，`nginx` 是 compose service 名稱） |
+
+前端與 API 都走同源（nginx 轉發），所以經過 Cloudflare 後不會有 CORS 問題。
+
+### 4.5.4 Cloudflare Access（限定 email）
+
+**預設要開啟 Access。** 原因：`/api/register` 是公開的，而 repo 大小上限還沒做（P1-10），陌生人可以註冊後讓實驗室機器去 clone 很大的 repo。P1-10 完成後再評估是否公開。
+
+Zero Trust 後台：Access -> Applications -> Add an application -> **Self-hosted**：
+
+1. Application domain 填上一節的 hostname（要涵蓋整個 hostname）。
+2. 新增 policy，Action 選 **Allow**，Include 規則選 Emails，填允許進入的 email。
+3. 儲存。
+
+### 4.5.5 放置 `cloudflared.env`
+
+token 放**獨立的檔案**，不要放進 `.env`。原因：backend 在 compose 用 `env_file: .env`，會把 `.env` 的所有變數載入 backend 容器；backend 是處理使用者輸入、還會 clone 外部 repo 的服務，不該拿到 tunnel 憑證。`cloudflared` 則只讀 `cloudflared.env`。
+
+在**有 sudo 的管理帳號**下執行，做法同第 4 節（用 `sudo -u gh-runner` 寫入，檔案擁有者才會是 `gh-runner`）：
+
+```bash
+# 以 gh-runner 身分建立，內容只有一行：TUNNEL_TOKEN=<token>
+sudo -u gh-runner nano /opt/codemanager/env/cloudflared.env
+sudo -u gh-runner chmod 600 /opt/codemanager/env/cloudflared.env
+sudo ls -l /opt/codemanager/env/cloudflared.env     # 預期 -rw------- gh-runner gh-runner
+```
+
+自我檢查，只顯示欄位名稱與長度，不印出 token 值：
+
+```bash
+sudo -u gh-runner awk -F= '
+  /^#/||NF<2 {next}
+  {v=substr($0, index($0,"=")+1); gsub(/^"|"$/, "", v); print $1 " = (len " length(v) ")"}' /opt/codemanager/env/cloudflared.env
+```
+
+預期只有一行 `TUNNEL_TOKEN = (len N)`，N 大於 0（token 通常上百字元）。
+
+### 4.5.6 風險與注意事項
+
+- token 檔請放在 `/opt/codemanager/env/`，**不要在 repo 目錄放真 token**。`.gitignore` 已排除 `cloudflared.env`，但擋不住 `git add -f`，也擋不住別的檔名。
+- token 以環境變數 `TUNNEL_TOKEN` 傳進容器，有 docker 權限的人可用 `docker inspect` 看到。`gh-runner` 本來就等同 root（見第 2 節），所以這沒有擴大風險面。
+- token 洩漏時：到 Cloudflare 後台該 tunnel 做 Refresh／Roll token，更新 `cloudflared.env`，再手動觸發一次 Deploy（第 7 節）讓容器重建。
+- TLS 在 Cloudflare 終止。`cloudflared` 到 nginx 這一段是 compose 內網的明文 HTTP，不經過校園網路。
+
+### 4.5.7 部署後驗收
+
+1. 看 `cloudflared` 的 log，應看到 tunnel 已註冊連線（Registered tunnel connection）：
+
+   ```bash
+   docker compose -p codemanager --profile tunnel logs cloudflared
+   ```
+
+   deploy 的煙霧測試只能確認 `cloudflared` 容器 15 秒內持續執行、沒有重啟，**確認不了 tunnel 已連上 Cloudflare**，所以這一步要自己看。
+2. 從校外網路（例如手機行動網路）開 `https://<你的網域>`：應先出現 Cloudflare Access 登入頁，輸入允許名單內的 email 並完成驗證後，看得到網站。
+3. 用不在允許名單的 email 嘗試，應被擋下。
+4. 在實驗室機器確認 nginx 只綁本機：`ss -ltn | grep -E ':80\s'` 只應出現 `127.0.0.1:80`，沒有 `0.0.0.0:80`、`*:80`、`[::]:80`。從校內另一台機器 `curl --max-time 5 http://<實驗室機器 IP>/` 應連線被拒或逾時。
+
 ## 5. 設定外部貢獻者的 workflow 需核准
 
 repo 是公開的，要避免外部 fork PR 自動跑 workflow。
@@ -131,7 +213,7 @@ deploy workflow 本身只由 `workflow_run`（main 上的 `Run Tests` 完成）�
 ```bash
 docker compose ls -a                                  # 機器上有哪些 compose 專案
 docker ps --format '{{.Names}}\t{{.Ports}}'           # 各容器佔用的 port
-ss -ltn | grep -E ':80\s'                             # 有輸出 = port 80 已被佔用（要看是哪個程式再加 sudo 與 -p）
+ss -ltn | grep -E ':80\s'                             # 有輸出 = port 80 已被佔用（要看是哪個程式再加 sudo 與 -p）。本專案的 nginx 綁的是 127.0.0.1:80，所以看到 127.0.0.1:80 也算被佔用
 docker volume ls | grep backend_clonecode             # 有輸出 = 這台有本專案的舊部署
 ```
 
