@@ -42,7 +42,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
 3. **One issue maps to one PR.** If the task is too big for one PR, propose a split to the user, continue only with the first issue, and leave the rest for later /ship runs.
 4. Prepare the issue:
    - Instruction is an issue number → read it with `gh issue view <N> --json title,body,comments` (do not use `--comments`: when output is not a terminal, it does not print the body)
-   - Otherwise → `gh issue create`, with a body containing: goal, in scope / out of scope, the user's own words, known limitations
+   - Otherwise → `gh issue create`, with a body containing: goal, in scope / out of scope, known limitations. Do not quote the user verbatim; record decisions the user made as summarized statements
 5. Prepare the branch: `git status --short` must be empty; run `git switch main && git pull --ff-only`, then create `<type>/<issue number>-<english-slug>` (for example `chore/21-ship-github-flow`).
 
 ## ② Set criteria
