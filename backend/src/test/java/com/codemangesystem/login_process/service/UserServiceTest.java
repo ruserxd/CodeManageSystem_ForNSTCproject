@@ -16,6 +16,7 @@ import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.quota.QuotaService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -41,12 +42,15 @@ class UserServiceTest {
   private UserService userService;
   private PasswordBcrypt passwordBcrypt;
   private MyUserRepository myUserRepository;
+  private QuotaService quotaService;
 
   @BeforeEach
   void setUp() {
     myUserRepository = Mockito.mock(MyUserRepository.class);
     passwordBcrypt = Mockito.mock(PasswordBcrypt.class);
-    userService = new UserService(myUserRepository, passwordBcrypt, "admin", "s3cret", "", "");
+    quotaService = Mockito.mock(QuotaService.class);
+    when(quotaService.tryAcquire(QuotaService.Kind.REGISTRATION)).thenReturn(true);
+    userService = new UserService(myUserRepository, passwordBcrypt, quotaService, "admin", "s3cret", "", "");
   }
 
   @Nested
@@ -82,7 +86,7 @@ class UserServiceTest {
     @Test
     @DisplayName("未設定帳密時不建立任何管理員")
     void notConfiguredTest() {
-      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "", "", "");
+      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "", "");
 
       unconfigured.addSuperAccount();
 
@@ -100,7 +104,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-      demoService = new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "demo-pw");
+      demoService = new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "demo", "demo-pw");
     }
 
     @Test
@@ -133,7 +137,7 @@ class UserServiceTest {
     @DisplayName("帳號留空時不建立")
     void blankAccountTest() {
       UserService noAccount =
-          new UserService(myUserRepository, passwordBcrypt, "", "", "", "demo-pw");
+          new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "", "demo-pw");
 
       noAccount.addDemoAccount();
 
@@ -144,7 +148,7 @@ class UserServiceTest {
     @DisplayName("密碼留空時不建立")
     void blankPasswordTest() {
       UserService noPassword =
-          new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "");
+          new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "demo", "");
 
       noPassword.addDemoAccount();
 
@@ -161,7 +165,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-      demoService = new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "demo-pw");
+      demoService = new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "demo", "demo-pw");
     }
 
     private MyUser userWithAuthority(UserAuthority authority) {
@@ -218,7 +222,7 @@ class UserServiceTest {
     @Test
     @DisplayName("未設定 demo 帳號時失敗，且不查資料庫")
     void notConfiguredTest() {
-      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "", "", "");
+      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, quotaService, "", "", "", "");
 
       SessionResponse response = unconfigured.demoLogin();
 
@@ -279,7 +283,7 @@ class UserServiceTest {
           .build();
       when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.of(demo));
       UserService realService =
-          new UserService(myUserRepository, realBcrypt, "", "", "demo", "demo-pw");
+          new UserService(myUserRepository, realBcrypt, quotaService, "", "", "demo", "demo-pw");
 
       LoginINFO login = LoginINFO.builder().userAccount("demo").userPassword("").build();
       SessionResponse response = realService.checkUser(login);
@@ -470,6 +474,51 @@ class UserServiceTest {
       assertEquals("zz@gmail.com", saved.getValue().getUserEmail());
       assertEquals("Admin", saved.getValue().getUserName());
       assertEquals("hashed", saved.getValue().getUserPassword());
+    }
+
+    @Test
+    @DisplayName("今日註冊名額已滿：回失敗訊息、不建立 user")
+    void quotaExhaustedTest() {
+      when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+          .thenReturn(Optional.empty());
+      when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+          .thenReturn(Optional.empty());
+      when(quotaService.tryAcquire(QuotaService.Kind.REGISTRATION)).thenReturn(false);
+
+      SessionResponse result = userService.userRegister(myUser);
+
+      assertFalse(result.isSuccess());
+      assertEquals("今日註冊名額已滿，可使用訪客模式", result.getMessage());
+      verify(myUserRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("額度未滿：成功註冊並只扣一次註冊額度")
+    void quotaAcquiredOnSuccessTest() {
+      when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+          .thenReturn(Optional.empty());
+      when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+          .thenReturn(Optional.empty());
+
+      SessionResponse result = userService.userRegister(myUser);
+
+      assertTrue(result.isSuccess());
+      verify(quotaService, times(1)).tryAcquire(QuotaService.Kind.REGISTRATION);
+      verify(myUserRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("帳號或 email 重複、user 為 null 時不消耗額度")
+    void validationFailureDoesNotConsumeQuotaTest() {
+      when(myUserRepository.findByUserAccount(myUser.getUserAccount()))
+          .thenReturn(Optional.of(myUser));
+      when(myUserRepository.findByUserEmail(myUser.getUserEmail()))
+          .thenReturn(Optional.empty());
+
+      userService.userRegister(myUser);
+      userService.userRegister(null);
+
+      verify(quotaService, never()).tryAcquire(any());
     }
 
     @Test

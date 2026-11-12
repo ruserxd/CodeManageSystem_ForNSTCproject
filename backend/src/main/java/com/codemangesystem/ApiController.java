@@ -13,6 +13,7 @@ import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
+import com.codemangesystem.quota.QuotaService;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -42,15 +43,35 @@ public class ApiController {
   private final UserService userService;
   private final GitPuller gitPuller;
   private final JwtService jwtService;
+  private final QuotaService quotaService;
   private static final String LOCAL_BASE_PATH = "src/cloneCode/";
 
   public ApiController(GitCloner gitCloner, DataBaseService dataBaseService,
-      UserService userService, GitPuller gitPuller, JwtService jwtService) {
+      UserService userService, GitPuller gitPuller, JwtService jwtService,
+      QuotaService quotaService) {
     this.gitCloner = gitCloner;
     this.dataBaseService = dataBaseService;
     this.userService = userService;
     this.gitPuller = gitPuller;
     this.jwtService = jwtService;
+    this.quotaService = quotaService;
+  }
+
+  /**
+   * 扣一次今日「分析」額度（以嘗試次數計，失敗也算）。ADMIN 不受限也不消耗。
+   *
+   * @return 額度已用完時回傳 429 的 response；可繼續處理時回傳 null
+   */
+  private ResponseEntity<String> rejectIfAnalysisQuotaExceeded(Jwt jwt) {
+    if ("ADMIN".equals(jwt.getClaimAsString("role"))) {
+      return null;
+    }
+    if (quotaService.tryAcquire(QuotaService.Kind.ANALYSIS)) {
+      return null;
+    }
+    log.warn("今日分析額度已用完，userId: {}", jwt.getSubject());
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .body("今日分析額度已用完，請明日再試");
   }
 
   /**
@@ -66,7 +87,12 @@ public class ApiController {
   @PostMapping("/get-method-diff-temporary")
   public ResponseEntity<?> getMethodDiffTemporary(
       @RequestParam("url") String url,
-      @RequestParam("commitId") String commitId) {
+      @RequestParam("commitId") String commitId,
+      @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+    if (rejected != null) {
+      return rejected;
+    }
     try {
       log.info("臨時分析 URL: {} CommitId: {}", url, commitId);
 
@@ -96,6 +122,10 @@ public class ApiController {
       @RequestParam("commitId") String commitId,
       @AuthenticationPrincipal Jwt jwt) {
     Long userId = currentUserId(jwt);
+    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+    if (rejected != null) {
+      return rejected;
+    }
     try {
       log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
       log.info("UserId {}", userId);
@@ -140,6 +170,10 @@ public class ApiController {
     // 只能 pull 自己擁有的專案，同時避免 projectName 被用來指向其他路徑
     if (!dataBaseService.isProjectOwner(currentUserId(jwt), projectName)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+    if (rejected != null) {
+      return rejected;
     }
     RepositoryINFO info = RepositoryINFO.builder()
         .repoName(projectName)
