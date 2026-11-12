@@ -13,7 +13,7 @@ Monorepo 結構：`backend/`（Spring Boot 3.4、Java 21、Maven）、`frontend/
 ### 後端（在 `backend/` 下執行）
 ```bash
 ./mvnw spring-boot:run                 # 需要環境變數，見下方
-./mvnw test                            # 全部測試（JaCoCo 報告在 target/site/jacoco）
+./mvnw test                            # 全部測試（JaCoCo 報告綁在 verify phase，要跑 ./mvnw verify 才會產生 target/site/jacoco）
 ./mvnw test -Dtest=GitDiffAnalyzerTest # 單一測試類別
 ./mvnw test -Dtest=GitDiffAnalyzerTest#methodName
 ./mvnw package -DskipTests             # 產生 target/CodeManageSystem-0.0.1-SNAPSHOT.jar（Docker image 會複製這個 jar）
@@ -22,7 +22,8 @@ Monorepo 結構：`backend/`（Spring Boot 3.4、Java 21、Maven）、`frontend/
 - **測試失敗會讓建置失敗。** pom 已移除 `testFailureIgnore`（#4），有測試失敗時 `mvn test` 會顯示 BUILD FAILURE。但只看 BUILD SUCCESS 仍不夠：要讀輸出中的 `Tests run / Failures / Errors` 統計，確認測試真的有跑、沒有被略過。
 - 必要環境變數：`SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD`（見 `.env.example`），以及 `JWT_SECRET`（至少 32 bytes，太短的話 `SecurityConfig` 會在啟動時直接失敗）。README 說明是透過 IntelliJ 的 EnvFile 外掛載入 `.env`。
 - 測試大多是 Mockito 單元測試。`ApiControllerTest` 是 `@WebMvcTest`，會 import `SecurityConfig` 並自行設定 `app.jwt.secret`。測試用的輸入資料放在 `src/test/resources/`（`classData`、`compareTwoContentData` 等），由測試原始碼中的 `FileReader` 讀取。
-- CI（`.github/workflows/backend_test.yml`）在 push 到 `main` 時，以 JDK 21 搭配 MySQL 8 service 執行 `mvn test`。
+- `FlywaySchemaValidationTest` 是 `@SpringBootTest`，用 Testcontainers 啟動空的 MySQL 驗證 Flyway migration 與 Hibernate validate，需要 Docker；沒有 Docker 時會被略過（`disabledWithoutDocker = true`），不會失敗。
+- CI（`.github/workflows/backend_test.yml`）在 push 到 `main` 和對 `main` 開 PR 時觸發，以 JDK 21 執行 `./mvnw -B test`，並用 MySQL 8.0／8.4 的 matrix 各跑一次；資料庫由 Testcontainers 啟動。
 - 程式碼風格：Google Java Style（`src/main/resources/codestyle/intellij-java-google-style.xml`，縮排 2 格）。命名規則見 `docs/style_guide.md`。
 
 ### 前端（在 `frontend/` 下執行）
@@ -54,7 +55,7 @@ yarn build
 - `config/SecurityConfig`：無狀態的 OAuth2 resource-server JWT 驗證。`/api/login`、`/api/register` 公開；`/api/getAllUsers`、`/api/deleteUser`、`/api/addSuperAccount` 與 `/actuator/**` 需要 `ROLE_ADMIN`；其他 endpoint 都需要有效 token。
   - **使用者 ID 一律從 JWT 取得**（`@AuthenticationPrincipal Jwt jwt` → `jwt.getSubject()`），不可從請求參數取得。
   - 接收 `projectName`/`methodId` 的 endpoint，必須先透過 `DataBaseService` 檢查擁有權再做任何事，這同時也防止路徑穿越到 `src/cloneCode/`。
-- `config/MyPostConstruct` 在啟動時執行，若超級帳號（帳號 `"123"`）不存在就建立。清除 clone 資料與資料庫的程式碼還在，但已註解掉。
+- `config/MyPostConstruct` 在啟動時呼叫 `UserService.addSuperAccount`：`APP_ADMIN_ACCOUNT` 和 `APP_ADMIN_PASSWORD` 都有設定、且該帳號不存在時，才建立 ADMIN 帳號；任一個空白就不建立。清除 clone 資料與資料庫的程式碼還在，但已註解掉。
 
 ### Clone 下來的 repo
 `backend/src/cloneCode/` 存放系統執行時 clone 的 repo（除了 `.gitkeep` 外都被 gitignore）。裡面可能有上千個無關的檔案，例如完整的 spring-boot。**搜尋、grep、重構本專案程式碼時請排除這個資料夾。** 此路徑是相對路徑，所以後端必須以 `backend/` 作為工作目錄啟動。
