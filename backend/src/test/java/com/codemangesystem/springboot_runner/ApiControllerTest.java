@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,13 +43,15 @@ import com.codemangesystem.login_process.service.UserService;
 import com.codemangesystem.quota.AnalysisLimits;
 import com.codemangesystem.quota.QuotaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hamcrest.Matchers;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -581,7 +585,7 @@ public class ApiControllerTest {
   @DisplayName("以嘗試次數計：clone 失敗（500）與 URL 不合法（400）也消耗額度")
   public void testFailedAttemptsConsumeQuota() throws Exception {
     when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L), anyInt()))
-        .thenThrow(new java.io.IOException("boom"));
+        .thenThrow(new IOException("boom"));
     when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
         .thenThrow(new IllegalArgumentException("bad url"));
 
@@ -647,7 +651,7 @@ public class ApiControllerTest {
   }
 
   private int capturedCloneLimit(long userId) throws Exception {
-    org.mockito.ArgumentCaptor<Integer> captor = forClass(Integer.class);
+    ArgumentCaptor<Integer> captor = forClass(Integer.class);
     verify(gitCloner).cloneRepository(anyString(), anyString(), eq(userId), captor.capture());
     return captor.getValue();
   }
@@ -778,10 +782,10 @@ public class ApiControllerTest {
   @Test
   @DisplayName("槽位在例外路徑也會釋放：IOException、IllegalArgumentException、RuntimeException")
   public void testSlotReleasedOnException() throws Exception {
-    Throwable[] errors = {new java.io.IOException("io"), new IllegalArgumentException("arg"),
+    Throwable[] errors = {new IOException("io"), new IllegalArgumentException("arg"),
         new RuntimeException("rt")};
     for (Throwable error : errors) {
-      org.mockito.Mockito.doThrow(error).when(gitCloner)
+      doThrow(error).when(gitCloner)
           .cloneRepository(anyString(), anyString(), any(Long.class), anyInt());
       try {
         mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO)
@@ -790,7 +794,7 @@ public class ApiControllerTest {
         // RuntimeException 會被 MockMvc 包成 ServletException，這裡只關心槽位是否釋放
       }
     }
-    org.mockito.Mockito.doReturn(ok()).when(gitCloner)
+    doReturn(ok()).when(gitCloner)
         .cloneRepository(anyString(), anyString(), any(Long.class), anyInt());
 
     mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))

@@ -308,6 +308,42 @@ class GitClonerTest {
     }
 
     @Test
+    @DisplayName("測試本地端有該存儲庫改走 pull 時，保留 pull 結果的截斷註記")
+    void pullKeepsTruncationNoteTest() throws GitAPIException, IOException {
+      try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);
+          MockedConstruction<FileRepository> mocked = mockConstruction(
+              FileRepository.class,
+              (mock, context) -> {
+                when(mock.resolve(anyString()))
+                    .thenReturn(ObjectId.fromString("1234567890123456789012345678901234567890"));
+              }
+          )) {
+        mockedStatic.when(() -> GitFunction.getRepoNameFromUrl(repoUrl))
+            .thenReturn("test");
+        mockedStatic.when(() -> GitFunction.isUserCloned(anyLong(),
+                any(RepositoryINFO.class),
+                any(PersonalRepository.class)))
+            .thenReturn(false);
+        mockedStatic.when(() -> GitFunction.isInLocalGitDirectory(anyString()))
+            .thenReturn(true);
+
+        String note = GitDiffAnalyzer.truncationNote(3);
+        when(gitPuller.pullLocalRepository(any(RepositoryINFO.class), anyInt()))
+            .thenReturn(GitResult.builder()
+                .status(GitStatus.PULL_SUCCESS)
+                .message("成功 Pull 並更新資料" + note)
+                .build());
+        when(projectRepository.findByProjectName(anyString()))
+            .thenReturn(Optional.of(Project.builder().projectName("test").build()));
+
+        GitResult result = gitCloner.cloneRepository(repoUrl, "HEAD", userId, 3);
+
+        assertEquals("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料" + note,
+            result.getMessage());
+      }
+    }
+
+    @Test
     @DisplayName("測試本地端有該存儲庫，正確的更新資料庫，commitID 為 HEAD")
     void commitIDisHEADTest() throws GitAPIException, IOException {
       try (MockedStatic<GitFunction> mockedStatic = mockStatic(GitFunction.class);

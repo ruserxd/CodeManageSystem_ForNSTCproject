@@ -23,13 +23,6 @@ public class AnalysisLimits {
     }
   }
 
-  /** 使用者的專案數已達上限。 */
-  public static class ProjectLimitExceededException extends RuntimeException {
-    public ProjectLimitExceededException(String message) {
-      super(message);
-    }
-  }
-
   private final int userMaxCommits;
   private final int adminMaxCommits;
   private final int maxProjectsPerUser;

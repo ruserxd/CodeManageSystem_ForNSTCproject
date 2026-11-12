@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +57,7 @@ class AnalysisLimitsTest {
       other.set(limits.tryAcquire());
       done.countDown();
     }).start();
-    assertTrue(done.await(5, java.util.concurrent.TimeUnit.SECONDS));
+    assertTrue(done.await(5, TimeUnit.SECONDS));
     assertFalse(other.get());
   }
 

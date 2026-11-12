@@ -461,7 +461,8 @@ class GitDiffAnalyzerTest {
           .when(spyGitDiffAnalyzer).getCommitDiffList(any(), any(), any(), any());
 
       // 執行測試
-      GitResult actual = spyGitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHeadRevStr, 500);
+      GitResult actual = spyGitDiffAnalyzer.analyzePartCommits(repoPath.toString(),
+          oldHeadRevStr, 500);
 
       // 驗證
       assertEquals("部分分析時，發生 getCommit error", actual.getMessage());
