@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -31,6 +32,7 @@ import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
+import com.codemangesystem.quota.QuotaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +61,7 @@ public class ApiControllerTest {
       .authorities(new SimpleGrantedAuthority("ROLE_USER"));
 
   private static final RequestPostProcessor ADMIN = jwt()
-      .jwt(token -> token.subject("99"))
+      .jwt(token -> token.subject("99").claim("role", "ADMIN"))
       .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
   // userId = 2 的唯讀 demo 帳號
@@ -85,6 +87,9 @@ public class ApiControllerTest {
   @MockitoBean
   private JwtService jwtService;
 
+  @MockitoBean
+  private QuotaService quotaService;
+
   @Autowired
   private ObjectMapper objectMapper;
 
@@ -95,6 +100,9 @@ public class ApiControllerTest {
 
   @BeforeEach
   void setUp() {
+    // 預設額度未滿
+    when(quotaService.tryAcquire(any())).thenReturn(true);
+
     // 預設 loginINFO
     testLoginInfo = LoginINFO.builder().build();
     testLoginInfo.setUserAccount("testUser");
@@ -503,5 +511,93 @@ public class ApiControllerTest {
             .param("url", "https://github.com/test/repo")
             .param("commitId", "main"))
         .andExpect(status().isUnauthorized());
+  }
+
+  private void exhaustAnalysisQuota() {
+    when(quotaService.tryAcquire(QuotaService.Kind.ANALYSIS)).thenReturn(false);
+  }
+
+  @Test
+  @DisplayName("分析額度用完：三個端點皆回 429，且不進入 clone／pull；三者共用 ANALYSIS 額度")
+  public void testAnalysisQuotaExceeded() throws Exception {
+    exhaustAnalysisQuota();
+    when(dataBaseService.isProjectOwner(1L, "testProject")).thenReturn(true);
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER)
+            .param("url", "https://github.com/test/repo").param("commitId", "main"))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(content().string("今日分析額度已用完，請明日再試"));
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+            .param("url", "https://github.com/test/repo").param("commitId", "main"))
+        .andExpect(status().isTooManyRequests());
+    mockMvc.perform(get("/api/pullProject").with(USER).param("projectName", "testProject"))
+        .andExpect(status().isTooManyRequests());
+
+    verify(quotaService, times(3)).tryAcquire(QuotaService.Kind.ANALYSIS);
+    verify(gitCloner, never()).cloneRepository(any(), any(), any());
+    verify(gitCloner, never()).temporaryCloneRepository(any(), any());
+    verify(gitPuller, never()).pullLocalRepository(any());
+  }
+
+  @Test
+  @DisplayName("以嘗試次數計：clone 失敗（500）與 URL 不合法（400）也消耗額度")
+  public void testFailedAttemptsConsumeQuota() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L)))
+        .thenThrow(new java.io.IOException("boom"));
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString()))
+        .thenThrow(new IllegalArgumentException("bad url"));
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER)
+            .param("url", "https://github.com/test/repo").param("commitId", "main"))
+        .andExpect(status().isInternalServerError());
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+            .param("url", "bad").param("commitId", "main"))
+        .andExpect(status().isBadRequest());
+
+    verify(quotaService, times(2)).tryAcquire(QuotaService.Kind.ANALYSIS);
+  }
+
+  @Test
+  @DisplayName("pullProject 非擁有者回 403 且不消耗額度")
+  public void testPullProjectNotOwnerDoesNotConsumeQuota() throws Exception {
+    when(dataBaseService.isProjectOwner(1L, "otherProject")).thenReturn(false);
+
+    mockMvc.perform(get("/api/pullProject").with(USER).param("projectName", "otherProject"))
+        .andExpect(status().isForbidden());
+
+    verify(quotaService, never()).tryAcquire(any());
+  }
+
+  @Test
+  @DisplayName("ADMIN 不受分析額度限制，也不消耗額度")
+  public void testAdminBypassesAnalysisQuota() throws Exception {
+    exhaustAnalysisQuota();
+    when(gitCloner.cloneRepository(anyString(), anyString(), eq(99L)))
+        .thenReturn(GitResult.builder().status(GitStatus.CLONE_SUCCESS).message("ok").build());
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString())).thenReturn(testProject);
+    when(dataBaseService.isProjectOwner(99L, "testProject")).thenReturn(true);
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+        .thenReturn(GitResult.builder().status(GitStatus.PULL_SUCCESS).message("ok").build());
+
+    mockMvc.perform(post("/api/fetch-repo").with(ADMIN)
+            .param("url", "https://github.com/test/repo").param("commitId", "main"))
+        .andExpect(status().isOk());
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(ADMIN)
+            .param("url", "https://github.com/test/repo").param("commitId", "main"))
+        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/pullProject").with(ADMIN).param("projectName", "testProject"))
+        .andExpect(status().isOk());
+
+    verify(quotaService, never()).tryAcquire(any());
+  }
+
+  @Test
+  @DisplayName("瀏覽既有專案不呼叫額度服務")
+  public void testReadEndpointsDoNotTouchQuota() throws Exception {
+    when(dataBaseService.getUserProjects("1")).thenReturn(List.of("p"));
+
+    mockMvc.perform(get("/api/getProjectNames").with(USER)).andExpect(status().isOk());
+
+    verify(quotaService, never()).tryAcquire(any());
   }
 }
