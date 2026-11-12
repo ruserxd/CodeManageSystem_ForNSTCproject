@@ -1,8 +1,13 @@
 package com.codemangesystem.springboot_runner;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentCaptor.forClass;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -25,6 +30,7 @@ import com.codemangesystem.git_process.model.git.GitStatus;
 import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.service.DataBaseService;
 import com.codemangesystem.git_process.service.GitCloner;
+import com.codemangesystem.git_process.service.GitDiffAnalyzer;
 import com.codemangesystem.git_process.service.GitPuller;
 import com.codemangesystem.login_process.model.response.LoginINFO;
 import com.codemangesystem.login_process.model.response.SessionResponse;
@@ -32,8 +38,10 @@ import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
+import com.codemangesystem.quota.AnalysisLimits;
 import com.codemangesystem.quota.QuotaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import java.util.Arrays;
 import java.util.List;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -42,6 +50,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -51,7 +61,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 @WebMvcTest(ApiController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, ApiControllerTest.LimitsConfig.class})
 @TestPropertySource(properties = "app.jwt.secret=test-secret-test-secret-test-secret-123")
 public class ApiControllerTest {
 
@@ -68,6 +78,28 @@ public class ApiControllerTest {
   private static final RequestPostProcessor DEMO = jwt()
       .jwt(token -> token.subject("2"))
       .authorities(new SimpleGrantedAuthority("ROLE_DEMO"));
+
+  private static final int USER_MAX = 3;
+  private static final int ADMIN_MAX = 100;
+  private static final int MAX_PROJECTS = 2;
+
+  /** 用真實的 AnalysisLimits（小上限、磁碟門檻 0），才能驗證槽位與角色邏輯。 */
+  @TestConfiguration
+  static class LimitsConfig {
+
+    @Bean
+    AnalysisLimits analysisLimits() {
+      return new AnalysisLimits(USER_MAX, ADMIN_MAX, MAX_PROJECTS, 0);
+    }
+  }
+
+  // 缺少 role claim 的 JWT
+  private static final RequestPostProcessor NO_ROLE = jwt()
+      .jwt(token -> token.subject("1"))
+      .authorities(new SimpleGrantedAuthority("ROLE_USER"));
+
+  @Autowired
+  private AnalysisLimits analysisLimits;
 
   @Autowired
   private MockMvc mockMvc;
@@ -100,6 +132,12 @@ public class ApiControllerTest {
 
   @BeforeEach
   void setUp() {
+    // 單例的槽位在每個測試前重設為「未被佔用」
+    while (analysisLimits.tryAcquire()) {
+      // 取光
+    }
+    analysisLimits.release();
+
     // 預設額度未滿
     when(quotaService.tryAcquire(any())).thenReturn(true);
 
@@ -135,7 +173,7 @@ public class ApiControllerTest {
         .build();
 
     // 模擬
-    when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L)))
+    when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L), anyInt()))
         .thenReturn(mockResult);
 
     // 測試與驗證，前端傳入的 userId 會被忽略，改用 token 內的 userId
@@ -151,7 +189,7 @@ public class ApiControllerTest {
   @Test
   @DisplayName("測試 fetchRepository api throw 的處理")
   public void testFetchRepositoryThrow() throws Exception {
-    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
         .thenThrow(new GitAPIException("git error") {
         });
 
@@ -166,7 +204,7 @@ public class ApiControllerTest {
   @Test
   @DisplayName("測試 fetchRepository api 遇到不合法 URL 回 400")
   public void testFetchRepositoryInvalidUrl() throws Exception {
-    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class)))
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
         .thenThrow(new IllegalArgumentException("只接受 https 開頭的 repo URL"));
 
     mockMvc.perform(post("/api/fetch-repo")
@@ -180,7 +218,7 @@ public class ApiControllerTest {
   @Test
   @DisplayName("測試臨時分析 api 遇到不合法 URL 回 400")
   public void testTemporaryInvalidUrl() throws Exception {
-    when(gitCloner.temporaryCloneRepository(anyString(), anyString()))
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
         .thenThrow(new IllegalArgumentException("只接受 https 開頭的 repo URL"));
 
     mockMvc.perform(post("/api/get-method-diff-temporary")
@@ -212,7 +250,7 @@ public class ApiControllerTest {
         .message("Repository pulled successfully")
         .build();
 
-    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class), anyInt()))
         .thenReturn(mockResult);
 
     when(dataBaseService.isProjectOwner(1L, "testProject")).thenReturn(true);
@@ -444,7 +482,7 @@ public class ApiControllerTest {
     mockMvc.perform(get("/api/getDiffInfoByMethod").with(USER)
             .param("methodId", "5"))
         .andExpect(status().isForbidden());
-    verify(gitPuller, never()).pullLocalRepository(any());
+    verify(gitPuller, never()).pullLocalRepository(any(), anyInt());
   }
 
   @Test
@@ -466,9 +504,9 @@ public class ApiControllerTest {
     mockMvc.perform(get("/api/deleteData").with(DEMO).param("projectName", "x"))
         .andExpect(status().isForbidden());
 
-    verify(gitCloner, never()).cloneRepository(any(), any(), any());
-    verify(gitCloner, never()).temporaryCloneRepository(any(), any());
-    verify(gitPuller, never()).pullLocalRepository(any());
+    verify(gitCloner, never()).cloneRepository(any(), any(), any(), anyInt());
+    verify(gitCloner, never()).temporaryCloneRepository(any(), any(), anyInt());
+    verify(gitPuller, never()).pullLocalRepository(any(), anyInt());
     verify(dataBaseService, never()).deleteDataByProjectName(any(), any());
   }
 
@@ -534,17 +572,17 @@ public class ApiControllerTest {
         .andExpect(status().isTooManyRequests());
 
     verify(quotaService, times(3)).tryAcquire(QuotaService.Kind.ANALYSIS);
-    verify(gitCloner, never()).cloneRepository(any(), any(), any());
-    verify(gitCloner, never()).temporaryCloneRepository(any(), any());
-    verify(gitPuller, never()).pullLocalRepository(any());
+    verify(gitCloner, never()).cloneRepository(any(), any(), any(), anyInt());
+    verify(gitCloner, never()).temporaryCloneRepository(any(), any(), anyInt());
+    verify(gitPuller, never()).pullLocalRepository(any(), anyInt());
   }
 
   @Test
   @DisplayName("以嘗試次數計：clone 失敗（500）與 URL 不合法（400）也消耗額度")
   public void testFailedAttemptsConsumeQuota() throws Exception {
-    when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L)))
+    when(gitCloner.cloneRepository(anyString(), anyString(), eq(1L), anyInt()))
         .thenThrow(new java.io.IOException("boom"));
-    when(gitCloner.temporaryCloneRepository(anyString(), anyString()))
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
         .thenThrow(new IllegalArgumentException("bad url"));
 
     mockMvc.perform(post("/api/fetch-repo").with(USER)
@@ -572,11 +610,12 @@ public class ApiControllerTest {
   @DisplayName("ADMIN 不受分析額度限制，也不消耗額度")
   public void testAdminBypassesAnalysisQuota() throws Exception {
     exhaustAnalysisQuota();
-    when(gitCloner.cloneRepository(anyString(), anyString(), eq(99L)))
+    when(gitCloner.cloneRepository(anyString(), anyString(), eq(99L), anyInt()))
         .thenReturn(GitResult.builder().status(GitStatus.CLONE_SUCCESS).message("ok").build());
-    when(gitCloner.temporaryCloneRepository(anyString(), anyString())).thenReturn(testProject);
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
+        .thenReturn(new GitDiffAnalyzer.TemporaryAnalysis(testProject, false, 500));
     when(dataBaseService.isProjectOwner(99L, "testProject")).thenReturn(true);
-    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class)))
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class), anyInt()))
         .thenReturn(GitResult.builder().status(GitStatus.PULL_SUCCESS).message("ok").build());
 
     mockMvc.perform(post("/api/fetch-repo").with(ADMIN)
@@ -599,5 +638,214 @@ public class ApiControllerTest {
     mockMvc.perform(get("/api/getProjectNames").with(USER)).andExpect(status().isOk());
 
     verify(quotaService, never()).tryAcquire(any());
+  }
+
+  private static final String REPO = "https://github.com/test/repo";
+
+  private GitResult ok() {
+    return GitResult.builder().status(GitStatus.CLONE_SUCCESS).message("ok").build();
+  }
+
+  private int capturedCloneLimit(long userId) throws Exception {
+    org.mockito.ArgumentCaptor<Integer> captor = forClass(Integer.class);
+    verify(gitCloner).cloneRepository(anyString(), anyString(), eq(userId), captor.capture());
+    return captor.getValue();
+  }
+
+  @Test
+  @DisplayName("fetch-repo：USER 用 USER 上限，ADMIN 用 ADMIN 上限")
+  public void testFetchRepoCommitLimitByRole() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(ok());
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk());
+    assertEquals(USER_MAX, capturedCloneLimit(1L));
+
+    mockMvc.perform(post("/api/fetch-repo").with(ADMIN).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk());
+    assertEquals(ADMIN_MAX, capturedCloneLimit(99L));
+  }
+
+  @Test
+  @DisplayName("get-method-diff-temporary：依角色傳入 commit 上限")
+  public void testTemporaryCommitLimitByRole() throws Exception {
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
+        .thenReturn(new GitDiffAnalyzer.TemporaryAnalysis(testProject, false, 0));
+
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+        .param("url", REPO).param("commitId", "H")).andExpect(status().isOk());
+    verify(gitCloner).temporaryCloneRepository(REPO, "H", USER_MAX);
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(ADMIN)
+        .param("url", REPO).param("commitId", "H")).andExpect(status().isOk());
+    verify(gitCloner).temporaryCloneRepository(REPO, "H", ADMIN_MAX);
+  }
+
+  @Test
+  @DisplayName("pullProject：依角色傳入 commit 上限")
+  public void testPullCommitLimitByRole() throws Exception {
+    when(dataBaseService.isProjectOwner(1L, "p")).thenReturn(true);
+    when(dataBaseService.isProjectOwner(99L, "p")).thenReturn(true);
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class), anyInt()))
+        .thenReturn(GitResult.builder().status(GitStatus.PULL_SUCCESS).message("ok").build());
+
+    mockMvc.perform(get("/api/pullProject").with(USER).param("projectName", "p"))
+        .andExpect(status().isOk());
+    verify(gitPuller).pullLocalRepository(any(RepositoryINFO.class), eq(USER_MAX));
+    mockMvc.perform(get("/api/pullProject").with(ADMIN).param("projectName", "p"))
+        .andExpect(status().isOk());
+    verify(gitPuller).pullLocalRepository(any(RepositoryINFO.class), eq(ADMIN_MAX));
+  }
+
+  @Test
+  @DisplayName("缺少 role claim 的 JWT 視為 USER 上限")
+  public void testNoRoleClaimUsesUserLimit() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(ok());
+
+    mockMvc.perform(post("/api/fetch-repo").with(NO_ROLE).param("url", REPO)
+        .param("commitId", "H")).andExpect(status().isOk());
+    assertEquals(USER_MAX, capturedCloneLimit(1L));
+  }
+
+  @Test
+  @DisplayName("角色只來自 JWT，請求參數的 role 被忽略")
+  public void testRoleParamIgnored() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(ok());
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO)
+        .param("commitId", "H").param("role", "ADMIN")).andExpect(status().isOk());
+    assertEquals(USER_MAX, capturedCloneLimit(1L));
+  }
+
+  @Test
+  @DisplayName("截斷註記：fetch-repo、pullProject 的 message 帶上限，temporary 帶 header")
+  public void testTruncationNotes() throws Exception {
+    String note = GitDiffAnalyzer.truncationNote(USER_MAX);
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(GitResult.builder().status(GitStatus.CLONE_SUCCESS)
+            .message("成功將資料分類完成" + note).build());
+    when(dataBaseService.isProjectOwner(1L, "p")).thenReturn(true);
+    when(gitPuller.pullLocalRepository(any(RepositoryINFO.class), anyInt()))
+        .thenReturn(GitResult.builder().status(GitStatus.PULL_SUCCESS)
+            .message("成功 Pull 並更新資料" + note).build());
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
+        .thenReturn(new GitDiffAnalyzer.TemporaryAnalysis(testProject, true, USER_MAX));
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(jsonPath("$.message").value(Matchers.containsString("僅分析最新 3")));
+    mockMvc.perform(get("/api/pullProject").with(USER).param("projectName", "p"))
+        .andExpect(jsonPath("$.message").value(Matchers.containsString("僅分析最新 3")));
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+            .param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("X-Analysis-Truncated", "3"));
+  }
+
+  @Test
+  @DisplayName("未截斷時 temporary 沒有 X-Analysis-Truncated header")
+  public void testNoTruncationHeader() throws Exception {
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
+        .thenReturn(new GitDiffAnalyzer.TemporaryAnalysis(testProject, false, USER_MAX));
+
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+            .param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk())
+        .andExpect(header().doesNotExist("X-Analysis-Truncated"));
+  }
+
+  @Test
+  @DisplayName("槽位被佔用：三個入口立即回 429，不呼叫 clone／pull，也不扣每日額度")
+  public void testBusySlotRejectsAll() throws Exception {
+    assertTrue(analysisLimits.tryAcquire());
+    when(dataBaseService.isProjectOwner(1L, "p")).thenReturn(true);
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(content().string("目前已有其他分析正在執行，請稍後再試"));
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+        .param("url", REPO).param("commitId", "H")).andExpect(status().isTooManyRequests());
+    mockMvc.perform(get("/api/pullProject").with(USER).param("projectName", "p"))
+        .andExpect(status().isTooManyRequests());
+
+    verify(quotaService, never()).tryAcquire(any());
+    verify(gitCloner, never()).cloneRepository(any(), any(), any(), anyInt());
+    verify(gitCloner, never()).temporaryCloneRepository(any(), any(), anyInt());
+    verify(gitPuller, never()).pullLocalRepository(any(), anyInt());
+  }
+
+  @Test
+  @DisplayName("槽位在例外路徑也會釋放：IOException、IllegalArgumentException、RuntimeException")
+  public void testSlotReleasedOnException() throws Exception {
+    Throwable[] errors = {new java.io.IOException("io"), new IllegalArgumentException("arg"),
+        new RuntimeException("rt")};
+    for (Throwable error : errors) {
+      org.mockito.Mockito.doThrow(error).when(gitCloner)
+          .cloneRepository(anyString(), anyString(), any(Long.class), anyInt());
+      try {
+        mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO)
+            .param("commitId", "H"));
+      } catch (Exception expected) {
+        // RuntimeException 會被 MockMvc 包成 ServletException，這裡只關心槽位是否釋放
+      }
+    }
+    org.mockito.Mockito.doReturn(ok()).when(gitCloner)
+        .cloneRepository(anyString(), anyString(), any(Long.class), anyInt());
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk());
+    assertTrue(analysisLimits.tryAcquire());
+  }
+
+  @Test
+  @DisplayName("專案數達上限：USER 回 403，不呼叫 clone，也不扣每日額度；未達上限則放行")
+  public void testProjectLimit() throws Exception {
+    when(dataBaseService.getUserProjects("1")).thenReturn(List.of("a", "b"));
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string(Matchers.containsString("專案數上限")));
+    verify(gitCloner, never()).cloneRepository(any(), any(), any(), anyInt());
+    verify(quotaService, never()).tryAcquire(any());
+    // 被拒絕後槽位已釋放
+    assertTrue(analysisLimits.tryAcquire());
+    analysisLimits.release();
+
+    when(dataBaseService.getUserProjects("1")).thenReturn(List.of("a"));
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(ok());
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("ADMIN 不受專案數限制，也不查專案數")
+  public void testAdminNoProjectLimit() throws Exception {
+    when(dataBaseService.getUserProjects("99")).thenReturn(List.of("a", "b", "c", "d"));
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenReturn(ok());
+
+    mockMvc.perform(post("/api/fetch-repo").with(ADMIN).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isOk());
+    verify(dataBaseService, never()).getUserProjects("99");
+  }
+
+  @Test
+  @DisplayName("磁碟空間不足：fetch-repo 與 get-method-diff-temporary 回 503")
+  public void testInsufficientDisk() throws Exception {
+    when(gitCloner.cloneRepository(anyString(), anyString(), any(Long.class), anyInt()))
+        .thenThrow(new AnalysisLimits.InsufficientDiskSpaceException("伺服器磁碟空間不足"));
+    when(gitCloner.temporaryCloneRepository(anyString(), anyString(), anyInt()))
+        .thenThrow(new AnalysisLimits.InsufficientDiskSpaceException("伺服器磁碟空間不足"));
+
+    mockMvc.perform(post("/api/fetch-repo").with(USER).param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(content().string("伺服器磁碟空間不足"));
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(USER)
+            .param("url", REPO).param("commitId", "H"))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(content().string("伺服器磁碟空間不足"));
+    assertTrue(analysisLimits.tryAcquire());
   }
 }

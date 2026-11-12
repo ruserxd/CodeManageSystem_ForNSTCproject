@@ -93,7 +93,7 @@ class GitDiffAnalyzerTest {
     @DisplayName("沒有此路徑的情況")
     void noDirectoryTest() throws GitAPIException, IOException {
       // 測試
-      GitResult actual = gitDiffAnalyzer.analyzeAllCommits("", user);
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits("", user, 500);
 
       // 驗證
       assertEquals("分析時，本地端沒有此檔案", actual.getMessage());
@@ -112,7 +112,7 @@ class GitDiffAnalyzerTest {
       java.nio.file.Files.createDirectory(gitDir);
 
       // 執行測試
-      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user);
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 500);
 
       // 驗證
       assertEquals("分析時，此資料沒有 commit 的紀錄", actual.getMessage());
@@ -132,7 +132,7 @@ class GitDiffAnalyzerTest {
       git.commit().setMessage("test").setAllowEmpty(true).call();
 
       // 執行測試
-      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user);
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 500);
 
       // 驗證
       assertEquals("未出現可分析方法，可能是沒有方法可以分類", actual.getMessage());
@@ -176,7 +176,7 @@ class GitDiffAnalyzerTest {
       git.commit().setMessage("test-2").call();
 
       // 執行測試
-      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user);
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 500);
 
       // 驗證
       assertEquals("成功將資料分類完成", actual.getMessage());
@@ -214,7 +214,7 @@ class GitDiffAnalyzerTest {
           .when(spyGitDiffAnalyzer).getCommitDiffList(any(), any(), any(), any());
 
       // 執行測試
-      GitResult actual = spyGitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user);
+      GitResult actual = spyGitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 500);
 
       // 驗證
       assertEquals("分析時，發生 getCommit error", actual.getMessage());
@@ -260,7 +260,7 @@ class GitDiffAnalyzerTest {
           })) {
 
         // 執行測試
-        GitResult actual = spyGitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user);
+        GitResult actual = spyGitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 500);
 
         // 驗證結果
         assertEquals("分析時，發生 getCommit error", actual.getMessage());
@@ -293,7 +293,7 @@ class GitDiffAnalyzerTest {
     @DisplayName("不存在該檔案")
     void noDirectoryTest() throws IOException {
       // 測試
-      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath, oldHeadRevStr);
+      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath, oldHeadRevStr, 500);
       log.info(String.valueOf(actual));
 
       // 驗證
@@ -313,7 +313,7 @@ class GitDiffAnalyzerTest {
 
       // 測試
       GitResult actual = gitDiffAnalyzer.analyzePartCommits(String.valueOf(repoPath),
-          oldHeadRevStr);
+          oldHeadRevStr, 500);
       log.info(String.valueOf(actual));
 
       // 驗證
@@ -368,7 +368,7 @@ class GitDiffAnalyzerTest {
 
       // 測試
       GitResult actual = gitDiffAnalyzer.analyzePartCommits(String.valueOf(repoPath),
-          oldHeadRevStr);
+          oldHeadRevStr, 500);
       log.info(String.valueOf(actual));
 
       // 驗證
@@ -417,7 +417,7 @@ class GitDiffAnalyzerTest {
 
       // 測試
       GitResult actual = gitDiffAnalyzer.analyzePartCommits(String.valueOf(repoPath),
-          oldHeadRevStr);
+          oldHeadRevStr, 500);
       log.info(String.valueOf(actual));
 
       // 驗證
@@ -461,7 +461,7 @@ class GitDiffAnalyzerTest {
           .when(spyGitDiffAnalyzer).getCommitDiffList(any(), any(), any(), any());
 
       // 執行測試
-      GitResult actual = spyGitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHeadRevStr);
+      GitResult actual = spyGitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHeadRevStr, 500);
 
       // 驗證
       assertEquals("部分分析時，發生 getCommit error", actual.getMessage());
@@ -513,7 +513,7 @@ class GitDiffAnalyzerTest {
 
         // 執行測試
         GitResult actual = spyGitDiffAnalyzer.analyzePartCommits(repoPath.toString(),
-            oldHeadRevStr);
+            oldHeadRevStr, 500);
 
         // 驗證結果
         assertEquals("部分分析時，發生 getCommit error", actual.getMessage());
@@ -1231,6 +1231,243 @@ class GitDiffAnalyzerTest {
       List<DiffInfo> diffInfoList = method.getDiffInfoList();
       DiffInfo diffInfo = diffInfoList.getFirst();
       assertEquals(diffInfo.getDiffCode(), "+ ssss");
+    }
+  }
+
+  @Nested
+  class commitLimitTest {
+
+    static final int TOTAL = 8;
+    static final int LIMIT = 3;
+
+    MyUser user = MyUser.builder().userId(1L).build();
+    @TempDir
+    Path tempDir;
+
+    /** 建立有 TOTAL 個 commit 的 repo，每個 commit 都改動同一個方法；回傳由舊到新的 SHA。 */
+    List<String> createRepo(Path repoPath) throws GitAPIException, IOException {
+      java.nio.file.Files.createDirectory(repoPath);
+      List<String> shas = new ArrayList<>();
+      try (Git git = Git.init().setDirectory(repoPath.toFile()).call()) {
+        for (int i = 0; i < TOTAL; i++) {
+          java.nio.file.Files.write(repoPath.resolve("test.java"), ("""
+              public class Tester {
+                  public void test() {
+                      System.out.println("version%d");
+                  }
+              }
+              """.formatted(i)).getBytes());
+          git.add().addFilepattern("test.java").call();
+          shas.add(git.commit().setMessage("commit-" + i).call().getName());
+        }
+      }
+      return shas;
+    }
+
+    List<DiffInfo> allDiffInfos(Project project) {
+      List<DiffInfo> result = new ArrayList<>();
+      for (Files file : project.getFiles()) {
+        for (Method method : file.getMethods()) {
+          result.addAll(method.getDiffInfoList());
+        }
+      }
+      return result;
+    }
+
+    List<String> diffShas(Project project) {
+      return allDiffInfos(project).stream().map(DiffInfo::getHeadRevstr).toList();
+    }
+
+    Project savedProject() {
+      org.mockito.ArgumentCaptor<Project> captor =
+          org.mockito.ArgumentCaptor.forClass(Project.class);
+      verify(projectRepository).save(captor.capture());
+      return captor.getValue();
+    }
+
+    @Test
+    @DisplayName("analyzeAllCommits 超過上限時只分析最新 N 個，並附註記")
+    void analyzeAllTruncatesTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, LIMIT);
+
+      Project project = savedProject();
+      List<String> analyzed = diffShas(project);
+      assertEquals(LIMIT, analyzed.size());
+      assertEquals(shas.get(TOTAL - 1), project.getHeadRevstr());
+      for (int i = 0; i < TOTAL; i++) {
+        assertEquals(i >= TOTAL - LIMIT, analyzed.contains(shas.get(i)), "commit " + i);
+      }
+      assertEquals(GitStatus.CLONE_SUCCESS, actual.getStatus());
+      assertEquals("成功將資料分類完成" + GitDiffAnalyzer.truncationNote(LIMIT), actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("上限大於 commit 數（ADMIN 情境）時完整分析且沒有註記")
+    void analyzeAllNotTruncatedTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, 70000);
+
+      assertEquals(TOTAL, diffShas(savedProject()).size());
+      assertEquals(shas.size(), TOTAL);
+      assertEquals("成功將資料分類完成", actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("上限剛好等於 commit 數時不算截斷")
+    void analyzeAllExactLimitTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      createRepo(repoPath);
+
+      GitResult actual = gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, TOTAL);
+
+      assertEquals(TOTAL, diffShas(savedProject()).size());
+      assertEquals("成功將資料分類完成", actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("截斷後最舊被分析的 commit 仍與真正的 parent 做 diff")
+    void truncatedOldestCommitDiffsAgainstParentTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+
+      gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, LIMIT);
+
+      String oldestAnalyzed = shas.get(TOTAL - LIMIT);
+      DiffInfo diffInfo = allDiffInfos(savedProject()).stream()
+          .filter(d -> oldestAnalyzed.equals(d.getHeadRevstr()))
+          .findFirst().orElseThrow();
+      String diffCode = diffInfo.getDiffCode();
+      log.info("oldest analyzed diff:\n{}", diffCode);
+      // 只有 version 那一行變動，沒有整個檔案被視為新增
+      assertEquals(true, diffCode.contains("version" + (TOTAL - LIMIT)));
+      assertEquals(true, diffCode.contains("version" + (TOTAL - LIMIT - 1)));
+      assertEquals(false, diffCode.contains("class Tester"));
+    }
+
+    @Test
+    @DisplayName("analyzeAllCommitsTemporary 超過上限時只分析最新 N 個並標示截斷")
+    void temporaryTruncatesTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+
+      GitDiffAnalyzer.TemporaryAnalysis analysis =
+          gitDiffAnalyzer.analyzeAllCommitsTemporary(repoPath.toString(), LIMIT);
+
+      assertEquals(true, analysis.truncated());
+      assertEquals(LIMIT, analysis.maxCommits());
+      List<String> analyzed = diffShas(analysis.project());
+      assertEquals(LIMIT, analyzed.size());
+      assertEquals(shas.get(TOTAL - 1), analysis.project().getHeadRevstr());
+      assertEquals(false, analyzed.contains(shas.get(TOTAL - LIMIT - 1)));
+    }
+
+    @Test
+    @DisplayName("analyzeAllCommitsTemporary 上限足夠時完整分析且不標示截斷")
+    void temporaryNotTruncatedTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      createRepo(repoPath);
+
+      GitDiffAnalyzer.TemporaryAnalysis analysis =
+          gitDiffAnalyzer.analyzeAllCommitsTemporary(repoPath.toString(), 70000);
+
+      assertEquals(false, analysis.truncated());
+      assertEquals(TOTAL, diffShas(analysis.project()).size());
+    }
+
+    @Test
+    @DisplayName("analyzePartCommits 新 commit 超過上限時只處理最新 N 個，head 更新")
+    void partTruncatesTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+      Project project = Project.builder().projectName("repo").files(new ArrayList<>())
+          .headRevstr(shas.get(1)).build();
+      when(projectRepository.findByProjectName("repo")).thenReturn(Optional.of(project));
+
+      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath.toString(), shas.get(1),
+          LIMIT);
+
+      List<String> analyzed = diffShas(project);
+      assertEquals(LIMIT, analyzed.size());
+      for (int i = TOTAL - LIMIT; i < TOTAL; i++) {
+        assertEquals(true, analyzed.contains(shas.get(i)));
+      }
+      assertEquals(shas.get(TOTAL - 1), project.getHeadRevstr());
+      assertEquals(GitStatus.PULL_SUCCESS, actual.getStatus());
+      assertEquals("成功 Pull 並更新資料" + GitDiffAnalyzer.truncationNote(LIMIT),
+          actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("analyzePartCommits 新 commit 數不超過上限時遇到舊 head 即停止且沒有註記")
+    void partStopsAtOldHeadTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+      // 舊 head 是倒數第 3 個，新 commit 剛好 LIMIT - 1 = 2 個
+      String oldHead = shas.get(TOTAL - LIMIT);
+      Project project = Project.builder().projectName("repo").files(new ArrayList<>())
+          .headRevstr(oldHead).build();
+      when(projectRepository.findByProjectName("repo")).thenReturn(Optional.of(project));
+
+      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHead, LIMIT);
+
+      assertEquals(LIMIT - 1, diffShas(project).size());
+      assertEquals(false, diffShas(project).contains(oldHead));
+      assertEquals("成功 Pull 並更新資料", actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("analyzePartCommits 新 commit 數剛好等於上限時不算截斷")
+    void partExactLimitTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      List<String> shas = createRepo(repoPath);
+      String oldHead = shas.get(TOTAL - LIMIT - 1);
+      Project project = Project.builder().projectName("repo").files(new ArrayList<>())
+          .headRevstr(oldHead).build();
+      when(projectRepository.findByProjectName("repo")).thenReturn(Optional.of(project));
+
+      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHead, LIMIT);
+
+      assertEquals(LIMIT, diffShas(project).size());
+      assertEquals("成功 Pull 並更新資料", actual.getMessage());
+    }
+
+    @Test
+    @DisplayName("截斷分析後再新增 1 個 commit 並 pull，只新增那 1 個 commit 的差異")
+    void pullAfterTruncatedAnalysisTest() throws Exception {
+      Path repoPath = tempDir.resolve("repo");
+      createRepo(repoPath);
+      // 先以小上限分析（截斷），head 為 HEAD
+      gitDiffAnalyzer.analyzeAllCommits(repoPath.toString(), user, LIMIT);
+      Project project = savedProject();
+      String oldHead = project.getHeadRevstr();
+      int before = diffShas(project).size();
+
+      String newSha;
+      try (Git git = Git.open(repoPath.toFile())) {
+        java.nio.file.Files.write(repoPath.resolve("test.java"), """
+            public class Tester {
+                public void test() {
+                    System.out.println("versionNew");
+                }
+            }
+            """.getBytes());
+        git.add().addFilepattern("test.java").call();
+        newSha = git.commit().setMessage("commit-new").call().getName();
+      }
+      when(projectRepository.findByProjectName("repo")).thenReturn(Optional.of(project));
+
+      GitResult actual = gitDiffAnalyzer.analyzePartCommits(repoPath.toString(), oldHead, LIMIT);
+
+      List<String> analyzed = diffShas(project);
+      assertEquals(before + 1, analyzed.size());
+      assertEquals(1, analyzed.stream().filter(newSha::equals).count());
+      assertEquals(newSha, project.getHeadRevstr());
+      assertEquals("成功 Pull 並更新資料", actual.getMessage());
     }
   }
 }
