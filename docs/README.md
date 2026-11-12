@@ -30,7 +30,7 @@
 - [功能特色](#功能特色)
 - [畫面展示](#畫面展示)
 - [系統架構](#系統架構)
-- [技術棧](#技術棧)
+- [技術堆疊](#技術堆疊)
 - [快速開始](#快速開始)
 - [核心流程](#核心流程)
 - [API 一覽](#api-一覽)
@@ -50,7 +50,7 @@ CodeManageSystem 會 clone 使用者指定的 Git repo，走過每一個 commit�
 
 - **方法層級的 diff**：每個方法都有自己的修改歷史，可以分辨新增、刪除、修改
 - **專案管理**：輸入 GitHub / GitLab / Bitbucket 的 repo URL 即可分析；已分析過的專案可以 pull 做增量更新
-- **自動化部署**：GitHub Actions 測試 → 推送映像到 GHCR → self-hosted runner 部署到實驗室主機，透過 Cloudflare Tunnel 對外提供 HTTPS
+- **自動化部署**：GitHub Actions 測試 → 推送映像檔到 GHCR → self-hosted runner 部署到實驗室主機，透過 Cloudflare Tunnel 對外提供 HTTPS
 
 ## 畫面展示
 
@@ -68,7 +68,7 @@ flowchart LR
     NG -->|"/api/*"| BE["backend<br/>Spring Boot :8080"]
     BE --> DB[("MySQL 8")]
     BE --> GIT["Git repo<br/>GitHub / GitLab / Bitbucket"]
-    BE --- VOL[("cloneCode volume<br/>本地 clone")]
+    BE --- VOL[("cloneCode volume<br/>本機 clone")]
 ```
 
 所有服務都由 `docker-compose.yml` 管理。瀏覽器只會連到 nginx：前端靜態檔由 nginx 提供，`/api/*` 轉給後端，所以前後端同源，不需要另外處理 CORS。
@@ -84,9 +84,9 @@ erDiagram
     Method ||--o{ DiffInfo : "每個 commit 的差異"
 ```
 
-前端會先載入專案結構（Project → Files → Method），點到某個方法時才抓那個方法的 `DiffInfo`，不會一次拉整個專案的資料。
+前端會先載入專案結構（Project → Files → Method），點到某個方法時才抓那個方法的 `DiffInfo`，不會一次載入整個專案的資料。
 
-## 技術棧
+## 技術堆疊
 
 | 分類 | 技術 |
 |---|---|
@@ -116,7 +116,7 @@ docker compose up --build -d
 
 啟動後開啟 <http://localhost>。後端與前端的 Dockerfile 都是多階段建置，不需要先在本機執行 Maven 或 Yarn。
 
-> 要直接使用 CI 建好的映像，可以改用 `docker compose pull && docker compose up -d`。`.env` 的 `IMAGE_TAG` 可以指定某個 commit SHA，用來回退版本。
+> 要直接使用 CI 建好的映像檔，可以改用 `docker compose pull && docker compose up -d`。`.env` 的 `IMAGE_TAG` 可以指定某個 commit SHA，用來還原到舊版本。
 
 ### 方法二：本機開發
 
@@ -170,9 +170,9 @@ sequenceDiagram
     User->>FE: 輸入 repo URL
     FE->>BE: POST /api/fetch-repo（JWT）
     BE->>BE: 驗證並正規化 URL、檢查額度與磁碟空間
-    alt 本地沒有 clone
+    alt 本機沒有 clone
         BE->>Git: clone
-    else 本地已有 clone
+    else 本機已有 clone
         BE->>Git: pull
     end
     BE->>BE: GitDiffAnalyzer 逐對比較 commit
@@ -188,7 +188,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["收到 repo URL"] --> B{"本地是否已有資料？"}
+    A["收到 repo URL"] --> B{"本機是否已有資料？"}
     B -->|否| C["clone 到 src/cloneCode"]
     B -->|是| D["pull 最新的 commit"]
     C --> E["分析全部 commit，分類後存入資料庫"]
@@ -255,10 +255,10 @@ cd backend
 ```mermaid
 flowchart LR
     A["push 到 main"] --> B["Run Tests<br/>MySQL 8.0 / 8.4"]
-    B -->|通過| C["建置映像<br/>推送到 GHCR"]
+    B -->|通過| C["建置映像檔<br/>推送到 GHCR"]
     C --> D["Deploy<br/>self-hosted runner"]
     D --> E["備份資料庫"]
-    E --> F["pull 映像<br/>docker compose up"]
+    E --> F["pull 映像檔<br/>docker compose up"]
     F --> G["煙霧測試"]
 ```
 
@@ -280,13 +280,13 @@ flowchart LR
 │       └── components/diff/      # 方法 diff 檢視元件
 ├── nginx/                    # 反向代理設定
 ├── docs/                     # 文件（ROADMAP、PROGRESS、DEPLOY、ADR）
-├── .github/workflows/        # CI（測試、發佈映像）與 CD（部署）
+├── .github/workflows/        # CI（測試、發布映像檔）與 CD（部署）
 ├── docker-compose.yml
 └── .env.example
 ```
 
 ## Roadmap
-接下來會加入以本地 LLM 為核心的程式碼歷史分析功能（方法變更摘要、修改分類、演化敘事、語意搜尋、歷史問答），並遷移到 Kubernetes。
+接下來會加入以本機 LLM 為核心的程式碼歷史分析功能（方法變更摘要、修改分類、演化敘事、語意搜尋、歷史問答），並遷移到 Kubernetes。
 
 - [ ] Python FastAPI LLM 服務
 - [ ] Kubernetes 部署
