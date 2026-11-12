@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,6 +131,10 @@ public class UserService {
           .success(false)
           .build();
     }
+
+    // personalInfos 是 LAZY，交易結束後 Jackson 序列化會丟 LazyInitializationException，
+    // 所以要在交易內先初始化（checkUser 是靠 log 的 toString 順便初始化）
+    Hibernate.initialize(myUser.get().getPersonalInfos());
 
     log.info("Demo login success");
     return SessionResponse.builder()
