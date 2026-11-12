@@ -28,6 +28,7 @@ import com.codemangesystem.git_process.service.GitPuller;
 import com.codemangesystem.login_process.model.response.LoginINFO;
 import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
+import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -260,6 +261,64 @@ public class ApiControllerTest {
         .andExpect(jsonPath("$.token").value("test-token"))
         .andExpect(jsonPath("$.myUser.userAccount").value("testUser"))
         .andExpect(jsonPath("$.myUser.userPassword").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("測試 demo-login api：免 JWT，成功時回傳 DEMO 的 token")
+  public void testDemoLoginSuccess() throws Exception {
+    MyUser demoUser = MyUser.builder()
+        .userId(2L)
+        .userAccount("demo")
+        .userPassword("hashed")
+        .userAuthority(UserAuthority.DEMO)
+        .build();
+    SessionResponse demoResponse = SessionResponse.builder()
+        .success(true)
+        .message("Success")
+        .myUser(demoUser)
+        .build();
+    when(userService.demoLogin()).thenReturn(demoResponse);
+    when(jwtService.generateToken(any(MyUser.class))).thenReturn("demo-token");
+
+    // 不帶任何 JWT
+    mockMvc.perform(post("/api/demo-login"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.token").value("demo-token"))
+        .andExpect(jsonPath("$.myUser.userAccount").value("demo"))
+        .andExpect(jsonPath("$.myUser.userPassword").doesNotExist());
+
+    verify(jwtService).generateToken(
+        argThat(u -> u.getUserAuthority() == UserAuthority.DEMO));
+  }
+
+  @Test
+  @DisplayName("測試 demo-login api：未啟用時回傳明確失敗訊息，且不簽 token")
+  public void testDemoLoginNotEnabled() throws Exception {
+    when(userService.demoLogin()).thenReturn(
+        SessionResponse.builder().success(false).message("demo 帳號未啟用").build());
+
+    mockMvc.perform(post("/api/demo-login"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.message").value("demo 帳號未啟用"))
+        .andExpect(jsonPath("$.token").doesNotExist());
+
+    verify(jwtService, never()).generateToken(any());
+  }
+
+  @Test
+  @DisplayName("測試 demo-login api：帶任何 JWT 或參數都一樣，不接受指定帳號")
+  public void testDemoLoginIgnoresInput() throws Exception {
+    when(userService.demoLogin()).thenReturn(
+        SessionResponse.builder().success(false).message("demo 帳號未啟用").build());
+
+    mockMvc.perform(post("/api/demo-login").with(USER).param("userAccount", "admin"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(false));
+
+    verify(userService).demoLogin();
+    verify(userService, never()).checkUser(any());
   }
 
   @Test
