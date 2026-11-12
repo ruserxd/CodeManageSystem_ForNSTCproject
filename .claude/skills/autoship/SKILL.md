@@ -83,9 +83,11 @@ Stop only for real decisions: irreversible actions, a preference only the user c
 1. Merge only when the aggregate is PASS (or PASS（有建議） with every 🟡 and ⚪ handled as in /ship ⑤) and all CI checks passed. Then:
    ```bash
    gh pr ready <PR>
-   gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA that the verifiers checked>
+   gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA that the verifiers checked> \
+     --subject "<title>" --body-file <message file>
    gh pr view <PR> --json state,mergedAt   # read back and confirm state is MERGED
    ```
+   Write the squash message file and the `--subject` title before merging, in the format defined in /ship ⑤ step 2.
    The user authorized orchestrator merges on 2026-11-03.
 2. CI: retry a failed run **once**. A second identical failure is a real failure → treat it as a 🔴 and send it back through ④.
 3. Post-merge verification in /ship ⑤ step 3: the same, except that every "ask the user" branch becomes stop (`needs-human`), and the smoke test (which needs a host address from the user) is skipped with a note in the delivery comment.

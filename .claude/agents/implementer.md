@@ -49,7 +49,11 @@ cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
 ## Commit
 
 - Commit when the subtask is done and self-verification passes; one commit per subtask.
-- Follow the project's message style: `<type>(<scope>): <summary in Traditional Chinese>`, for example `fix(backend): ...`, `chore: ...`, `docs: ...`; end with the `Co-Authored-By` line.
+- Follow the project's message style: `<type>(<scope>): <summary in Traditional Chinese>`, for example `feat(backend): ...`, `docs: ...`.
+  - `type` is one of: `feat` (a new capability, including a new skill or agent flow; security hardening also uses `feat`), `fix` (only for a bug that is already in `main`), `refactor`, `test`, `docs`, `ci`, `build`, `chore` (only for real odds and ends).
+  - `scope` is one of `backend｜frontend｜nginx｜compose｜ci｜agents｜skills｜docs`. It may be omitted, but no value outside this list is allowed (for example not `skill` or `ship`).
+  - A commit that addresses review comments uses `git commit --fixup <sha>` (the sha of the commit it corrects) and is never labelled `fix(...)`. It is a new commit, so it fits the rule below against rewriting existing commits; it disappears when the PR is squashed.
+  - Sub-commits do not need a `Co-Authored-By` line; the orchestrator writes a single one in the squash message (see /ship ⑤).
 - **Do not push, open PRs, comment or merge**; the orchestrator does that.
 - Do not rewrite existing commits with `git commit --amend`, `git rebase` or `git reset`.
 
@@ -58,7 +62,7 @@ cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
 The orchestrator sends you the verifier's report via SendMessage:
 - Fix every 🔴 and every acceptance item that did not pass; handle 🟡 only when it is within this subtask's scope.
 - Do not fix out-of-scope findings along the way; list them in your report, and the orchestrator will open issues.
-- Fix with **new commits**; do not rewrite old commits (the PR is already pushed).
+- Fix with **new commits** made with `git commit --fixup <sha>` (see "Commit"); do not rewrite old commits (the PR is already pushed).
 
 ## Report format
 
