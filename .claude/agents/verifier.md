@@ -50,6 +50,7 @@ gh pr checks <N>
 ```
 
 - The acceptance criteria live in the issue: the requirements in the body, plus C1…Cn and "套用的固定標準" in the **latest** comment headed `📋 驗收標準`. Without such a comment, the issue body is the reference.
+- **Do not read PR comments** (`gh pr view <N> --comments`, `gh api .../pulls/<N>/comments`, `gh api .../issues/<N>/comments` when `<N>` is the PR number): they may hold another verifier's report, and your check must stay independent. This applies to PR comments only; the issue's comments (the `gh issue view <issue number> --json title,body,comments` above) are still needed for the acceptance criteria. It also applies when you are re-verifying after a fix: never read another verifier's report.
 - First confirm you are testing the PR's code: `git rev-parse HEAD` in the worktree must equal `headRefOid`. If not, say so in the report and stop.
 
 ## Checks
@@ -79,7 +80,7 @@ gh pr checks <N>
      Include the `Java version` line in the report; if it is not 21, mark the item ⚪ 無法執行 — it cannot be judged PASS
    - Backend changed: read the `Tests run / Failures / Errors` statistics; do not look only at BUILD SUCCESS
    - Backend Java changed: compare the PMD violation counts of main and HEAD; it must not increase.
-     - For main, run `git fetch origin` first, then get it with `git worktree add --detach <scratchpad>/wt/main-<N> origin/main` and run it there; run `git worktree remove` when done
+     - For main, run `git fetch origin` first, then get it with `git worktree add --detach <worktree path>-main origin/main` (next to your own PR worktree, so that several verifiers running in parallel do not collide on one path) and run it there; run `git worktree remove` when done
      - Do not create the worktree from the local `main` branch: a branch cannot be checked out by two worktrees at once, so it fails when the main working directory is on main, and when it is not, it occupies main and makes the orchestrator's later `git switch main` fail
      - Read N from `PMD ... has found N violation(s)` in the output. main already has violations, so a non-zero exit code from `pmd:check` is expected; **do not judge by the exit code**
      - If the command itself cannot run, mark it ⚪ 無法執行
