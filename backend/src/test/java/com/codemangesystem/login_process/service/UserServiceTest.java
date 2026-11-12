@@ -91,7 +91,7 @@ class UserServiceTest {
     private UserService demoService;
 
     @BeforeEach
-    void setUp_demo() {
+    void setUp() {
       demoService = new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "demo-pw");
     }
 

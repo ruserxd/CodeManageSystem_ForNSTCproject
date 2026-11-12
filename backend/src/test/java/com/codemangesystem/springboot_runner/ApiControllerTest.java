@@ -383,6 +383,9 @@ public class ApiControllerTest {
   @Test
   @DisplayName("DEMO 呼叫寫入或耗資源的 api 回傳 403，且沒有執行任何動作")
   public void testDemoCannotCallWriteApi() throws Exception {
+    // 讓 controller 的擁有權檢查通過，確保 403 來自 SecurityConfig
+    when(dataBaseService.isProjectOwner(2L, "x")).thenReturn(true);
+
     mockMvc.perform(post("/api/fetch-repo").with(DEMO)
             .param("url", "https://github.com/test/repo")
             .param("commitId", "main"))

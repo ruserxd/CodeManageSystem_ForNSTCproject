@@ -81,8 +81,10 @@ public class UserService {
       return;
     }
 
-    if (myUserRepository.findByUserAccount(demoAccount).isPresent()) {
-      log.info("已存在 demo 帳號 {}", demoAccount);
+    Optional<MyUser> existing = myUserRepository.findByUserAccount(demoAccount);
+    if (existing.isPresent()) {
+      log.info("帳號 {} 已存在，角色為 {}，不會改成 DEMO、也不更新密碼",
+          demoAccount, existing.get().getUserAuthority());
       return;
     }
 

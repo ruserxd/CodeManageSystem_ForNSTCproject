@@ -138,7 +138,7 @@ class FlywaySchemaValidationTest {
   }
 
   @Test
-  @DisplayName("baseline 過的舊資料庫（flyway_schema_history 為空）也能套用 V2")
+  @DisplayName("baseline 過的舊資料庫（flyway_schema_history 為空）也能套用 V2、V3")
   void upgradeBaselinedDatabaseTest() {
     JdbcTemplate db = newDatabase("upgrade_baseline");
     migrate("upgrade_baseline", "1", false);
