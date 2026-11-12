@@ -24,17 +24,24 @@ public class UserService {
   private final PasswordBcrypt passwordBcrypt;
   private final String adminAccount;
   private final String adminPassword;
+  private final String demoAccount;
+  private final String demoPassword;
 
   /**
-   * 管理員帳密由環境變數 APP_ADMIN_ACCOUNT / APP_ADMIN_PASSWORD 提供，未設定時不建立管理員
+   * 管理員帳密由環境變數 APP_ADMIN_ACCOUNT / APP_ADMIN_PASSWORD 提供，未設定時不建立管理員；
+   * demo 帳密由 APP_DEMO_ACCOUNT / APP_DEMO_PASSWORD 提供，未設定時不建立 demo 帳號
    */
   public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt,
       @Value("${app.admin.account:}") String adminAccount,
-      @Value("${app.admin.password:}") String adminPassword) {
+      @Value("${app.admin.password:}") String adminPassword,
+      @Value("${app.demo.account:}") String demoAccount,
+      @Value("${app.demo.password:}") String demoPassword) {
     this.myUserRepository = myUserRepository;
     this.passwordBcrypt = passwordBcrypt;
     this.adminAccount = adminAccount;
     this.adminPassword = adminPassword;
+    this.demoAccount = demoAccount;
+    this.demoPassword = demoPassword;
   }
 
   /**
@@ -62,6 +69,34 @@ public class UserService {
 
     myUserRepository.save(myUser);
     log.info("成功加入超級帳號");
+  }
+
+  /**
+   * 系統加入唯讀的 demo 帳號（DEMO 角色）
+   */
+  @Transactional
+  public void addDemoAccount() {
+    if (demoAccount.isBlank() || demoPassword.isBlank()) {
+      log.info("未設定 APP_DEMO_ACCOUNT / APP_DEMO_PASSWORD，不建立 demo 帳號");
+      return;
+    }
+
+    Optional<MyUser> existing = myUserRepository.findByUserAccount(demoAccount);
+    if (existing.isPresent()) {
+      log.info("帳號 {} 已存在，角色為 {}，不會改成 DEMO、也不更新密碼",
+          demoAccount, existing.get().getUserAuthority());
+      return;
+    }
+
+    MyUser myUser = MyUser.builder()
+        .userName("Demo")
+        .userAccount(demoAccount)
+        .userPassword(passwordBcrypt.encryptText(demoPassword))
+        .userAuthority(UserAuthority.DEMO)
+        .build();
+
+    myUserRepository.save(myUser);
+    log.info("成功加入 demo 帳號");
   }
 
   /**

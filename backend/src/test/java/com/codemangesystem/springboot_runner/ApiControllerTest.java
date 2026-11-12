@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.codemangesystem.ApiController;
 import com.codemangesystem.config.SecurityConfig;
 import com.codemangesystem.git_process.model.database.Project;
+import com.codemangesystem.git_process.model.dto.ProjectStructureDTO;
 import com.codemangesystem.git_process.model.git.GitResult;
 import com.codemangesystem.git_process.model.git.GitStatus;
 import com.codemangesystem.git_process.model.git.RepositoryINFO;
@@ -59,6 +60,11 @@ public class ApiControllerTest {
   private static final RequestPostProcessor ADMIN = jwt()
       .jwt(token -> token.subject("99"))
       .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
+
+  // userId = 2 的唯讀 demo 帳號
+  private static final RequestPostProcessor DEMO = jwt()
+      .jwt(token -> token.subject("2"))
+      .authorities(new SimpleGrantedAuthority("ROLE_DEMO"));
 
   @Autowired
   private MockMvc mockMvc;
@@ -372,5 +378,71 @@ public class ApiControllerTest {
             .param("methodId", "5"))
         .andExpect(status().isForbidden());
     verify(gitPuller, never()).pullLocalRepository(any());
+  }
+
+  @Test
+  @DisplayName("DEMO 呼叫寫入或耗資源的 api 回傳 403，且沒有執行任何動作")
+  public void testDemoCannotCallWriteApi() throws Exception {
+    // 讓 controller 的擁有權檢查通過，確保 403 來自 SecurityConfig
+    when(dataBaseService.isProjectOwner(2L, "x")).thenReturn(true);
+
+    mockMvc.perform(post("/api/fetch-repo").with(DEMO)
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main"))
+        .andExpect(status().isForbidden());
+    mockMvc.perform(post("/api/get-method-diff-temporary").with(DEMO)
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main"))
+        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/pullProject").with(DEMO).param("projectName", "x"))
+        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/deleteData").with(DEMO).param("projectName", "x"))
+        .andExpect(status().isForbidden());
+
+    verify(gitCloner, never()).cloneRepository(any(), any(), any());
+    verify(gitCloner, never()).temporaryCloneRepository(any(), any());
+    verify(gitPuller, never()).pullLocalRepository(any());
+    verify(dataBaseService, never()).deleteDataByProjectName(any(), any());
+  }
+
+  @Test
+  @DisplayName("DEMO 的讀取 api 維持可用，且仍檢查擁有權")
+  public void testDemoCanCallReadApi() throws Exception {
+    when(dataBaseService.getUserProjects("2")).thenReturn(List.of("demoProject"));
+    when(dataBaseService.isProjectOwner(2L, "x")).thenReturn(true);
+    when(dataBaseService.getProjectStructure("x"))
+        .thenReturn(ProjectStructureDTO.builder().projectName("x").build());
+    when(dataBaseService.isMethodOwner(2L, 1L)).thenReturn(true);
+    when(dataBaseService.getDiffInfoByMethodId(1L)).thenReturn(List.of());
+
+    mockMvc.perform(get("/api/getProjectNames").with(DEMO))
+        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/getProjectStructure").with(DEMO).param("projectName", "x"))
+        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/getDiffInfoByMethod").with(DEMO).param("methodId", "1"))
+        .andExpect(status().isOk());
+
+    verify(dataBaseService).isProjectOwner(2L, "x");
+    verify(dataBaseService).isMethodOwner(2L, 1L);
+  }
+
+  @Test
+  @DisplayName("DEMO 呼叫管理員 api 回傳 403")
+  public void testDemoCannotCallAdminApi() throws Exception {
+    mockMvc.perform(get("/api/getAllUsers").with(DEMO))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("ADMIN 呼叫 fetch-repo 不是 403；未登入回傳 401")
+  public void testAdminAllowedAndUnauthenticatedFetchRepo() throws Exception {
+    mockMvc.perform(post("/api/fetch-repo").with(ADMIN)
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main"))
+        .andExpect(result -> assertFalse(result.getResponse().getStatus() == 403));
+    mockMvc.perform(post("/api/fetch-repo")
+            .param("url", "https://github.com/test/repo")
+            .param("commitId", "main"))
+        .andExpect(status().isUnauthorized());
   }
 }

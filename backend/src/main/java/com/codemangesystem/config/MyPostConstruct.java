@@ -29,7 +29,7 @@ public class MyPostConstruct {
   }
 
   /**
-   * 系統初始化設定 包含：刪除 clone 檔案、清空 Project 相關資料、建立超級帳號
+   * 系統初始化設定 包含：刪除 clone 檔案、清空 Project 相關資料、建立超級帳號與 demo 帳號
    */
   @PostConstruct
   public void initialSettings() throws IllegalAccessException {
@@ -44,6 +44,9 @@ public class MyPostConstruct {
 
       // 如果需要新增超級帳號
       addSuperAccount();
+
+      // 如果需要新增 demo 帳號
+      userService.addDemoAccount();
     }
 //    catch (IOException e) {
 //      log.error("發生讀取錯誤");
