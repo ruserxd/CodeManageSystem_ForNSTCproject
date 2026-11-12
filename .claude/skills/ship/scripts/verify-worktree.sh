@@ -1,21 +1,27 @@
 #!/bin/bash
-# 用法：verify-worktree.sh <PR 編號> <base-dir>
-# 等 PR 的 headRefOid 等於本機 HEAD，然後建立 <base-dir>/wt/pr-<PR> 的 detached worktree，
+# 用法：verify-worktree.sh <PR 編號> <base-dir> [suffix]
+# 等 PR 的 headRefOid 等於本機 HEAD，然後建立 <base-dir>/wt/pr-<PR>（給 suffix 則為 pr-<PR>-<suffix>）的 detached worktree，
 # 並依 PR 是否動到前端處理 frontend/node_modules。最後一行 stdout 是 worktree 的絕對路徑。
 # 環境變數 SHIP_SYNC_TIMEOUT：等待同步的逾時秒數，預設 120。
 set -u
 
 usage() {
-  echo "用法：$0 <PR 編號> <base-dir>" >&2
+  echo "用法：$0 <PR 編號> <base-dir> [suffix]" >&2
   exit 2
 }
 
-[ $# -eq 2 ] || usage
+[ $# -eq 2 ] || [ $# -eq 3 ] || usage
 pr=$1
 base=$2
+suffix=${3-}
 case "$pr" in
   '' | *[!0-9]*) echo "PR 編號必須是數字：$pr" >&2; usage ;;
 esac
+if [ $# -eq 3 ]; then
+  case "$suffix" in
+    '' | *[!A-Za-z0-9]*) echo "suffix 只能是英數字（且不可為空）：$suffix" >&2; usage ;;
+  esac
+fi
 
 timeout_s=${SHIP_SYNC_TIMEOUT:-120}
 case "$timeout_s" in
@@ -31,6 +37,7 @@ main_wt=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 mkdir -p "$base" || { echo "無法建立 $base" >&2; exit 1; }
 base_abs=$(cd "$base" && pwd) || exit 1
 target="$base_abs/wt/pr-$pr"
+[ $# -eq 3 ] && target="$target-$suffix"
 if [ -e "$target" ]; then
   echo "目標路徑已存在，拒絕覆蓋：${target}（請先 git worktree remove）" >&2
   exit 1
