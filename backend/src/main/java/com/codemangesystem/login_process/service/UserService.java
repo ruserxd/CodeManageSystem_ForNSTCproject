@@ -5,6 +5,7 @@ import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.quota.QuotaService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,8 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 處理有關 User 的操作
@@ -23,6 +26,7 @@ public class UserService {
 
   private final MyUserRepository myUserRepository;
   private final PasswordBcrypt passwordBcrypt;
+  private final QuotaService quotaService;
   private final String adminAccount;
   private final String adminPassword;
   private final String demoAccount;
@@ -33,12 +37,14 @@ public class UserService {
    * demo 帳密由 APP_DEMO_ACCOUNT / APP_DEMO_PASSWORD 提供，未設定時不建立 demo 帳號
    */
   public UserService(MyUserRepository myUserRepository, PasswordBcrypt passwordBcrypt,
+      QuotaService quotaService,
       @Value("${app.admin.account:}") String adminAccount,
       @Value("${app.admin.password:}") String adminPassword,
       @Value("${app.demo.account:}") String demoAccount,
       @Value("${app.demo.password:}") String demoPassword) {
     this.myUserRepository = myUserRepository;
     this.passwordBcrypt = passwordBcrypt;
+    this.quotaService = quotaService;
     this.adminAccount = adminAccount;
     this.adminPassword = adminPassword;
     this.demoAccount = demoAccount;
@@ -221,6 +227,15 @@ public class UserService {
             .build();
       }
 
+      // 確定會建立使用者才扣今日註冊額度；與 save 在同一交易內，後續失敗時一併回滾
+      if (!quotaService.tryAcquire(QuotaService.Kind.REGISTRATION)) {
+        log.info("今日註冊名額已滿");
+        return SessionResponse.builder()
+            .success(false)
+            .message("今日註冊名額已滿，可使用訪客模式")
+            .build();
+      }
+
       // 都沒問題開始加入帳號進入資料庫
       // 只取註冊允許的欄位建立新的 MyUser，忽略請求中的 userId、userAuthority、personalInfos；
       // 否則請求帶上既有的 userId 時，save() 會變成 merge，覆蓋掉那位使用者
@@ -241,6 +256,10 @@ public class UserService {
           .build();
     } catch (Exception e) {
       log.info("Register failed {}", e.getMessage());
+      // 例外被吞掉後交易仍會提交，需明確標記回滾，避免已扣的註冊額度留下
+      if (TransactionSynchronizationManager.isActualTransactionActive()) {
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+      }
 
       return SessionResponse.builder()
           .success(false)
