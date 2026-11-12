@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,6 +98,50 @@ public class UserService {
 
     myUserRepository.save(myUser);
     log.info("成功加入 demo 帳號");
+  }
+
+  /**
+   * 訪客登入：只依設定的 demo 帳號查詢，不驗證密碼；
+   * 帳號未設定、不存在或角色不是 DEMO 時一律失敗，避免公開端點替 ADMIN／USER 簽 token
+   */
+  @Transactional(readOnly = true)
+  public SessionResponse demoLogin() {
+    if (demoAccount.isBlank()) {
+      log.info("未設定 APP_DEMO_ACCOUNT，demo 登入未啟用");
+      return SessionResponse.builder()
+          .message("demo 帳號未啟用")
+          .success(false)
+          .build();
+    }
+
+    Optional<MyUser> myUser = myUserRepository.findByUserAccount(demoAccount);
+    if (myUser.isEmpty()) {
+      log.info("找不到 demo 帳號 {}", demoAccount);
+      return SessionResponse.builder()
+          .message("demo 帳號不存在")
+          .success(false)
+          .build();
+    }
+
+    if (myUser.get().getUserAuthority() != UserAuthority.DEMO) {
+      log.warn("帳號 {} 的角色是 {}，不是 DEMO，拒絕訪客登入",
+          demoAccount, myUser.get().getUserAuthority());
+      return SessionResponse.builder()
+          .message("demo 帳號角色不是 DEMO，無法訪客登入")
+          .success(false)
+          .build();
+    }
+
+    // personalInfos 是 LAZY，交易結束後 Jackson 序列化會丟 LazyInitializationException，
+    // 所以要在交易內先初始化（checkUser 是靠 log 的 toString 順便初始化）
+    Hibernate.initialize(myUser.get().getPersonalInfos());
+
+    log.info("Demo login success");
+    return SessionResponse.builder()
+        .message("Success")
+        .success(true)
+        .myUser(myUser.get())
+        .build();
   }
 
   /**

@@ -217,6 +217,19 @@ public class ApiController {
   }
 
   /**
+   * 訪客登入：不需帳密，demo 帳號只來自 app.demo.account 設定
+   */
+  @PostMapping("/demo-login")
+  public ResponseEntity<SessionResponse> demoLogin() {
+    log.info("嘗試訪客登入");
+    SessionResponse sessionResponse = userService.demoLogin();
+    if (sessionResponse.isSuccess()) {
+      sessionResponse.setToken(jwtService.generateToken(sessionResponse.getMyUser()));
+    }
+    return new ResponseEntity<>(sessionResponse, HttpStatus.OK);
+  }
+
+  /**
    * 註冊
    */
   @PostMapping("/register")
