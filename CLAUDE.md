@@ -19,7 +19,7 @@ Monorepo 結構：`backend/`（Spring Boot 3.4、Java 21、Maven）、`frontend/
 ./mvnw package -DskipTests             # 產生 target/CodeManageSystem-0.0.1-SNAPSHOT.jar（Docker image 會複製這個 jar）
 ./mvnw pmd:check                       # 依 src/main/resources/pmd/pmd-ruleset.xml 跑 PMD
 ```
-- **Surefire 設了 `testFailureIgnore=true`。** 即使有測試失敗，`mvn test` 仍會顯示 BUILD SUCCESS，所以要看輸出中的測試統計。
+- **測試失敗會讓建置失敗。** pom 已移除 `testFailureIgnore`（#4），有測試失敗時 `mvn test` 會顯示 BUILD FAILURE。但只看 BUILD SUCCESS 仍不夠：要讀輸出中的 `Tests run / Failures / Errors` 統計，確認測試真的有跑、沒有被略過。
 - 必要環境變數：`SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD`（見 `.env.example`），以及 `JWT_SECRET`（至少 32 bytes，太短的話 `SecurityConfig` 會在啟動時直接失敗）。README 說明是透過 IntelliJ 的 EnvFile 外掛載入 `.env`。
 - 測試大多是 Mockito 單元測試。`ApiControllerTest` 是 `@WebMvcTest`，會 import `SecurityConfig` 並自行設定 `app.jwt.secret`。測試用的輸入資料放在 `src/test/resources/`（`classData`、`compareTwoContentData` 等），由測試原始碼中的 `FileReader` 讀取。
 - CI（`.github/workflows/backend_test.yml`）在 push 到 `main` 時，以 JDK 21 搭配 MySQL 8 service 執行 `mvn test`。
