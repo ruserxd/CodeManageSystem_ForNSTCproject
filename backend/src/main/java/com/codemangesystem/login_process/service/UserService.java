@@ -100,6 +100,46 @@ public class UserService {
   }
 
   /**
+   * 訪客登入：只依設定的 demo 帳號查詢，不驗證密碼；
+   * 帳號未設定、不存在或角色不是 DEMO 時一律失敗，避免公開端點替 ADMIN／USER 簽 token
+   */
+  @Transactional(readOnly = true)
+  public SessionResponse demoLogin() {
+    if (demoAccount.isBlank()) {
+      log.info("未設定 APP_DEMO_ACCOUNT，demo 登入未啟用");
+      return SessionResponse.builder()
+          .message("demo 帳號未啟用")
+          .success(false)
+          .build();
+    }
+
+    Optional<MyUser> myUser = myUserRepository.findByUserAccount(demoAccount);
+    if (myUser.isEmpty()) {
+      log.info("找不到 demo 帳號 {}", demoAccount);
+      return SessionResponse.builder()
+          .message("demo 帳號不存在")
+          .success(false)
+          .build();
+    }
+
+    if (myUser.get().getUserAuthority() != UserAuthority.DEMO) {
+      log.warn("帳號 {} 的角色是 {}，不是 DEMO，拒絕訪客登入",
+          demoAccount, myUser.get().getUserAuthority());
+      return SessionResponse.builder()
+          .message("demo 帳號角色不是 DEMO，無法訪客登入")
+          .success(false)
+          .build();
+    }
+
+    log.info("Demo login success");
+    return SessionResponse.builder()
+        .message("Success")
+        .success(true)
+        .myUser(myUser.get())
+        .build();
+  }
+
+  /**
    * 用於登入，檢查使用者資訊 加入 @Transactional(readOnly = true) 避免 Lazy 的設定，導致讀取完後，JPA 自動關閉 session 的情況
    */
   @Transactional(readOnly = true)
