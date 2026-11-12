@@ -50,6 +50,10 @@ public class SecurityConfig {
             .requestMatchers("/api/getAllUsers", "/api/deleteUser", "/api/addSuperAccount")
             .hasRole("ADMIN")
             .requestMatchers("/actuator/**").hasRole("ADMIN")
+            // 這幾個端點會寫入資料或耗用大量資源（clone、pull、刪除），唯讀的 DEMO 角色不可呼叫
+            .requestMatchers("/api/fetch-repo", "/api/get-method-diff-temporary",
+                "/api/pullProject", "/api/deleteData")
+            .hasAnyRole("ADMIN", "USER")
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
