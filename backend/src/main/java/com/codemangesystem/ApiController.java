@@ -7,12 +7,14 @@ import com.codemangesystem.git_process.model.git.GitResult;
 import com.codemangesystem.git_process.model.git.RepositoryINFO;
 import com.codemangesystem.git_process.service.DataBaseService;
 import com.codemangesystem.git_process.service.GitCloner;
+import com.codemangesystem.git_process.service.GitDiffAnalyzer;
 import com.codemangesystem.git_process.service.GitPuller;
 import com.codemangesystem.login_process.model.response.LoginINFO;
 import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.service.JwtService;
 import com.codemangesystem.login_process.service.UserService;
+import com.codemangesystem.quota.AnalysisLimits;
 import com.codemangesystem.quota.QuotaService;
 import java.io.IOException;
 import java.util.List;
@@ -44,17 +46,31 @@ public class ApiController {
   private final GitPuller gitPuller;
   private final JwtService jwtService;
   private final QuotaService quotaService;
+  private final AnalysisLimits analysisLimits;
   private static final String LOCAL_BASE_PATH = "src/cloneCode/";
 
   public ApiController(GitCloner gitCloner, DataBaseService dataBaseService,
       UserService userService, GitPuller gitPuller, JwtService jwtService,
-      QuotaService quotaService) {
+      QuotaService quotaService, AnalysisLimits analysisLimits) {
     this.gitCloner = gitCloner;
     this.dataBaseService = dataBaseService;
     this.userService = userService;
     this.gitPuller = gitPuller;
     this.jwtService = jwtService;
     this.quotaService = quotaService;
+    this.analysisLimits = analysisLimits;
+  }
+
+  /** 全站同時只能有一個分析在執行，取不到槽位時立即回 429（不排隊）。 */
+  private static ResponseEntity<String> busyResponse() {
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .body("目前已有其他分析正在執行，請稍後再試");
+  }
+
+  private static ResponseEntity<String> diskResponse(
+      AnalysisLimits.InsufficientDiskSpaceException e) {
+    log.warn("磁碟空間不足，拒絕分析: {}", e.getMessage());
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
   }
 
   /**
@@ -89,19 +105,30 @@ public class ApiController {
       @RequestParam("url") String url,
       @RequestParam("commitId") String commitId,
       @AuthenticationPrincipal Jwt jwt) {
-    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
-    if (rejected != null) {
-      return rejected;
+    if (!analysisLimits.tryAcquire()) {
+      return busyResponse();
     }
     try {
+      ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+      if (rejected != null) {
+        return rejected;
+      }
       log.info("臨時分析 URL: {} CommitId: {}", url, commitId);
 
-      // 使用臨時分析服務
-      Project tempProject = gitCloner.temporaryCloneRepository(url, commitId);
+      // 使用臨時分析服務，commit 上限依 JWT 的角色決定
+      int maxCommits = analysisLimits.maxCommitsFor(jwt.getClaimAsString("role"));
+      GitDiffAnalyzer.TemporaryAnalysis analysis =
+          gitCloner.temporaryCloneRepository(url, commitId, maxCommits);
 
       log.info("臨時分析完成，回傳結果");
-      return ResponseEntity.ok(tempProject);
+      ResponseEntity.BodyBuilder ok = ResponseEntity.ok();
+      if (analysis.truncated()) {
+        ok.header("X-Analysis-Truncated", String.valueOf(analysis.maxCommits()));
+      }
+      return ok.body(analysis.project());
 
+    } catch (AnalysisLimits.InsufficientDiskSpaceException e) {
+      return diskResponse(e);
     } catch (IllegalArgumentException e) {
       // repo URL 未通過驗證（GitFunction.validateRepoUrl），屬於使用者輸入錯誤
       return ResponseEntity.badRequest().body(e.getMessage());
@@ -109,6 +136,8 @@ public class ApiController {
       log.error("臨時分析時發生錯誤: ", e);
       return ResponseEntity.status(500)
           .body("臨時分析專案時發生錯誤。請檢查 URL 是否正確。");
+    } finally {
+      analysisLimits.release();
     }
   }
 
@@ -122,14 +151,28 @@ public class ApiController {
       @RequestParam("commitId") String commitId,
       @AuthenticationPrincipal Jwt jwt) {
     Long userId = currentUserId(jwt);
-    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
-    if (rejected != null) {
-      return rejected;
+    String role = jwt.getClaimAsString("role");
+    if (!analysisLimits.tryAcquire()) {
+      return busyResponse();
     }
     try {
+      // 專案數上限（ADMIN 不受限），在扣每日額度之前檢查
+      if (!analysisLimits.isAdmin(role)
+          && analysisLimits.isProjectLimitReached(role,
+          dataBaseService.getUserProjects(String.valueOf(userId)).size())) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body("已達專案數上限（" + analysisLimits.getMaxProjectsPerUser() + " 個），請先刪除舊專案");
+      }
+      ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+      if (rejected != null) {
+        return rejected;
+      }
       log.info("嘗試抓取 url: {} commitId: {} 的資料", url, commitId);
       log.info("UserId {}", userId);
-      return ResponseEntity.ok(gitCloner.cloneRepository(url, commitId, userId));
+      return ResponseEntity.ok(
+          gitCloner.cloneRepository(url, commitId, userId, analysisLimits.maxCommitsFor(role)));
+    } catch (AnalysisLimits.InsufficientDiskSpaceException e) {
+      return diskResponse(e);
     } catch (IllegalArgumentException e) {
       // repo URL 未通過驗證（GitFunction.validateRepoUrl），屬於使用者輸入錯誤
       return ResponseEntity.badRequest().body(e.getMessage());
@@ -137,6 +180,8 @@ public class ApiController {
       log.error("Error cloning or accessing repository: ", e);
       return ResponseEntity.status(500)
           .body("clone 或存取儲存庫時發生錯誤。請檢查 URL 是否正確。");
+    } finally {
+      analysisLimits.release();
     }
   }
 
@@ -171,16 +216,24 @@ public class ApiController {
     if (!dataBaseService.isProjectOwner(currentUserId(jwt), projectName)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
-    ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
-    if (rejected != null) {
-      return rejected;
+    if (!analysisLimits.tryAcquire()) {
+      return busyResponse();
     }
-    RepositoryINFO info = RepositoryINFO.builder()
-        .repoName(projectName)
-        .localPath(LOCAL_BASE_PATH + projectName)
-        .build();
-    GitResult gitResult = gitPuller.pullLocalRepository(info);
-    return new ResponseEntity<>(gitResult, HttpStatus.OK);
+    try {
+      ResponseEntity<String> rejected = rejectIfAnalysisQuotaExceeded(jwt);
+      if (rejected != null) {
+        return rejected;
+      }
+      RepositoryINFO info = RepositoryINFO.builder()
+          .repoName(projectName)
+          .localPath(LOCAL_BASE_PATH + projectName)
+          .build();
+      GitResult gitResult = gitPuller.pullLocalRepository(info,
+          analysisLimits.maxCommitsFor(jwt.getClaimAsString("role")));
+      return new ResponseEntity<>(gitResult, HttpStatus.OK);
+    } finally {
+      analysisLimits.release();
+    }
   }
 
   /**

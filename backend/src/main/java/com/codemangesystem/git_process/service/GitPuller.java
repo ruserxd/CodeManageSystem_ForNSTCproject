@@ -32,7 +32,7 @@ public class GitPuller {
   /**
    * pull 更新本地端資料，並且更新本地端資料庫內容
    */
-  public GitResult pullLocalRepository(RepositoryINFO repoINFO) {
+  public GitResult pullLocalRepository(RepositoryINFO repoINFO, int maxCommits) {
     try {
       PullResult pullResult;
       // try-with-resources 離開區塊即關閉 git，確保先關閉再分析
@@ -54,7 +54,8 @@ public class GitPuller {
 
       // 獲取前一次存放的 Revstr
       String previousHeadRevstr = dataBaseService.getHeadRevstr(repoINFO.repoName);
-      return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr);
+      return gitDiffAnalyzer.analyzePartCommits(repoINFO.localPath, previousHeadRevstr,
+          maxCommits);
     } catch (IOException error) {
       log.error("Pull 發生 {}", error.getMessage());
       return GitResult.builder()

@@ -9,6 +9,7 @@ import com.codemangesystem.git_process.repository.PersonalRepository;
 import com.codemangesystem.git_process.repository.ProjectRepository;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.quota.AnalysisLimits;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
@@ -43,15 +44,17 @@ public class GitCloner {
   private final GitPuller gitPuller;
   private final PersonalRepository personalRepository;
   private final ProjectRepository projectRepository;
+  private final AnalysisLimits analysisLimits;
 
   public GitCloner(GitDiffAnalyzer gitDiffAnalyzer, MyUserRepository myUserRepository,
       GitPuller gitPuller, PersonalRepository personalRepository,
-      ProjectRepository projectRepository) {
+      ProjectRepository projectRepository, AnalysisLimits analysisLimits) {
     this.gitDiffAnalyzer = gitDiffAnalyzer;
     this.myUserRepository = myUserRepository;
     this.gitPuller = gitPuller;
     this.personalRepository = personalRepository;
     this.projectRepository = projectRepository;
+    this.analysisLimits = analysisLimits;
   }
 
   // TODO: 使用者 GitHub 的權限
@@ -59,8 +62,8 @@ public class GitCloner {
   /**
    * 判斷儲存庫是否需要 clone 到本地資料夾，並回傳最終儲存庫存放的路徑
    */
-  public GitResult cloneRepository(String repoUrl, String commitId, Long userId)
-      throws GitAPIException, IOException {
+  public GitResult cloneRepository(String repoUrl, String commitId, Long userId,
+      int maxCommits) throws GitAPIException, IOException {
     log.info("Clone by {} {} {}", repoUrl, commitId, userId);
     GitFunction.validateRepoUrl(repoUrl);
     RepositoryINFO repoINFO = RepositoryINFO.builder()
@@ -85,7 +88,7 @@ public class GitCloner {
 
       // 當本地端有該儲存庫的處理
       if (GitFunction.isInLocalGitDirectory(repoINFO.localPath)) {
-        return pullAndUpdateDataBase(repoINFO, user, commitId);
+        return pullAndUpdateDataBase(repoINFO, user, commitId, maxCommits);
       }
 
             /*
@@ -94,6 +97,9 @@ public class GitCloner {
              clone.setCredentialsProvider(user);
              clone.call()
             */
+
+      // 真正 clone 前先檢查磁碟空間（不足時丟出 InsufficientDiskSpaceException，由 controller 處理）
+      analysisLimits.ensureDiskSpace(new File(CLONE_LOCAL_BASE_PATH));
 
       CloneCommand command = Git.cloneRepository()
           .setURI(repoUrl)
@@ -120,7 +126,7 @@ public class GitCloner {
       git.close();
 
       // 執行分析專案
-      return gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath, user);
+      return gitDiffAnalyzer.analyzeAllCommits(repoINFO.localPath, user, maxCommits);
 
     } catch (GitAPIException | RevisionSyntaxException | IOException e) {
       log.error("Failed clone to {}", repoUrl, e);
@@ -134,12 +140,13 @@ public class GitCloner {
   /**
    * clone 時若本地端有該 Repository 執行此
    */
-  public GitResult pullAndUpdateDataBase(RepositoryINFO repoINFO, MyUser user, String commitId) {
+  public GitResult pullAndUpdateDataBase(RepositoryINFO repoINFO, MyUser user, String commitId,
+      int maxCommits) {
     log.info("這項專案已經有人 Clone 過並存放於 {}", repoINFO.localPath);
     log.info("改執行 pull");
 
     // 執行 puller 並拿取一個 GitResult
-    GitResult result = gitPuller.pullLocalRepository(repoINFO);
+    GitResult result = gitPuller.pullLocalRepository(repoINFO, maxCommits);
     if (result.isPullFailed()) {
       log.error("本地端有該存儲庫，但 pull 失敗無法更新");
       return result;
@@ -185,7 +192,8 @@ public class GitCloner {
       String headRevstr = objectId.getName();
       personalINFO.setHeadRevstr(headRevstr);
       personalRepository.save(personalINFO);
-      result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料");
+      result.setMessage("因為本地端有該存儲庫，因此改為 Pull 並成功 Pull 更新資料"
+          + GitDiffAnalyzer.extractTruncationNote(result.getMessage()));
 
       return result;
 
@@ -221,14 +229,17 @@ public class GitCloner {
   /**
    * 臨時 clone 並分析專案，不存入資料庫
    */
-  public Project temporaryCloneRepository(String repoUrl, String commitId)
-      throws GitAPIException, IOException {
+  public GitDiffAnalyzer.TemporaryAnalysis temporaryCloneRepository(String repoUrl,
+      String commitId, int maxCommits) throws GitAPIException, IOException {
 
     log.info("臨時 Clone: {} {}", repoUrl, commitId);
     GitFunction.validateRepoUrl(repoUrl);
 
     String repoName = GitFunction.getRepoNameFromUrl(repoUrl);
     String tempPath = CLONE_LOCAL_BASE_PATH + "temp_" + System.currentTimeMillis() + "_" + repoName;
+
+    // 建立臨時目錄前先檢查磁碟空間
+    analysisLimits.ensureDiskSpace(new File(CLONE_LOCAL_BASE_PATH));
 
     try {
       log.info("臨時 Cloning 到: {}", tempPath);
@@ -253,7 +264,8 @@ public class GitCloner {
       git.close();
 
       // 執行臨時分析
-      Project tempProject = gitDiffAnalyzer.analyzeAllCommitsTemporary(tempPath);
+      GitDiffAnalyzer.TemporaryAnalysis tempProject =
+          gitDiffAnalyzer.analyzeAllCommitsTemporary(tempPath, maxCommits);
 
       // 清理臨時檔案
       cleanupTempDirectory(tempPath);

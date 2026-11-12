@@ -5,6 +5,7 @@ import com.codemangesystem.git_process.model.git.GitStatus;
 import com.codemangesystem.git_process.service.GitCloner;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.codemangesystem.quota.AnalysisLimits;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -30,14 +31,16 @@ public class DemoRepoImporter {
   private final MyUserRepository myUserRepository;
   private final String demoAccount;
   private final String demoRepos;
+  private final AnalysisLimits analysisLimits;
 
   public DemoRepoImporter(GitCloner gitCloner, MyUserRepository myUserRepository,
       @Value("${app.demo.account:}") String demoAccount,
-      @Value("${app.demo.repos:}") String demoRepos) {
+      @Value("${app.demo.repos:}") String demoRepos, AnalysisLimits analysisLimits) {
     this.gitCloner = gitCloner;
     this.myUserRepository = myUserRepository;
     this.demoAccount = demoAccount;
     this.demoRepos = demoRepos;
+    this.analysisLimits = analysisLimits;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -68,7 +71,8 @@ public class DemoRepoImporter {
 
   private void importOne(String url, Long demoUserId) {
     try {
-      GitResult result = gitCloner.cloneRepository(url, CLONE_COMMIT, demoUserId);
+      GitResult result = gitCloner.cloneRepository(url, CLONE_COMMIT, demoUserId,
+          analysisLimits.maxCommitsFor("DEMO"));
       GitStatus status = result.getStatus();
       if (status == GitStatus.CLONE_SUCCESS || status == GitStatus.PULL_SUCCESS) {
         log.info("demo 範例專案匯入成功 {} ({})", url, status);

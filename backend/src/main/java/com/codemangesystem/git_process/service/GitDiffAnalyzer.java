@@ -60,8 +60,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class GitDiffAnalyzer {
 
+  private static final String TRUNCATION_NOTE_PREFIX = "（commit 數超過上限，僅分析最新 ";
+
   private final ProjectRepository projectRepository;
   private final PersonalRepository personalRepository;
+
+  /** 臨時分析的結果；truncated 為 true 表示 commit 數超過上限，只分析了最新的 maxCommits 個。 */
+  public record TemporaryAnalysis(Project project, boolean truncated, int maxCommits) {
+
+  }
+
+  /** 截斷時附在 GitResult.message 後的註記，內含生效的上限數字。 */
+  public static String truncationNote(int maxCommits) {
+    return TRUNCATION_NOTE_PREFIX + maxCommits + " 個 commit）";
+  }
+
+  /** 從訊息中取出截斷註記；沒有註記時回傳空字串。 */
+  public static String extractTruncationNote(String message) {
+    if (message == null) {
+      return "";
+    }
+    int index = message.indexOf(TRUNCATION_NOTE_PREFIX);
+    return index < 0 ? "" : message.substring(index);
+  }
 
   @Autowired
   public GitDiffAnalyzer(ProjectRepository projectRepository,
@@ -73,10 +94,12 @@ public class GitDiffAnalyzer {
   /**
    * 第一次 clone 下來時，讀取每段 commit diff 的資訊並解析成以方法名稱 作為查詢的條件
    *
+   * <p>只分析最新的 maxCommits 個 commit，被截斷時在回傳訊息附上註記。
+   *
    * @Transactional 確保資料的一致性
    */
   @Transactional
-  public GitResult analyzeAllCommits(String repoPath, MyUser user)
+  public GitResult analyzeAllCommits(String repoPath, MyUser user, int maxCommits)
       throws GitAPIException, IOException {
     try {
       // 路徑上該專案的 .git 檔案
@@ -113,6 +136,7 @@ public class GitDiffAnalyzer {
 
       // Head 的 headRevstr
       String firstCommitSHA = "";
+      boolean truncated = false;
 
       // Git 打開 repository
       try (Git git = new Git(repository)) {
@@ -124,6 +148,11 @@ public class GitDiffAnalyzer {
         int counterDifference = 0;
         // 獲取兩個版本之間的差異
         for (RevCommit commit : commits) {
+          if (counterDifference >= maxCommits) {
+            truncated = true;
+            log.warn("commit 數超過上限 {}，只分析最新 {} 個", maxCommits, maxCommits);
+            break;
+          }
           if (counterDifference == 0) {
             firstCommitSHA = commit.getName();
           }
@@ -160,13 +189,14 @@ public class GitDiffAnalyzer {
         log.warn("No files were analyzed in the repository: {}", repoPath);
         return GitResult.builder()
             .status(GitStatus.CLONE_SUCCESS)
-            .message("未出現可分析方法，可能是沒有方法可以分類")
+            .message("未出現可分析方法，可能是沒有方法可以分類"
+                + (truncated ? truncationNote(maxCommits) : ""))
             .build();
       }
 
       return GitResult.builder()
           .status(GitStatus.CLONE_SUCCESS)
-          .message("成功將資料分類完成")
+          .message("成功將資料分類完成" + (truncated ? truncationNote(maxCommits) : ""))
           .build();
     } catch (IOException error) {
       log.error("分析 commits 出現問題 {}", error.getMessage());
@@ -187,7 +217,8 @@ public class GitDiffAnalyzer {
    * 如果執行 pull 只需要分析部分的 commit 即可
    */
   @Transactional
-  public GitResult analyzePartCommits(String repoPath, String oldHeadRevstr) throws IOException {
+  public GitResult analyzePartCommits(String repoPath, String oldHeadRevstr, int maxCommits)
+      throws IOException {
     try {
       log.info("部分分析 {} {}", repoPath, oldHeadRevstr);
 
@@ -219,6 +250,8 @@ public class GitDiffAnalyzer {
             .build();
       }
 
+      boolean truncated = false;
+
       // update user project git head
       project.setHeadRevstr(getHeadSHA1(repository));
       projectRepository.save(project);
@@ -231,6 +264,7 @@ public class GitDiffAnalyzer {
         Iterable<RevCommit> commits = git.log()
             .call();
 
+        int processed = 0;
         // 獲取兩個版本之間的差異
         for (RevCommit commit : commits) {
           String message = commit.getFullMessage();
@@ -244,18 +278,26 @@ public class GitDiffAnalyzer {
             break;
           }
 
+          // 新 commit 數超過上限，只處理最新的 maxCommits 個
+          if (processed >= maxCommits) {
+            truncated = true;
+            log.warn("新 commit 數超過上限 {}，只分析最新 {} 個", maxCommits, maxCommits);
+            break;
+          }
+
           // 因為 commit 最後一次指向最一開始，所以會出現沒有父節點的情況
           RevCommit previousCommit = commit.getParentCount() > 0 ? commit.getParent(0) : null;
 
           List<DiffEntry> diffs = getCommitDiffList(commit, git, repository, previousCommit);
 
           setCommitDiffToProject(diffs, project, git, commit, previousCommit);
+          processed++;
         }
       }
 
       return GitResult.builder()
           .status(GitStatus.PULL_SUCCESS)
-          .message("成功 Pull 並更新資料")
+          .message("成功 Pull 並更新資料" + (truncated ? truncationNote(maxCommits) : ""))
           .build();
     } catch (IOException e) {
       log.error("分析 part commits 出現問題 {}", e.getMessage());
@@ -623,7 +665,8 @@ public class GitDiffAnalyzer {
   /**
    * 臨時分析所有 commits，不存入資料庫，直接回傳 Project 物件
    */
-  public Project analyzeAllCommitsTemporary(String repoPath) throws GitAPIException, IOException {
+  public TemporaryAnalysis analyzeAllCommitsTemporary(String repoPath, int maxCommits)
+      throws GitAPIException, IOException {
     // 路徑上該專案的 .git 檔案
     File gitDir = new File(repoPath, ".git");
 
@@ -649,6 +692,8 @@ public class GitDiffAnalyzer {
         .headRevstr(getHeadSHA1(repository))
         .build();
 
+    boolean truncated = false;
+
     // Git 打開 repository
     try (Git git = new Git(repository)) {
       log.info("開始臨時分析 {} 上的 commit 差異資訊", repoPath);
@@ -659,6 +704,11 @@ public class GitDiffAnalyzer {
 
       // 獲取兩個版本之間的差異
       for (RevCommit commit : commits) {
+        if (counterDifference >= maxCommits) {
+          truncated = true;
+          log.warn("commit 數超過上限 {}，只分析最新 {} 個", maxCommits, maxCommits);
+          break;
+        }
         String message = commit.getFullMessage();
         log.info("本次的 Commit Message: {}", message);
 
@@ -681,6 +731,6 @@ public class GitDiffAnalyzer {
       log.warn("在儲存庫中沒有分析到檔案: {}", repoPath);
     }
 
-    return tempProject;
+    return new TemporaryAnalysis(tempProject, truncated, maxCommits);
   }
 }

@@ -2,6 +2,7 @@ package com.codemangesystem.git_process.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -71,7 +72,7 @@ class GitPullerTest {
             .message("發生不可預期 Failed pull test")
             .status(GitStatus.PULL_FAILED)
             .build();
-        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
+        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO, 7);
         assertEquals(excepted, actual);
 
         verify(pullResult, times(1)).isSuccessful();
@@ -103,10 +104,11 @@ class GitPullerTest {
             .status(GitStatus.PULL_SUCCESS)
             .message("成功 Pull 並更新資料")
             .build();
-        when(gitDiffAnalyzer.analyzePartCommits(anyString(), anyString())).thenReturn(excepted);
+        when(gitDiffAnalyzer.analyzePartCommits(anyString(), anyString(), anyInt()))
+            .thenReturn(excepted);
 
         //執行測試
-        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
+        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO, 7);
         assertEquals(excepted, actual);
 
         verify(pullResult, times(1)).isSuccessful();
@@ -114,7 +116,7 @@ class GitPullerTest {
         // 先關閉 git 再分析
         InOrder inOrder = inOrder(git, gitDiffAnalyzer);
         inOrder.verify(git).close();
-        inOrder.verify(gitDiffAnalyzer).analyzePartCommits(anyString(), anyString());
+        inOrder.verify(gitDiffAnalyzer).analyzePartCommits("/test", "123456789", 7);
       }
     }
 
@@ -131,7 +133,7 @@ class GitPullerTest {
             .build();
 
         //執行測試
-        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
+        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO, 7);
         assertEquals(excepted, actual);
       }
     }
@@ -159,7 +161,7 @@ class GitPullerTest {
             .build();
 
         //執行測試
-        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO);
+        GitResult actual = gitPuller.pullLocalRepository(repositoryINFO, 7);
         assertEquals(excepted, actual);
         verify(git, times(1)).close();
       }
