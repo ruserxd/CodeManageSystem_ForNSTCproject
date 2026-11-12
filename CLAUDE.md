@@ -23,7 +23,7 @@ Monorepo 結構：`backend/`（Spring Boot 3.4、Java 21、Maven）、`frontend/
 - 必要環境變數：`SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD`（見 `.env.example`），以及 `JWT_SECRET`（至少 32 bytes，太短的話 `SecurityConfig` 會在啟動時直接失敗）。README 說明是透過 IntelliJ 的 EnvFile 外掛載入 `.env`。
 - 測試大多是 Mockito 單元測試。`ApiControllerTest` 是 `@WebMvcTest`，會 import `SecurityConfig` 並自行設定 `app.jwt.secret`。測試用的輸入資料放在 `src/test/resources/`（`classData`、`compareTwoContentData` 等），由測試原始碼中的 `FileReader` 讀取。
 - `FlywaySchemaValidationTest` 是 `@SpringBootTest`，用 Testcontainers 啟動空的 MySQL 驗證 Flyway migration 與 Hibernate validate，需要 Docker；沒有 Docker 時會被略過（`disabledWithoutDocker = true`），不會失敗。
-- CI（`.github/workflows/backend_test.yml`）在 push 到 `main` 和對 `main` 開 PR 時觸發，以 JDK 21 執行 `./mvnw -B test`，並用 MySQL 8.0／8.4 的 matrix 各跑一次；資料庫由 Testcontainers 啟動。
+- CI（`.github/workflows/backend_test.yml`）在 push 到 `main` 和對 `main` 開 PR 時觸發，以 JDK 21 執行 `./mvnw -B test`，並用 MySQL 8.0／8.4 的 matrix 各跑一次；資料庫由 Testcontainers 啟動。測完後會檢查 `FlywaySchemaValidationTest` 沒有被略過，被略過時 CI 會失敗（和本機不同）。
 - 程式碼風格：Google Java Style（`src/main/resources/codestyle/intellij-java-google-style.xml`，縮排 2 格）。命名規則見 `docs/style_guide.md`。
 
 ### 前端（在 `frontend/` 下執行）
