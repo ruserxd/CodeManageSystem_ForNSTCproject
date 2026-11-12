@@ -16,9 +16,13 @@ import com.codemangesystem.login_process.model.response.SessionResponse;
 import com.codemangesystem.login_process.model.user.MyUser;
 import com.codemangesystem.login_process.model.user.UserAuthority;
 import com.codemangesystem.login_process.repository.MyUserRepository;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +30,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 @Slf4j
 class UserServiceTest {
@@ -141,6 +149,143 @@ class UserServiceTest {
       noPassword.addDemoAccount();
 
       verify(myUserRepository, never()).save(any());
+    }
+  }
+
+
+  @Nested
+  @DisplayName("測試 demoLogin()")
+  class demoLoginTest {
+
+    private UserService demoService;
+
+    @BeforeEach
+    void setUp() {
+      demoService = new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "demo-pw");
+    }
+
+    private MyUser userWithAuthority(UserAuthority authority) {
+      return MyUser.builder()
+          .userId(7L)
+          .userAccount("demo")
+          .userPassword("hashed")
+          .userAuthority(authority)
+          .build();
+    }
+
+    @Test
+    @DisplayName("DEMO 角色帳號成功，不驗密碼、不寫入")
+    void successTest() {
+      MyUser demo = userWithAuthority(UserAuthority.DEMO);
+      when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.of(demo));
+
+      SessionResponse response = demoService.demoLogin();
+
+      assertTrue(response.isSuccess());
+      assertEquals(demo, response.getMyUser());
+      verify(passwordBcrypt, never()).isPasswordSame(anyString(), anyString());
+      verify(myUserRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("帳號是 ADMIN 時拒絕")
+    void adminRejectedTest() {
+      when(myUserRepository.findByUserAccount("demo"))
+          .thenReturn(Optional.of(userWithAuthority(UserAuthority.ADMIN)));
+
+      SessionResponse response = demoService.demoLogin();
+
+      assertFalse(response.isSuccess());
+      assertNull(response.getToken());
+      assertNull(response.getMyUser());
+      assertFalse(response.getMessage().isBlank());
+    }
+
+    @Test
+    @DisplayName("帳號是 USER 時拒絕")
+    void userRejectedTest() {
+      when(myUserRepository.findByUserAccount("demo"))
+          .thenReturn(Optional.of(userWithAuthority(UserAuthority.USER)));
+
+      SessionResponse response = demoService.demoLogin();
+
+      assertFalse(response.isSuccess());
+      assertNull(response.getToken());
+      assertNull(response.getMyUser());
+      assertFalse(response.getMessage().isBlank());
+    }
+
+    @Test
+    @DisplayName("未設定 demo 帳號時失敗，且不查資料庫")
+    void notConfiguredTest() {
+      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "", "", "");
+
+      SessionResponse response = unconfigured.demoLogin();
+
+      assertFalse(response.isSuccess());
+      assertNull(response.getToken());
+      assertNull(response.getMyUser());
+      assertFalse(response.getMessage().isBlank());
+      verify(myUserRepository, never()).findByUserAccount(anyString());
+    }
+
+    @Test
+    @DisplayName("資料庫查無 demo 帳號時失敗")
+    void accountNotFoundTest() {
+      when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.empty());
+
+      SessionResponse response = demoService.demoLogin();
+
+      assertFalse(response.isSuccess());
+      assertNull(response.getToken());
+      assertNull(response.getMyUser());
+      assertFalse(response.getMessage().isBlank());
+    }
+
+    @Test
+    @DisplayName("用真實 JwtService 簽出的 token，role 是 DEMO")
+    void tokenRoleIsDemoTest() {
+      MyUser demo = userWithAuthority(UserAuthority.DEMO);
+      when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.of(demo));
+      SecretKey key = new SecretKeySpec(
+          "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+      JwtEncoder encoder = new NimbusJwtEncoder(new ImmutableSecret<>(key));
+      JwtService jwtService = new JwtService(encoder, 8);
+
+      SessionResponse response = demoService.demoLogin();
+      String token = jwtService.generateToken(response.getMyUser());
+
+      Jwt jwt = NimbusJwtDecoder.withSecretKey(key).build().decode(token);
+      assertEquals("DEMO", jwt.getClaimAsString("role"));
+      assertEquals("7", jwt.getSubject());
+      assertEquals("demo", jwt.getClaimAsString("account"));
+    }
+  }
+
+
+  @Nested
+  @DisplayName("測試 checkUser() 空密碼")
+  class checkUserEmptyPasswordTest {
+
+    @Test
+    @DisplayName("空密碼不能登入 demo 帳號（真實 PasswordBcrypt）")
+    void emptyPasswordRejectedTest() {
+      PasswordBcrypt realBcrypt = new PasswordBcrypt();
+      MyUser demo = MyUser.builder()
+          .userId(7L)
+          .userAccount("demo")
+          .userPassword(realBcrypt.encryptText("demo-pw"))
+          .userAuthority(UserAuthority.DEMO)
+          .build();
+      when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.of(demo));
+      UserService realService =
+          new UserService(myUserRepository, realBcrypt, "", "", "demo", "demo-pw");
+
+      LoginINFO login = LoginINFO.builder().userAccount("demo").userPassword("").build();
+      SessionResponse response = realService.checkUser(login);
+
+      assertFalse(response.isSuccess());
+      assertNull(response.getToken());
     }
   }
 
