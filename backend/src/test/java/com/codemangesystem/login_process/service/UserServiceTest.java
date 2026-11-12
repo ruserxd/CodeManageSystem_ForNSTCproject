@@ -37,7 +37,7 @@ class UserServiceTest {
   void setUp() {
     myUserRepository = Mockito.mock(MyUserRepository.class);
     passwordBcrypt = Mockito.mock(PasswordBcrypt.class);
-    userService = new UserService(myUserRepository, passwordBcrypt, "admin", "s3cret");
+    userService = new UserService(myUserRepository, passwordBcrypt, "admin", "s3cret", "", "");
   }
 
   @Nested
@@ -73,7 +73,7 @@ class UserServiceTest {
     @Test
     @DisplayName("未設定帳密時不建立任何管理員")
     void notConfiguredTest() {
-      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "");
+      UserService unconfigured = new UserService(myUserRepository, passwordBcrypt, "", "", "", "");
 
       unconfigured.addSuperAccount();
 

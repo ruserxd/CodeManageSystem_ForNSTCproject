@@ -44,6 +44,9 @@ public class MyPostConstruct {
 
       // 如果需要新增超級帳號
       addSuperAccount();
+
+      // 如果需要新增 demo 帳號
+      userService.addDemoAccount();
     }
 //    catch (IOException e) {
 //      log.error("發生讀取錯誤");
