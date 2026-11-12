@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 
 const DEMO_FORBIDDEN_MESSAGE = '訪客模式為唯讀，無法執行此操作';
+const FORBIDDEN_MESSAGE = '沒有權限執行此操作';
 
 function ListCurProject(trigger) {
 	const [cookies] = useCookies(['user']);
@@ -78,7 +79,7 @@ function ListCurProject(trigger) {
 			message.success(`成功刪除 ${projectName}`);
 		} catch (err) {
 			if (err.response?.status === 403) {
-				message.error(DEMO_FORBIDDEN_MESSAGE);
+				message.error(isDemo ? DEMO_FORBIDDEN_MESSAGE : FORBIDDEN_MESSAGE);
 			} else {
 				message.error('Error during delete the ProjectNames: ', err);
 				setErrorJudge(true);
@@ -99,7 +100,7 @@ function ListCurProject(trigger) {
 			message.success(result.data.message);
 		} catch (err) {
 			if (err.response?.status === 403) {
-				message.error(DEMO_FORBIDDEN_MESSAGE);
+				message.error(isDemo ? DEMO_FORBIDDEN_MESSAGE : FORBIDDEN_MESSAGE);
 			} else {
 				message.error('Error during pull the ProjectNames: ', err);
 				setErrorJudge(true);
