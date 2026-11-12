@@ -5,8 +5,13 @@ import api from '@/api/axiosConfig';
 import { Link } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 
+const DEMO_FORBIDDEN_MESSAGE = '訪客模式為唯讀，無法執行此操作';
+const FORBIDDEN_MESSAGE = '沒有權限執行此操作';
+
 function ListCurProject(trigger) {
 	const [cookies] = useCookies(['user']);
+	// 參數沿用整個 props 物件（既有寫法），isDemo 由此取出
+	const { isDemo } = trigger;
 
 	const { Title } = Typography;
 	const contentStyle = {
@@ -73,8 +78,12 @@ function ListCurProject(trigger) {
 			});
 			message.success(`成功刪除 ${projectName}`);
 		} catch (err) {
-			message.error('Error during delete the ProjectNames: ', err);
-			setErrorJudge(true);
+			if (err.response?.status === 403) {
+				message.error(isDemo ? DEMO_FORBIDDEN_MESSAGE : FORBIDDEN_MESSAGE);
+			} else {
+				message.error('Error during delete the ProjectNames: ', err);
+				setErrorJudge(true);
+			}
 		} finally {
 			//設置 trigger 當刪除成功呼叫 getProjectName
 			setLoading(false);
@@ -90,8 +99,12 @@ function ListCurProject(trigger) {
 			console.log(result);
 			message.success(result.data.message);
 		} catch (err) {
-			message.error('Error during pull the ProjectNames: ', err);
-			setErrorJudge(true);
+			if (err.response?.status === 403) {
+				message.error(isDemo ? DEMO_FORBIDDEN_MESSAGE : FORBIDDEN_MESSAGE);
+			} else {
+				message.error('Error during pull the ProjectNames: ', err);
+				setErrorJudge(true);
+			}
 		} finally {
 			//設置 trigger 當刪除成功呼叫 getProjectName
 			setLoading(false);
@@ -111,18 +124,22 @@ function ListCurProject(trigger) {
 					dataSource={fetchData}
 					renderItem={(projectName) => (
 						<List.Item
-							actions={[
-								<Button key="pull" onClick={() => pullData(projectName)} loading={loading}>
-									Pull
-								</Button>,
-								<Button
-									key="delete"
-									onClick={() => deleteData(projectName)}
-									loading={loading}
-									danger>
-									Delete
-								</Button>
-							]}>
+							actions={
+								isDemo
+									? []
+									: [
+											<Button key="pull" onClick={() => pullData(projectName)} loading={loading}>
+												Pull
+											</Button>,
+											<Button
+												key="delete"
+												onClick={() => deleteData(projectName)}
+												loading={loading}
+												danger>
+												Delete
+											</Button>
+										]
+							}>
 							<Link to={`/ShowMethodDiff/${projectName}`}>{projectName}</Link>
 						</List.Item>
 					)}
@@ -134,7 +151,8 @@ function ListCurProject(trigger) {
 }
 
 ListCurProject.propTypes = {
-	trigger: PropTypes.number.isRequired
+	trigger: PropTypes.number.isRequired,
+	isDemo: PropTypes.bool
 };
 
 export default ListCurProject;
