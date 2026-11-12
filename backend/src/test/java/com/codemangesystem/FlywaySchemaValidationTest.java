@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -25,7 +26,7 @@ import org.testcontainers.utility.DockerImageName;
 
 /**
  * 用 Testcontainers 啟動一個空的 MySQL 並載入完整的 Spring context，
- * 驗證 Flyway 真的有執行 V1、V2，而且 Hibernate 的 validate 能通過（entity 與 schema 一致）。
+ * 驗證 Flyway 真的有執行 V1～V3，而且 Hibernate 的 validate 能通過（entity 與 schema 一致）。
  *
  * <p>MySQL 版本由環境變數 TEST_MYSQL_IMAGE 決定（例如 mysql:8.4），沒設定時用和 docker-compose 相同的 mysql:8.0。
  * 沒有 Docker 的環境會跳過，要看 Surefire 統計的 Skipped 確認有實際執行。
@@ -153,8 +154,54 @@ class FlywaySchemaValidationTest {
     assertEquals(1, db.queryForObject(
         "SELECT COUNT(*) FROM flyway_schema_history"
             + " WHERE version = '2' AND type = 'SQL' AND success = 1", Integer.class));
+    assertEquals(1, db.queryForObject(
+        "SELECT COUNT(*) FROM flyway_schema_history"
+            + " WHERE version = '3' AND type = 'SQL' AND success = 1", Integer.class));
     assertAnalysisTablesEmpty(db);
     assertEquals(1, count(db, "user"));
+  }
+
+  @Test
+  @DisplayName("Flyway 在空的資料庫上真的執行了 V3")
+  void userAuthorityDemoMigrationExecutedTest() {
+    Integer count = jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) FROM flyway_schema_history"
+            + " WHERE version = '3' AND type = 'SQL' AND success = 1",
+        Integer.class);
+    assertEquals(1, count);
+  }
+
+  @Test
+  @DisplayName("user_authority 的 CHECK 允許 0–2，3 會被擋下")
+  void userAuthorityCheckBehaviorTest() {
+    try {
+      jdbcTemplate.update("INSERT INTO `user` (user_id, user_authority) VALUES (9101, 2)");
+      // MySQL 的 CHECK 違反（error 3819）在 Spring 會被歸類為 UncategorizedSQLException，
+      // 不是 DataIntegrityViolationException，所以斷言父類別並檢查訊息是 CHECK 違反
+      DataAccessException error = assertThrows(DataAccessException.class,
+          () -> jdbcTemplate.update(
+              "INSERT INTO `user` (user_id, user_authority) VALUES (9102, 3)"));
+      assertTrue(error.getMessage().contains("user_chk_1"), error.getMessage());
+    } finally {
+      jdbcTemplate.update("DELETE FROM `user` WHERE user_id BETWEEN 9101 AND 9102");
+    }
+  }
+
+  @Test
+  @DisplayName("V2 的既有使用者（ADMIN=0、USER=1）升級到最新版後 user_authority 不變")
+  void upgradeKeepsUserAuthorityTest() {
+    JdbcTemplate db = newDatabase("upgrade_authority");
+    migrate("upgrade_authority", "2", false);
+    db.update("INSERT INTO `user` (user_id, user_account, user_authority) VALUES (1, 'a', 0)");
+    db.update("INSERT INTO `user` (user_id, user_account, user_authority) VALUES (2, 'b', 1)");
+
+    migrate("upgrade_authority", null, false);
+
+    assertEquals(0, db.queryForObject(
+        "SELECT user_authority FROM `user` WHERE user_id = 1", Integer.class));
+    assertEquals(1, db.queryForObject(
+        "SELECT user_authority FROM `user` WHERE user_id = 2", Integer.class));
+    db.update("INSERT INTO `user` (user_id, user_account, user_authority) VALUES (3, 'c', 2)");
   }
 
   @Test

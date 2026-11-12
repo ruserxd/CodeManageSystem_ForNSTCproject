@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,6 +80,67 @@ class UserServiceTest {
 
       verify(myUserRepository, never()).save(any());
       verify(myUserRepository, never()).findByUserAccount(anyString());
+    }
+  }
+
+
+  @Nested
+  @DisplayName("測試 addDemoAccount()")
+  class addDemoAccountTest {
+
+    private UserService demoService;
+
+    @BeforeEach
+    void setUp_demo() {
+      demoService = new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "demo-pw");
+    }
+
+    @Test
+    @DisplayName("依設定建立 DEMO 帳號，密碼經過雜湊")
+    void addAccountTest() {
+      when(myUserRepository.findByUserAccount("demo")).thenReturn(Optional.empty());
+      when(passwordBcrypt.encryptText("demo-pw")).thenReturn("hashed");
+
+      demoService.addDemoAccount();
+
+      ArgumentCaptor<MyUser> saved = ArgumentCaptor.forClass(MyUser.class);
+      verify(myUserRepository, times(1)).save(saved.capture());
+      assertEquals("demo", saved.getValue().getUserAccount());
+      assertEquals("hashed", saved.getValue().getUserPassword());
+      assertEquals(UserAuthority.DEMO, saved.getValue().getUserAuthority());
+    }
+
+    @Test
+    @DisplayName("帳號已存在時不重複建立")
+    void accountExistTest() {
+      when(myUserRepository.findByUserAccount("demo"))
+          .thenReturn(Optional.of(MyUser.builder().userAccount("demo").build()));
+
+      demoService.addDemoAccount();
+
+      verify(myUserRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("帳號留空時不建立")
+    void blankAccountTest() {
+      UserService noAccount =
+          new UserService(myUserRepository, passwordBcrypt, "", "", "", "demo-pw");
+
+      noAccount.addDemoAccount();
+
+      verify(myUserRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("密碼留空時不建立")
+    void blankPasswordTest() {
+      UserService noPassword =
+          new UserService(myUserRepository, passwordBcrypt, "", "", "demo", "");
+
+      noPassword.addDemoAccount();
+
+      verify(myUserRepository, never()).save(any());
     }
   }
 
