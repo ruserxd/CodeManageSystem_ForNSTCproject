@@ -1,6 +1,7 @@
 package com.codemangesystem.login_process.model.user;
 
 import com.codemangesystem.git_process.model.database.PersonalINFO;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -54,6 +55,8 @@ public class MyUser {
   @Column(name = "user_authority")
   private UserAuthority userAuthority;
 
+  @JsonIgnore
+  @ToString.Exclude
   @OneToMany(mappedBy = "user",
       cascade = CascadeType.ALL,
       fetch = FetchType.LAZY,
