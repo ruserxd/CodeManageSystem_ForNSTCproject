@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +62,7 @@ public class UserService {
 
     // 確定目前資料庫內沒有超級帳號
     if (myUserRepository.findByUserAccount(adminAccount).isPresent()) {
-      log.info("已存在超級帳號 {}", adminAccount);
+      log.info("已存在超級帳號");
       return;
     }
 
@@ -138,10 +137,6 @@ public class UserService {
           .build();
     }
 
-    // personalInfos 是 LAZY，交易結束後 Jackson 序列化會丟 LazyInitializationException，
-    // 所以要在交易內先初始化（checkUser 是靠 log 的 toString 順便初始化）
-    Hibernate.initialize(myUser.get().getPersonalInfos());
-
     log.info("Demo login success");
     return SessionResponse.builder()
         .message("Success")
@@ -158,7 +153,7 @@ public class UserService {
     Optional<MyUser> myUser = myUserRepository.findByUserAccount(userINFO.getUserAccount());
 
     if (myUser.isPresent()) {
-      log.info("Account have {}", myUser.get());
+      log.info("Account found, userId={}", myUser.get().getUserId());
 
       // 密碼錯誤
       if (!passwordBcrypt.isPasswordSame(myUser.get().getUserPassword(),
@@ -205,21 +200,21 @@ public class UserService {
       boolean accountExist = ifAccountExist(myUser);
       // 判斷 email, account 有沒有存在
       if (emailExist && accountExist) {
-        log.info("Email, Account is taken {} {}", myUser.getUserEmail(), myUser.getUserAccount());
+        log.info("Email, Account is taken");
 
         return SessionResponse.builder()
             .success(false)
             .message("Email, Account is taken")
             .build();
       } else if (emailExist) {
-        log.info("Email is taken {}", myUser.getUserEmail());
+        log.info("Email is taken");
 
         return SessionResponse.builder()
             .success(false)
             .message("Email is taken")
             .build();
       } else if (accountExist) {
-        log.info("Account is taken {}", myUser.getUserAccount());
+        log.info("Account is taken");
 
         return SessionResponse.builder()
             .success(false)

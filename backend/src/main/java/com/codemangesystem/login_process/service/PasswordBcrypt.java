@@ -22,9 +22,7 @@ public class PasswordBcrypt {
    * 對原始密碼加密並回傳
    */
   public String encryptText(String plainText) {
-    String hashed = BCrypt.hashpw(plainText, BCrypt.gensalt());
-    log.info("加密後的密碼 {}", hashed);
-    return hashed;
+    return BCrypt.hashpw(plainText, BCrypt.gensalt());
   }
 
   /**
