@@ -253,7 +253,7 @@ backend 會把整個專案的 diff 資料留在記憶體，大型 repo 可能用
 | JVM heap | 容器上限的 75%（約 12GB） | `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0 ...` |
 | heap 耗盡時 | JVM 直接結束 | `-XX:+ExitOnOutOfMemoryError` |
 
-- 16G／4 CPU 的依據：實驗室主機記憶體為 32GB 以上，16G 約為主機一半，留給主機本身與 MySQL、nginx 等其他服務。這和 #115 的應用層上限（單次分析的 repo 大小、commit 數量依角色區分）互補：#115 擋掉大部分過大的請求，這裡是最後一道防線。一開始的決定是 8G，後來因為管理員要分析大型 repo、8G 偏緊，改為 16G。
+- 16G／4 CPU 的依據：實驗室主機目前專門用來放這個專案，且有 32GB 可用，所以給 backend 約一半（16G），另一半留給主機本身與 MySQL、nginx 等其他服務。這和 #115 的應用層上限（單次分析的 repo 大小、commit 數量依角色區分）互補：#115 擋掉大部分過大的請求，這裡是最後一道防線。一開始的決定是 8G，後來依上述主機規格改為 16G；這不是依大型 repo 的量測結果，本次沒有大型 repo 的量測基準，日後有量測再依實際用量調整。
 - heap 用 `MaxRAMPercentage` 而不是固定的 `-Xmx`：JVM 會讀容器的 cgroup 上限來換算，之後改 `memory` 時 heap 會跟著走。JDK 21 預設是 25%，16G 時 heap 只有約 4G，對大型 repo 偏小，所以明確調為 75%。
 - 為什麼不是更高：heap 之外還有 metaspace、thread stack、JGit 的 native／mmap 記憶體、JIT 與 GC 的內部結構，這些不受 heap 上限管。75% 讓非 heap 部分留約 4GB。若之後在實驗室觀察到實際用量接近上限，可降到 65～70%。
 - 為什麼加 `ExitOnOutOfMemoryError`：heap 耗盡時 JVM 預設只丟出 `OutOfMemoryError`，行程不一定結束，容器也就不會被終止，`restart: unless-stopped` 不會介入，服務可能卡在半死不活的狀態。加上這個參數後 JVM 會直接結束（exit code 3），由 Docker 依 `restart: unless-stopped` 重新啟動。
