@@ -29,7 +29,9 @@ function Contact() {
 					<a href="https://github.com/ruserxd">ruserxd</a>
 					<br />
 					專案原始碼：
-					<a href="https://github.com/ruserxd/CodeManageSystem_ForNSTCproject">CodeManageSystem_ForNSTCproject</a>
+					<a href="https://github.com/ruserxd/CodeManageSystem_ForNSTCproject">
+						CodeManageSystem_ForNSTCproject
+					</a>
 				</dd>
 			</dl>
 		</div>
