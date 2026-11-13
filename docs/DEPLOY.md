@@ -194,6 +194,51 @@ sudo -u gh-runner awk -F= '
 3. 用不在允許名單的 email 嘗試，應被擋下。
 4. 在實驗室機器確認 nginx 只綁本機：`ss -ltn | grep -E ':80\s'` 只應出現 `127.0.0.1:80`，沒有 `0.0.0.0:80`、`*:80`、`[::]:80`。從校內另一台機器 `curl --max-time 5 http://<實驗室機器 IP>/` 應連線被拒或逾時。
 
+## 4.6 真實 IP 還原與登入限速
+
+加了 tunnel 之後，nginx 看到的連線來源都是 `cloudflared` 容器的 IP；真正的使用者 IP 在 Cloudflare 加上的 `CF-Connecting-IP` 標頭。`nginx/nginx.conf` 用 `ngx_http_realip_module` 還原它，並依還原後的 IP 對登入類 API 限速。
+
+### 4.6.1 信任網段與限制
+
+設定是 `set_real_ip_from 172.16.0.0/12;` 加 `real_ip_header CF-Connecting-IP;`：**只有連線來源在這個網段內，nginx 才採信 `CF-Connecting-IP`**。
+
+- 為什麼不能無條件信任：標頭任何人都能自己帶。若不限制來源，攻擊者每個請求換一個假 IP，就能繞過限速，log 裡的 IP 也不可信。來源不在網段內（例如容器內的 `127.0.0.1`）時，標頭會被忽略。
+- 為什麼選 `172.16.0.0/12`：compose 預設 bridge 網段是 Docker 動態分配的，目前看到的是 `172.x.0.0/16`（本機 `172.18`、實驗室 `172.19`），都在這個私有範圍內。不信任 Cloudflare 公網網段，因為 nginx 直接連的是 `cloudflared` 容器，不是 Cloudflare。
+- 已知限制：
+  - 網段是動態的。Docker 偶爾會改用 `192.168.x.x` 或 `10.x.x.x`，那時這一行就涵蓋不到，標頭不會被採信（log 會是 `172.x`／容器 IP，限速變成所有人共用一個額度）。換機器或重建網路後，請用 `docker network inspect codemanager_default` 確認網段仍在範圍內。
+  - 同網段內其他容器也被視為可信，它們若能連到 nginx，就能偽造 `CF-Connecting-IP`。
+  - 宿主機經 `127.0.0.1:80` 進來的請求，來源也可能落在 bridge 網段內而被採信（例如煙霧測試）。
+- 更精確的做法（另案處理，需改 `docker-compose.yml`）：在 compose 固定 subnet 與 `cloudflared` 的 IP，只信那一個位址。
+
+限速：`/api/login`、`/api/register`、`/api/demo-login` 每個 IP、每個端點 15 次／分，瞬間最多 6 次，超過回 429。其他 `/api/` 路徑不受影響。
+
+### 4.6.2 怎麼確認 nginx 拿到真實 IP
+
+以下是「怎麼做」的步驟，需要部署後由使用者在實驗室實際執行；本文件不代表已驗證。
+
+1. 部署完成後，用**校外網路**（例如手機行動網路，不是校內 Wi-Fi）透過 tunnel 的網址登入一次。
+2. 在實驗室機器看 nginx log：
+
+   ```bash
+   docker compose -p codemanager logs nginx --tail 20
+   ```
+
+3. 預期：該筆 access log 開頭的來源 IP 是你自己的公網 IP（可在手機上查「my ip」比對），**不是** `172.x`。若是 `172.x`，表示標頭沒被採信：檢查信任網段是否涵蓋 cloudflared 的 IP（`docker network inspect codemanager_default`）。
+4. 偽造標頭應被忽略：在 nginx 容器內自己打自己，log 來源應是 `127.0.0.1`：
+
+   ```bash
+   docker compose -p codemanager exec nginx wget -qO- --header='CF-Connecting-IP: 203.0.113.9' http://127.0.0.1/ >/dev/null
+   docker compose -p codemanager logs nginx --tail 3
+   ```
+
+### 4.6.3 Cloudflare 後台的建議（選擇性，這裡只是建議）
+
+nginx 的限速是最後一道，Cloudflare 能在流量到達實驗室之前就擋掉。以下在 Cloudflare 後台自行設定，本 repo 不管理：
+
+- Security -> WAF -> Rate limiting rules：對 URI Path 為 `/api/login`、`/api/register`、`/api/demo-login` 的請求，依 IP 計數，超過門檻（例如 10 秒內 10 次）就 Block 或 Managed Challenge。門檻要比 nginx 寬鬆，以免兩層互相干擾。
+- 啟用 WAF 的 Managed Rules，以及 Bot Fight Mode（視方案而定）。
+- 搭配第 4.5.4 節的 Access：開啟 Access 時，未通過驗證的人連不到登入 API；日後若公開網站，這些規則才是主要防線。
+
 ## 5. 設定外部貢獻者的 workflow 需核准
 
 repo 是公開的，要避免外部 fork PR 自動跑 workflow。
