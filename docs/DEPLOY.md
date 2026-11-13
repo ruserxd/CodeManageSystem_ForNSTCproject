@@ -239,6 +239,73 @@ nginx 的限速是最後一道，Cloudflare 能在流量到達實驗室之前就
 - 啟用 WAF 的 Managed Rules，以及 Bot Fight Mode（視方案而定）。
 - 搭配第 4.5.4 節的 Access：開啟 Access 時，未通過驗證的人連不到登入 API；日後若公開網站，這些規則才是主要防線。
 
+## 4.7 backend 容器的記憶體與 CPU 上限
+
+backend 會把整個專案的 diff 資料留在記憶體，大型 repo 可能用掉大量記憶體。為了讓分析失控時只影響這個容器、不拖垮主機上的其他服務，`docker-compose.yml` 的 backend 設了資源上限。MySQL、nginx 等其他服務不在此範圍。
+
+### 4.7.1 數值與決定依據
+
+| 設定 | 值 | 位置 |
+|---|---|---|
+| 記憶體上限 | `16g` | `deploy.resources.limits.memory` |
+| CPU 上限 | `4.0` | `deploy.resources.limits.cpus` |
+| swap | 禁用（`memswap_limit` 等於記憶體上限） | 服務層級 `memswap_limit: 16g` |
+| JVM heap | 容器上限的 75%（約 12GB） | `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0 ...` |
+| heap 耗盡時 | JVM 直接結束 | `-XX:+ExitOnOutOfMemoryError` |
+
+- 16G／4 CPU 的依據：實驗室主機記憶體為 32GB 以上，16G 約為主機一半，留給主機本身與 MySQL、nginx 等其他服務。這和 #115 的應用層上限（單次分析的 repo 大小、commit 數量依角色區分）互補：#115 擋掉大部分過大的請求，這裡是最後一道防線。一開始的決定是 8G，後來因為管理員要分析大型 repo、8G 偏緊，改為 16G。
+- heap 用 `MaxRAMPercentage` 而不是固定的 `-Xmx`：JVM 會讀容器的 cgroup 上限來換算，之後改 `memory` 時 heap 會跟著走。JDK 21 預設是 25%，16G 時 heap 只有約 4G，對大型 repo 偏小，所以明確調為 75%。
+- 為什麼不是更高：heap 之外還有 metaspace、thread stack、JGit 的 native／mmap 記憶體、JIT 與 GC 的內部結構，這些不受 heap 上限管。75% 讓非 heap 部分留約 4GB。若之後在實驗室觀察到實際用量接近上限，可降到 65～70%。
+- 為什麼加 `ExitOnOutOfMemoryError`：heap 耗盡時 JVM 預設只丟出 `OutOfMemoryError`，行程不一定結束，容器也就不會被終止，`restart: unless-stopped` 不會介入，服務可能卡在半死不活的狀態。加上這個參數後 JVM 會直接結束（exit code 3），由 Docker 依 `restart: unless-stopped` 重新啟動。
+- 為什麼禁用 swap：容器用到 swap 會讓分析變得極慢，卻不會被終止，拖累整台主機的磁碟。禁用後超限就直接終止並重啟，行為可預期。`memswap_limit` 是服務層級欄位（和 `image`、`restart` 同一層），**不能**放進 `deploy.resources.limits`，放進去 `docker compose config` 會以 schema 錯誤拒絕。
+- `JAVA_TOOL_OPTIONS` 由 JVM 啟動時自動讀取，所以不必改 `backend/Dockerfile`。backend 啟動時 log 會出現 `Picked up JAVA_TOOL_OPTIONS: ...`，這是正常現象。
+
+### 4.7.2 超過上限時的行為
+
+| 情況 | 結果 |
+|---|---|
+| heap 耗盡 | JVM 自行結束，exit code 3 |
+| 整個容器超過 16G（heap 以外的記憶體暴增） | 核心 OOM kill，`OOMKilled=true`，exit code 137 |
+
+兩種情況 `restart: unless-stopped` 都會把容器帶回來。重啟期間服務會中斷，進行中的分析會丟失。
+
+### 4.7.3 驗證
+
+在放有 `docker-compose.yml` 的目錄執行（見第 6 節的說明）：
+
+```bash
+# 記憶體上限（預期 17179869184）、CPU（預期 4000000000）、swap（預期 17179869184）
+docker inspect -f '{{.HostConfig.Memory}} {{.HostConfig.NanoCpus}} {{.HostConfig.MemorySwap}}' $(docker compose -p codemanager ps -q backend)
+
+# JVM heap（預期 MaxRAMPercentage=75.0、MaxHeapSize=12884901888，即 16GiB 的 75%）
+docker compose -p codemanager exec backend java -XX:+PrintFlagsFinal -version | grep -E 'MaxHeapSize|MaxRAMPercentage'
+
+# 實際用量與上限（看 MEM USAGE / LIMIT 的 LIMIT）
+docker stats --no-stream
+
+# 上次結束的原因與重啟次數（OOM 測試用）
+docker inspect -f '{{.State.OOMKilled}} {{.State.ExitCode}} {{.RestartCount}}' $(docker compose -p codemanager ps -q backend)
+```
+
+注意：`docker stats` 的 LIMIT 是容器上限與 Docker 引擎可用記憶體取小的那個。在 Mac 或 Windows 的 Docker Desktop 上，VM 的記憶體可能比 16G 小（例如約 7.75GiB），LIMIT 就會顯示 VM 大小，而不是 16GiB。所以在 Docker Desktop 上以 `docker inspect` 的 `HostConfig.Memory` 為準；`docker stats` 的 LIMIT 要在實驗室主機上看，預期約 `16GiB`。
+
+### 4.7.4 分析大型 repo 時暫時調高上限
+
+1. 在放有 `docker-compose.yml` 的目錄，修改 `docker-compose.yml` 的 backend 區塊：把 `deploy.resources.limits.memory` 與服務層級的 `memswap_limit` 改成同一個新值（兩者要相等，否則等於開放 swap）。heap 百分比 `MaxRAMPercentage` 會自動跟著新上限換算，通常不用改。
+2. 套用，只重建 backend：
+
+   ```bash
+   docker compose -p codemanager up -d backend
+   ```
+
+3. 用 `docker stats --no-stream` 與第 4.7.3 節的 `docker inspect` 確認新上限已生效。
+4. 分析完要改回 `16g` 並重新套用，確認上限還原。
+
+注意：
+- 新值不可超過主機實際可用的記憶體（要留給主機本身與 MySQL、nginx 等），否則整台機器會開始 swap 或被 OOM。
+- `deploy.yml` 每次部署會以 repo 內的 compose 檔覆蓋，手動調高**只在下次部署前有效**。要長期調高，必須改 repo 內的 `docker-compose.yml`，走一般 PR 流程。
+- 重建 backend 時服務會短暫中斷，進行中的分析會丟失。
+
 ## 5. 設定外部貢獻者的 workflow 需核准
 
 repo 是公開的，要避免外部 fork PR 自動跑 workflow。
