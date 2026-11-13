@@ -48,6 +48,13 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${DOCKER_DATASOURCE_PASSWORD}
       - SPRING_PROFILES_ACTIVE=production
       - SERVER_PORT=8080
+      - "JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+          cpus: "4.0"
+    memswap_limit: 16g
     volumes:
       - backend_clonecode:/app/src/cloneCode
       - backend_log:/app/src/log
