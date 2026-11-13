@@ -80,7 +80,7 @@ function MainLayout({ user }) {
 						}}
 						items={[
 							{ title: <HomeOutlined /> },
-							{ title: '程式單元歷程管理系統' },
+							{ title: 'MethodTracker' },
 							{ title: selectedKey }
 						]}
 					/>
@@ -101,7 +101,7 @@ function MainLayout({ user }) {
 					style={{
 						textAlign: 'center'
 					}}>
-					WuKunWei ©{new Date().getFullYear()} Created by KunWeiWu
+					MethodTracker ©{new Date().getFullYear()} Created by 吳堃瑋
 				</Footer>
 			</Layout>
 		</Layout>

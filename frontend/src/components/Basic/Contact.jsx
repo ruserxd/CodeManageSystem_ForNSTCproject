@@ -12,14 +12,14 @@ function Contact() {
 				<dd>
 					吳堃瑋
 					<br />
-					目前就讀於逢甲大學_資訊工程
+					目前就讀於陽明交通大學資訊科學與工程研究所
 				</dd>
 				<dt>
 					Mail
 					<MdEmail />:
 				</dt>
 				<dd>
-					<a href="mailto:D1149580@o365.fcu.edu.tw">D1149580@o365.fcu.edu.tw</a>
+					<a href="mailto:kunweiwu2004@gmail.com">kunweiwu2004@gmail.com</a>
 				</dd>
 				<dt>
 					GitHub
@@ -27,6 +27,9 @@ function Contact() {
 				</dt>
 				<dd>
 					<a href="https://github.com/ruserxd">ruserxd</a>
+					<br />
+					專案原始碼：
+					<a href="https://github.com/ruserxd/CodeManageSystem_ForNSTCproject">CodeManageSystem_ForNSTCproject</a>
 				</dd>
 			</dl>
 		</div>
