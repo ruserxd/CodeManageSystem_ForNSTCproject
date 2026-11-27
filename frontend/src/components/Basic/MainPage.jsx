@@ -112,7 +112,7 @@ function MainPage({ onLogin }) {
 
 			<Divider />
 			<Text type="secondary">
-				國科會大專學生研究計畫 · <Link to="/About">關於本專案</Link> ·{' '}
+				<Link to="/About">關於本專案</Link> ·{' '}
 				<a href={REPO_URL} target="_blank" rel="noreferrer">
 					<GithubOutlined /> GitHub
 				</a>
