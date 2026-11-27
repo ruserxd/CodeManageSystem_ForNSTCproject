@@ -68,7 +68,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - If the session has no `mentor` agent type, first tell the user: a general-purpose agent has file-writing tools, so "read-only" would rest only on the written rules. Once the user agrees, tell it to read `.claude/agents/mentor.md` first and follow it exactly; if they do not agree, ask the user to start a new session.
 3. After all subtasks are done, check yourself first: the file count and scope of `git diff --stat main...HEAD` match the criteria from ②. If the change touches `.claude/agents/` or `.claude/skills/`, also run `.claude/skills/ship/scripts/check-frontmatter.sh` (by the repo root's absolute path, on its own, not chained with `;` or `&&`); a non-zero exit means do not push. Then push and open the PR:
    - `git push -u origin <branch>`
-   - `gh pr create`, with a description containing: `Closes #<N>`, what was done, which commit covers each acceptance item, and the test statistics
+   - `gh pr create`, with the title and description written as defined in `docs/git_conventions.md` ("PR"): the description is the future commit body (why, key points, `Closes #<N>`). Then post a PR comment with which commit covers each acceptance item and the test statistics
    - **Do not paste the implementer's report into the PR**; the PR description contains only facts you confirmed yourself.
 
 ## ④ Verify

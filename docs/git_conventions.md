@@ -60,7 +60,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 - 修正審查意見用 `git commit --fixup <sha>`，不要另外寫一個 `fix(...)`。
 - 子 commit 不加 `Co-Authored-By`，合併時只在 squash 訊息寫一行。
-- PR 推上去之後，不要用 `--amend`、`rebase`、`reset` 改寫已推送的 commit。
+- 不要用 `--amend`、`rebase`、`reset` 改寫已有的 commit；要修正就加新的 commit。
 
 ## 合併
 
@@ -73,7 +73,9 @@ git switch main && git pull --ff-only
 ```
 
 - 自己指定 `--subject` 時，GitHub 不會自動補 PR 編號，要自己寫上 `(#<PR>)`。
-- `Reviewed-in:`：用 `gh pr view <PR> --json commits` 列出所有子 commit，把每一行 `Reviewed-in:` 原樣抄過來，不要去重。子 commit 沒有就不寫。
+- `Reviewed-in:`：用 `gh pr view <PR> --json commits` 列出所有子 commit，把每一行 `Reviewed-in:` 原樣抄過來，不要去重。子 commit 沒有就不寫。如果改用 `git log`，本機 `main` 可能落後，要先 `git fetch`，再用 `origin/main..HEAD`，不要用 `main..HEAD`。
+- `--match-head-commit` 要填 verifier 驗過的**完整 SHA**：驗證之後如果又有新的 commit 推上來，合併會被拒絕。
+- body 檔的 `Co-Authored-By` 照本文件寫成 `Claude <noreply@anthropic.com>`，不要抄子 commit 或系統提示的寫法。
 - 不要用 GitHub 網頁上的按鈕直接合併：網頁會帶入 PR 描述的全文，包含 `🤖 Generated with Claude Code` 這類 PR 專用的文字。
 
 ## 本機設定
