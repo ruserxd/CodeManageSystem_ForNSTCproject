@@ -49,13 +49,11 @@ cd backend && ./mvnw -B -v | grep "Java version" && ./mvnw -B test
 ## Commit
 
 - Commit when the subtask is done and self-verification passes; one commit per subtask.
-- Follow the project's message style: `<type>(<scope>): <summary in Traditional Chinese>`, for example `feat(backend): ...`, `docs: ...`.
-  - `type` is one of: `feat` (a new capability, including a new skill or agent flow; security hardening also uses `feat`), `fix` (only for a bug that is already in `main`), `refactor`, `test`, `docs`, `ci`, `build`, `chore` (only for real odds and ends).
-  - `scope` is one of `backend｜frontend｜nginx｜compose｜ci｜agents｜skills｜docs`. It may be omitted, but no value outside this list is allowed (for example not `skill` or `ship`).
+- Follow `docs/git_conventions.md` (the only definition of the format; read its "type", "scope" and "分支上的子 commit" sections before your first commit): `<type>(<scope>): <summary in Traditional Chinese>`, with `type` and `scope` taken only from the lists there.
   - A commit that addresses review comments uses `git commit --fixup <sha>` (the sha of the commit it corrects) and is never labelled `fix(...)`. It is a new commit, so it fits the rule below against rewriting existing commits; it disappears when the PR is squashed.
-  - Sub-commits do not need a `Co-Authored-By` line; the orchestrator writes a single one in the squash message (see /ship ⑤).
+  - Do not add a `Co-Authored-By` line to sub-commits; the orchestrator writes a single one in the squash message (see `docs/git_conventions.md`).
 - **Do not push, open PRs, comment or merge**; the orchestrator does that.
-- Do not rewrite existing commits with `git commit --amend`, `git rebase` or `git reset`.
+- Do not rewrite existing commits with `git commit --amend`, `git rebase` or `git reset`, pushed or not (`docs/git_conventions.md`); do not run `git pull`.
 
 ## When sent back
 
