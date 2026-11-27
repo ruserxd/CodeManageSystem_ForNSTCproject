@@ -11,8 +11,6 @@ function Contact() {
 				</dt>
 				<dd>
 					吳堃瑋
-					<br />
-					目前就讀於陽明交通大學資訊科學與工程研究所
 				</dd>
 				<dt>
 					Mail
@@ -26,9 +24,6 @@ function Contact() {
 					<AiFillGithub />:
 				</dt>
 				<dd>
-					<a href="https://github.com/ruserxd">ruserxd</a>
-					<br />
-					專案原始碼：
 					<a href="https://github.com/ruserxd/CodeManageSystem_ForNSTCproject">
 						CodeManageSystem_ForNSTCproject
 					</a>

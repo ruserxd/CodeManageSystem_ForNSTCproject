@@ -38,11 +38,11 @@ function About() {
 				<li>前端：React、Vite、Ant Design</li>
 				<li>後端：Spring Boot、JGit、JavaParser、java-diff-utils</li>
 				<li>資料庫：MySQL</li>
-				<li>部署：Docker Compose、Nginx</li>
+				<li>部署：Docker Compose、Nginx、CloudFlare</li>
 			</ul>
 
 			<Title level={3}>專案背景</Title>
-			<Paragraph>本專案源自國科會大專學生研究計畫（已結案），目前持續開發中。</Paragraph>
+			<Paragraph>本專案源自國科會大專學生研究計畫（已結案），2025 年台灣軟體工程研討會（TCSE 2025） 的展示論文（Demo Paper），目前持續開發中。</Paragraph>
 		</Typography>
 	);
 }
