@@ -29,7 +29,7 @@ All state lives on GitHub; do not keep separate files locally:
 |---|---|
 | ① Task brief | Issue body |
 | ② Criteria | Issue comment headed `📋 驗收標準`; a revision is a new comment headed `📋 驗收標準（第 n 版）`, and the latest one wins |
-| ③ Work | Commits on the working branch, and the PR description |
+| ③ Work | Commits on the working branch, the PR description, and a PR comment mapping commits to acceptance items with the test statistics |
 | ④ Verification | PR comments (one verifier report per round) |
 | ⑤ Delivery | The merged PR; the retrospective is a PR comment headed `## /ship 回顧` on that PR |
 
@@ -68,7 +68,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    - If the session has no `mentor` agent type, first tell the user: a general-purpose agent has file-writing tools, so "read-only" would rest only on the written rules. Once the user agrees, tell it to read `.claude/agents/mentor.md` first and follow it exactly; if they do not agree, ask the user to start a new session.
 3. After all subtasks are done, check yourself first: the file count and scope of `git diff --stat main...HEAD` match the criteria from ②. If the change touches `.claude/agents/` or `.claude/skills/`, also run `.claude/skills/ship/scripts/check-frontmatter.sh` (by the repo root's absolute path, on its own, not chained with `;` or `&&`); a non-zero exit means do not push. Then push and open the PR:
    - `git push -u origin <branch>`
-   - `gh pr create`, with a description containing: `Closes #<N>`, what was done, which commit covers each acceptance item, and the test statistics
+   - `gh pr create`, with the title and description written as defined in `docs/git_conventions.md` ("PR"): the description is the future commit body (why, key points, `Closes #<N>`). Then post a PR comment with which commit covers each acceptance item and the test statistics
    - **Do not paste the implementer's report into the PR**; the PR description contains only facts you confirmed yourself.
 
 ## ④ Verify
@@ -120,31 +120,13 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
      - every ⚪ has been handled as in ④ step 4: it disappeared after the environment was fixed and re-verified, it was confirmed not a problem with evidence in a PR comment, or the user decided it can be merged. A ⚪ can never be merged on a stated reason alone
    - All CI checks passed
 
-   Before merging, you write the squash message yourself and save it to a file (for example `/tmp/squash-<PR>.md`), then merge with `--subject` and `--body-file`. Without them GitHub concatenates every sub-commit message into the body. Write the message in Traditional Chinese; keep `type` and `scope` in English. This section is the only definition of the format; /autoship ⑤ refers to it.
+   Before merging, you write the squash message yourself and save it to a file (for example `/tmp/squash-<PR>.md`), then merge with `--subject` and `--body-file`. The format (subject, body, trailer order, `type`／`scope` lists, how to collect `Reviewed-in:`) is defined only in `docs/git_conventions.md`; read it before writing the message. /autoship ⑤ refers to this step.
    ```bash
    # --match-head-commit: refuses to merge if new commits were pushed to the PR after verification
    gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA of the headRefOid the verifier checked> \
      --subject "<type>(<scope>): <做了什麼> (#<PR>)" --body-file <message file>
    git switch main && git pull --ff-only
    ```
-   Squash message format (the body file holds everything after the subject line):
-   ```
-   <type>(<scope>): <做了什麼> (#<PR>)
-
-   <為什麼，一兩句>
-
-   - <重點 1>
-   - <重點 2>
-
-   Closes #<issue>
-   Reviewed-in: <URL>
-   Co-Authored-By: Claude <noreply@anthropic.com>
-   ```
-   - Subject: write the PR number `(#<PR>)` into it yourself; with a custom `--subject`, GitHub does not append it. `type` and `scope` come from the lists in `.claude/agents/implementer.md` ("Commit"); `scope` may be omitted.
-   - Body: one or two sentences on why, then 3 to 5 bullets, one per feature, not one per sub-commit.
-   - Do not write the review process: no verifier or mentor round counts, no "fixed per suggestion".
-   - The last paragraph holds only trailers, in this fixed order: `Closes #<issue>` (or `Refs #<issue>`), then every `Reviewed-in:`, then a single `Co-Authored-By: Claude <noreply@anthropic.com>`.
-   - `Reviewed-in`: scan all the PR's sub-commit messages with `gh pr view <PR> --json commits` (local `main` may be behind, so if you use `git log` instead, run `git fetch` first and use `origin/main..HEAD`) and copy every `Reviewed-in:` line verbatim. Do not de-duplicate, so the count equals the sub-commits'. Write none when the sub-commits have none.
 3. **Post-merge verification (only when the merge triggers a build/push or deploy workflow run).** Decide by whether **this merge** triggers a run of a workflow that builds or pushes an image, logs in to a registry, or deploys over SSH or to a remote host (decided by content, as in ③ step 2; a workflow that only runs tests or lint does not count). Read each such workflow's `on:` triggers and path filters and check whether this merge matches them; the kind of files the PR changed does not decide it. For example, a workflow triggered by `push: main` on all paths also runs when an ordinary code PR is merged. A PR that triggers no such run skips this step, and the rest of ⑤ is unchanged. Success is only visible after the merge:
    - **Observe the run** (every triggered run). Get the merge commit SHA (`gh pr view <PR> --json mergeCommit --jq .mergeCommit.oid`), then find the run whose `headSha` equals it:
      ```bash

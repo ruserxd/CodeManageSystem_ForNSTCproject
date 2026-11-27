@@ -37,6 +37,9 @@ yarn build
 ### Docker
 先在 `backend/` 執行 `./mvnw package`，再到 repo 根目錄執行 `docker-compose build && docker-compose up`（使用 `.env` 中的 `DOCKER_*` 變數）。
 
+## Git 慣例
+寫 commit、開 PR、合併之前，先讀 `docs/git_conventions.md`（commit／PR 格式的唯一定義）。重點：repo 只允許 squash；每個 PR 在 `main` 上只留一個 commit；合併時用 `gh pr merge --squash --subject ... --body-file ...` 自己寫訊息；subject 不放 issue 編號；只寫一行 `Co-Authored-By: Claude <noreply@anthropic.com>`；不改寫既有歷史。
+
 ## 架構
 
 ### Port
