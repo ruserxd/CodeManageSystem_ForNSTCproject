@@ -25,6 +25,14 @@ function About() {
 				<li>在專案列表中選擇檔案與方法，即可逐次檢視該方法的 diff。</li>
 			</ol>
 
+			<Title level={3}>目前的限制</Title>
+			<ul>
+				<li>只分析 .java 檔。</li>
+				<li>一般帳號單次最多分析 500 個 commit，更早的 commit 不會納入。</li>
+				<li>每天的分析次數有上限。</li>
+				<li>commit 很多的 repo 第一次分析會比較久，頁面可能先顯示逾時，但分析仍在背景進行。</li>
+			</ul>
+
 			<Title level={3}>技術架構</Title>
 			<ul>
 				<li>前端：React、Vite、Ant Design</li>

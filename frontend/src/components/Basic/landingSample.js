@@ -12,7 +12,7 @@ export const SAMPLE_HISTORY = [
 		sha: '8d3de4a',
 		date: '2024-09-25',
 		summary: '建立登入功能',
-		note: '第一版：用 Email 找使用者，帳號不存在與密碼錯誤回傳不同訊息。',
+		note: '用 Email 找使用者，兩種失敗回傳不同訊息。',
 		diff: `+    public LoginResponse checkUser(LoginINFO UserINFO) {
 +        Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(UserINFO.getUserEmail());
 +        logger.info(UserINFO.getUserEmail());
@@ -39,7 +39,7 @@ export const SAMPLE_HISTORY = [
 		sha: '17ac658',
 		date: '2024-10-02',
 		summary: '改用帳號登入',
-		note: '查詢條件從 Email 換成帳號。同一個 commit 還新增了別的方法、改了註冊流程，但這裡只看得到 checkUser 的部分。',
+		note: '查詢條件從 Email 換成帳號。',
 		diff: `     public LoginResponse checkUser(LoginINFO UserINFO) {
 -        Optional<MyUser> testCurrentHave = myUserRepository.findByUserEmail(UserINFO.getUserEmail());
 -        logger.info(UserINFO.getUserEmail());
@@ -54,7 +54,7 @@ export const SAMPLE_HISTORY = [
 		sha: '076732f',
 		date: '2024-10-10',
 		summary: '統一登入失敗訊息',
-		note: '兩種失敗都回傳同一句話，不再透露「這個帳號存不存在」。',
+		note: '不再透露帳號是否存在。',
 		diff: `                 return LoginResponse.builder()
 -                        .message("Password Wrong")
 +                        .message("Email or Password Wrong")
@@ -74,7 +74,7 @@ export const SAMPLE_HISTORY = [
 		sha: '8fde934',
 		date: '2026-11-14',
 		summary: 'log 不再印出整個使用者物件',
-		note: '原本 log 會印出整個 MyUser（含密碼 hash），改成只記錄 userId。',
+		note: 'log 只記錄 userId，不再印出密碼 hash。',
 		diff: `   public SessionResponse checkUser(LoginINFO userINFO) {
      Optional<MyUser> myUser = myUserRepository.findByUserAccount(userINFO.getUserAccount());
 
