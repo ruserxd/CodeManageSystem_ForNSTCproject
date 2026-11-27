@@ -29,7 +29,7 @@ All state lives on GitHub; do not keep separate files locally:
 |---|---|
 | ① Task brief | Issue body |
 | ② Criteria | Issue comment headed `📋 驗收標準`; a revision is a new comment headed `📋 驗收標準（第 n 版）`, and the latest one wins |
-| ③ Work | Commits on the working branch, and the PR description |
+| ③ Work | Commits on the working branch, the PR description, and a PR comment mapping commits to acceptance items with the test statistics |
 | ④ Verification | PR comments (one verifier report per round) |
 | ⑤ Delivery | The merged PR; the retrospective is a PR comment headed `## /ship 回顧` on that PR |
 

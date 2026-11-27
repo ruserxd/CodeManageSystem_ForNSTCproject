@@ -84,6 +84,8 @@ git switch main && git pull --ff-only
 git config pull.rebase true   # pull 時改用 rebase，不產生 "Merge remote-tracking branch" commit
 ```
 
+這不違反「不要改寫已有的 commit」：pull 時 rebase 只會重排本機還沒推送的 commit，已推送的 commit 不會被改動。
+
 ## 不改寫既有歷史
 
 #163 之前的 commit（`Update README.md`、串起來的長訊息）保持原樣。這是公開 repo，SHA 已經被 PR、issue 和文件引用；改寫歷史會讓這些連結失效，也必須 force push `main`。規則從 #163 起生效。
