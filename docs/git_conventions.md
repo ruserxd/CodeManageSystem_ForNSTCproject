@@ -85,7 +85,7 @@ git switch main && git fetch && git merge --ff-only origin/main
 git config pull.rebase true   # pull 時改用 rebase，不產生 "Merge remote-tracking branch" commit
 ```
 
-這是「不要改寫已有的 commit」唯一的例外：`pull` 時 rebase 只會把本機還沒推送的 commit 接到最新的遠端後面，已推送的 commit 不會被改動。agent（implementer 等）不執行 `pull`，所以對它們沒有例外。
+這是「不要改寫已有的 commit」唯一的例外：`pull` 時 rebase 只會把本機還沒推送的 commit 接到最新的遠端後面，已推送的 commit 不會被改動。agent（implementer 等）不執行 `pull`，所以對它們沒有例外；/ship、/autoship 的協調者只用 `--ff-only` 同步 `main`，分岔時會直接中止，不會改寫 commit。
 
 ## 不改寫既有歷史
 
