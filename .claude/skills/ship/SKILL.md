@@ -125,7 +125,7 @@ Agents hand off **only through the issue, the PR and the repo contents**. Do not
    # --match-head-commit: refuses to merge if new commits were pushed to the PR after verification
    gh pr merge <PR> --squash --delete-branch --match-head-commit <full SHA of the headRefOid the verifier checked> \
      --subject "<type>(<scope>): <做了什麼> (#<PR>)" --body-file <message file>
-   git switch main && git pull --ff-only
+   git switch main && git fetch && git merge --ff-only origin/main
    ```
 3. **Post-merge verification (only when the merge triggers a build/push or deploy workflow run).** Decide by whether **this merge** triggers a run of a workflow that builds or pushes an image, logs in to a registry, or deploys over SSH or to a remote host (decided by content, as in ③ step 2; a workflow that only runs tests or lint does not count). Read each such workflow's `on:` triggers and path filters and check whether this merge matches them; the kind of files the PR changed does not decide it. For example, a workflow triggered by `push: main` on all paths also runs when an ordinary code PR is merged. A PR that triggers no such run skips this step, and the rest of ⑤ is unchanged. Success is only visible after the merge:
    - **Observe the run** (every triggered run). Get the merge commit SHA (`gh pr view <PR> --json mergeCommit --jq .mergeCommit.oid`), then find the run whose `headSha` equals it:

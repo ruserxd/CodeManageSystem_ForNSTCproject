@@ -94,5 +94,5 @@ Stop only for real decisions: irreversible actions, a preference only the user c
 4. `## /ship 回顧` is written as in /ship, with one more required item:
    - (g) **Verifier consistency**: per verifier, the number of 🔴 / 🟡 / ⚪ found; how many findings overlapped between verifiers; how many 🔴 could not be reproduced. After several runs, use these numbers to choose the default: if the second verifier rarely found anything new → keep 2; if findings only one verifier caught (and that were real 🔴) are common → switch the default to 3.
 5. The delivery message that /ship gives the user in chat is instead posted as a PR comment headed `## 📦 autoship 交付` (via `--body-file`), so the user can read it offline. It has the same content as /ship ⑤ step 5 (what was done, criteria covered, verification evidence, new issues, known limitations, how/why/其他可行做法, retrospective URL), plus any follow-up issues created under ② rule 3.
-6. Then `git switch main && git pull --ff-only` and go to the next issue.
+6. Then `git switch main && git fetch && git merge --ff-only origin/main` (not `git pull`; see `docs/git_conventions.md`, 合併) and go to the next issue.
 7. When the whole batch is done, print a summary table in chat (Traditional Chinese): for each issue, merged / stopped (reason) / skipped, with links.

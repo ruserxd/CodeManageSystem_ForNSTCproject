@@ -60,7 +60,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 - 修正審查意見用 `git commit --fixup <sha>`，不要另外寫一個 `fix(...)`。
 - 子 commit 不加 `Co-Authored-By`，合併時只在 squash 訊息寫一行。
-- 不要用 `--amend`、`rebase`、`reset` 改寫已有的 commit；要修正就加新的 commit。
+- 不要用 `--amend`、`rebase`、`reset` 改寫已有的 commit，不論有沒有推送；要修正就加新的 commit。唯一的例外是「本機設定」一節的 `pull.rebase`。
 
 ## 合併
 
@@ -69,9 +69,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ```bash
 gh pr merge <PR> --squash --delete-branch --match-head-commit <verifier 驗過的 SHA> \
   --subject "<type>(<scope>): <做了什麼> (#<PR>)" --body-file <訊息檔>
-git switch main && git pull --ff-only
+git switch main && git fetch && git merge --ff-only origin/main
 ```
 
+- 同步 `main` 用 `fetch` + `merge --ff-only`，不要用 `git pull --ff-only`：開了 `pull.rebase` 之後，只要工作目錄有未提交的修改，`pull` 就會拒絕執行（#166）。`merge --ff-only` 會保留不衝突的未提交修改。
 - 自己指定 `--subject` 時，GitHub 不會自動補 PR 編號，要自己寫上 `(#<PR>)`。
 - `Reviewed-in:`：用 `gh pr view <PR> --json commits` 列出所有子 commit，把每一行 `Reviewed-in:` 原樣抄過來，不要去重。子 commit 沒有就不寫。如果改用 `git log`，本機 `main` 可能落後，要先 `git fetch`，再用 `origin/main..HEAD`，不要用 `main..HEAD`。
 - `--match-head-commit` 要填 verifier 驗過的**完整 SHA**：驗證之後如果又有新的 commit 推上來，合併會被拒絕。
@@ -84,7 +85,7 @@ git switch main && git pull --ff-only
 git config pull.rebase true   # pull 時改用 rebase，不產生 "Merge remote-tracking branch" commit
 ```
 
-這不違反「不要改寫已有的 commit」：pull 時 rebase 只會重排本機還沒推送的 commit，已推送的 commit 不會被改動。
+這是「不要改寫已有的 commit」唯一的例外：`pull` 時 rebase 只會把本機還沒推送的 commit 接到最新的遠端後面，已推送的 commit 不會被改動。agent（implementer 等）不執行 `pull`，所以對它們沒有例外；/ship、/autoship 的協調者只用 `--ff-only` 同步 `main`，分岔時會直接中止，不會改寫 commit。
 
 ## 不改寫既有歷史
 
