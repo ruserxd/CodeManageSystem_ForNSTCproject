@@ -9,9 +9,7 @@ function Contact() {
 					Author
 					<MdEmojiPeople />:
 				</dt>
-				<dd>
-					吳堃瑋
-				</dd>
+				<dd>吳堃瑋</dd>
 				<dt>
 					Mail
 					<MdEmail />:

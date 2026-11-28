@@ -28,7 +28,7 @@ function About() {
 			<Title level={3}>目前的限制</Title>
 			<ul>
 				<li>只分析 .java 檔。</li>
-				<li>一般帳號單次最多分析 500 個 commit，更早的 commit 不會納入。</li>
+				<li>一般帳號單次最多分析 500 個 commit（預設值），更早的 commit 不會納入。</li>
 				<li>每天的分析次數有上限。</li>
 				<li>commit 很多的 repo 第一次分析會比較久，頁面可能先顯示逾時，但分析仍在背景進行。</li>
 			</ul>
@@ -42,7 +42,10 @@ function About() {
 			</ul>
 
 			<Title level={3}>專案背景</Title>
-			<Paragraph>本專案源自國科會大專學生研究計畫（已結案），2025 年台灣軟體工程研討會（TCSE 2025） 的展示論文（Demo Paper），目前持續開發中。</Paragraph>
+			<Paragraph>
+				本專案源自國科會大專學生研究計畫（已結案），2025 年台灣軟體工程研討會（TCSE 2025）
+				的展示論文（Demo Paper），目前持續開發中。
+			</Paragraph>
 		</Typography>
 	);
 }
