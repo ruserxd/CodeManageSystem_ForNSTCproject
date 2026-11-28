@@ -41,6 +41,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1066,6 +1067,53 @@ class GitDiffAnalyzerTest {
 
       // 驗證
       assertArrayEquals(excepted, actual);
+    }
+
+    @Test
+    @DisplayName("同檔同名方法：inner class、其他 top-level class、匿名類別各自有獨立的 key")
+    void sameSignatureInDifferentScopesTest() {
+      content = """
+          public class Outer {
+            public String toString() { return "outer"; }
+
+            static class Inner {
+              public String toString() { return "inner"; }
+            }
+
+            void run() {
+              Runnable a = new Runnable() { public void run() { int first = 1; } };
+              Runnable b = new Runnable() { public void run() { int second = 2; } };
+            }
+          }
+
+          class Helper {
+            public String toString() { return "helper"; }
+          }
+          """;
+
+      Map<String, String> actual = gitDiffAnalyzer.getMethodByContent(content);
+
+      // 主要型別 Outer 的方法維持原本的 key，既有專案 pull 後歷史才接得上
+      assertEquals(Set.of("toString(): String", "Inner.toString(): String",
+          "Helper.toString(): String", "run(): void", "run().new Runnable.run(): void",
+          "run().new Runnable.run(): void#2"), actual.keySet());
+      assertTrue(actual.get("toString(): String").contains("\"outer\""));
+      assertTrue(actual.get("Inner.toString(): String").contains("\"inner\""));
+      assertTrue(actual.get("Helper.toString(): String").contains("\"helper\""));
+      assertTrue(actual.get("run().new Runnable.run(): void").contains("first"));
+      assertTrue(actual.get("run().new Runnable.run(): void#2").contains("second"));
+    }
+
+    @Test
+    @DisplayName("檔案中唯一的 top-level 型別即使不是 public，也不加前綴")
+    void soleNonPublicTypeKeepsKeyTest() {
+      content = """
+          class Only {
+            void work() { }
+          }
+          """;
+
+      assertEquals(Set.of("work(): void"), gitDiffAnalyzer.getMethodByContent(content).keySet());
     }
     // TODO : 新增更多測試
   }
