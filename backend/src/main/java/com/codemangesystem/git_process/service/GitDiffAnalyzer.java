@@ -19,14 +19,19 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.CallableDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -346,21 +351,20 @@ public class GitDiffAnalyzer {
     try {
       // 完整執行此次 commit 檔案有 diff 的
       for (DiffEntry diff : diffs) {
-        // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
-        String filePath = diff.getNewPath();
-        String fileName = new File(diff.getNewPath()).getName();
+        // 刪除的檔案 newPath 是 /dev/null，要改用 oldPath，否則刪除不會被記錄
+        boolean deleted = diff.getChangeType() == DiffEntry.ChangeType.DELETE;
+        String filePath = deleted ? diff.getOldPath() : diff.getNewPath();
+        String fileName = new File(filePath).getName();
 
         // 專注處理 java 檔案
-        if (diff.getNewPath()
-            .endsWith(".java")) {
+        if (filePath.endsWith(".java")) {
 
-          log.info("嘗試比較 {}", diff.getNewPath());
+          log.info("嘗試比較 {}", filePath);
 
-          // 以 String 抓出此次 commit 版與前一次的內容
+          // 以 String 抓出此次 commit 版與前一次的內容；刪除時新版內容為空，所有方法都會產生刪除 diff
           String oldContent =
-              previousCommit != null ? getContentByCommit(git, diff.getNewPath(), previousCommit)
-                  : "";
-          String newContent = getContentByCommit(git, diff.getNewPath(), commit);
+              previousCommit != null ? getContentByCommit(git, filePath, previousCommit) : "";
+          String newContent = deleted ? "" : getContentByCommit(git, filePath, commit);
 
           // 獲取本次 commit 的方法差異
           List<Pair<String, String>> result = compareTwoContent(oldContent, newContent);
@@ -550,28 +554,98 @@ public class GitDiffAnalyzer {
       type = "constructor";
     }
 
-    String signature = createMethodSignature(declaration);
+    String signature = createScopePrefix(declaration) + createMethodSignature(declaration);
 
-    log.info("本次的 {} {}", type, signature);
-    contentMethods.put(signature, content.toString());
+    // 加上型別路徑後仍可能重複（例如同一個方法裡有兩個 new Runnable），依原始碼順序加上 #2、#3，不要覆蓋。
+    // 限制：在既有的匿名類別前面插入同類型的匿名類別時，編號會往後移，歷史會錯接
+    String key = signature;
+    int occurrence = 1;
+    while (contentMethods.containsKey(key)) {
+      occurrence++;
+      key = signature + "#" + occurrence;
+    }
+    if (occurrence > 1) {
+      log.warn("方法 key 重複 {}，改用 {}", signature, key);
+    }
+
+    log.info("本次的 {} {}", type, key);
+    contentMethods.put(key, content.toString());
   }
 
   /*
-   * 獲得方法或建構子的名稱+傳入值
+   * 方法所屬的型別路徑，例如 Inner.、Helper.、run().new Runnable.
+   * 主要型別（public top-level，或檔案中唯一的 top-level 型別）不加前綴：
+   * 維持既有的 key，既有專案 pull 之後方法歷史才接得上
    * */
-  private String createMethodSignature(CallableDeclaration<?> declaration) {
-    StringBuilder signature = new StringBuilder(declaration.getNameAsString());
-    signature.append('(');
+  private String createScopePrefix(CallableDeclaration<?> declaration) {
+    Deque<String> segments = new ArrayDeque<>();
+    Node current = declaration.getParentNode().orElse(null);
+    while (current != null) {
+      if (current instanceof TypeDeclaration<?> typeDeclaration) {
+        if (!isPrimaryType(typeDeclaration)) {
+          segments.addFirst(typeDeclaration.getNameAsString());
+        }
+      } else if (current instanceof ObjectCreationExpr creation
+          && creation.getAnonymousClassBody().isPresent()) {
+        segments.addFirst("new " + creation.getType().getNameAsString());
+      } else if (current instanceof EnumConstantDeclaration enumConstant) {
+        segments.addFirst(enumConstant.getNameAsString());
+      } else if (current instanceof CallableDeclaration<?> enclosing) {
+        // local class／匿名類別所在的方法
+        segments.addFirst(createCallableName(enclosing));
+      }
+      current = current.getParentNode().orElse(null);
+    }
+
+    StringBuilder prefix = new StringBuilder();
+    for (String segment : segments) {
+      prefix.append(segment).append('.');
+    }
+    return prefix.toString();
+  }
+
+  /*
+   * 主要型別：public 的 top-level 型別；沒有 public 時取第一個 top-level 型別。
+   * 用「第一個」而不是「唯一一個」，之後在檔案後面新增型別時，既有方法的 key 才不會改變。
+   * 限制：在檔案最前面插入新型別，或在沒有 public 型別的檔案加入 public 型別時，原本主要型別的 key 仍會改變
+   * */
+  private boolean isPrimaryType(TypeDeclaration<?> typeDeclaration) {
+    if (!typeDeclaration.isTopLevelType()) {
+      return false;
+    }
+    if (typeDeclaration.isPublic()) {
+      return true;
+    }
+    return typeDeclaration.findCompilationUnit()
+        .map(cu -> cu.getTypes().stream().noneMatch(TypeDeclaration::isPublic)
+            && cu.getTypes().get(0) == typeDeclaration)
+        .orElse(false);
+  }
+
+  /*
+   * 獲得方法或建構子的名稱+傳入值，例如 sin(double, int)
+   * */
+  private String createCallableName(CallableDeclaration<?> declaration) {
+    StringBuilder name = new StringBuilder(declaration.getNameAsString());
+    name.append('(');
 
     // 加入參數類型
     List<Parameter> parameters = declaration.getParameters();
     for (int i = 0; i < parameters.size(); i++) {
       if (i > 0) {
-        signature.append(", ");
+        name.append(", ");
       }
-      signature.append(parameters.get(i).getType().asString());
+      name.append(parameters.get(i).getType().asString());
     }
-    signature.append(')');
+    name.append(')');
+    return name.toString();
+  }
+
+  /*
+   * 獲得方法或建構子的名稱+傳入值，方法再加上回傳類型，例如 sin(double, int): double
+   * */
+  private String createMethodSignature(CallableDeclaration<?> declaration) {
+    StringBuilder signature = new StringBuilder(createCallableName(declaration));
 
     // 如果是方法，加入回傳類型
     if (declaration instanceof MethodDeclaration method) {

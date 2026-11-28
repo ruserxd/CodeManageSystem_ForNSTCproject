@@ -6,13 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +42,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -683,6 +689,48 @@ class GitDiffAnalyzerTest {
     }
 
     @Test
+    @DisplayName("刪除的 java 檔：用 oldPath 讀舊內容，每個方法都留下刪除 diff")
+    void deletedFileTest() throws IOException {
+      GitDiffAnalyzer spyGitDiffAnalyzer = spy(gitDiffAnalyzer);
+
+      // 刪除時 newPath 是 /dev/null，檔案路徑只在 oldPath
+      DiffEntry deletedEntry = mock(DiffEntry.class);
+      when(deletedEntry.getChangeType()).thenReturn(DiffEntry.ChangeType.DELETE);
+      when(deletedEntry.getOldPath()).thenReturn("src/Foo.java");
+      // 修正後不會讀 newPath；保留真實的 /dev/null，修正被拿掉時才會停在下面的斷言
+      lenient().when(deletedEntry.getNewPath()).thenReturn(DiffEntry.DEV_NULL);
+
+      doReturn("""
+          public class Foo {
+            public void foo() {
+              return;
+            }
+          }
+          """).when(spyGitDiffAnalyzer).getContentByCommit(git, "src/Foo.java", previousCommit);
+      doAnswer(invocation -> DiffInfo.builder().build())
+          .when(spyGitDiffAnalyzer).takeCommitINFO(commit);
+
+      Project realProject = Project.builder().files(new ArrayList<>()).build();
+      spyGitDiffAnalyzer.setCommitDiffToProject(List.of(deletedEntry), realProject, git, commit,
+          previousCommit);
+
+      // 新版內容不該去讀（檔案已不存在）
+      verify(spyGitDiffAnalyzer, never()).getContentByCommit(any(), anyString(), eq(commit));
+
+      assertEquals(1, realProject.getFiles().size());
+      Files file = realProject.getFiles().get(0);
+      assertEquals("src/Foo.java", file.getFilePath());
+      assertEquals("Foo.java", file.getFileName());
+      assertEquals(1, file.getMethods().size());
+      Method method = file.getMethods().get(0);
+      assertEquals("foo(): void", method.getMethodName());
+      String diffCode = method.getDiffInfoList().get(0).getDiffCode();
+      // 舊版三行都變成刪除行（generateGitDiff 會把空字串當成一行空白，所以新版是 1 行）
+      assertTrue(diffCode.startsWith("@@ -1,3 +1,1 @@"), diffCode);
+      assertTrue(diffCode.contains("-public void foo() {"), diffCode);
+    }
+
+    @Test
     @DisplayName("測試 IOException (發現到 log 上的問題...)")
     void throwIOExceptionTest() throws IOException {
       // 初始化 GitDiffAnalyzer
@@ -1022,6 +1070,64 @@ class GitDiffAnalyzerTest {
 
       // 驗證
       assertArrayEquals(excepted, actual);
+    }
+
+    @Test
+    @DisplayName("同檔同名方法：inner class、其他 top-level class、匿名類別各自有獨立的 key")
+    void sameSignatureInDifferentScopesTest() {
+      content = """
+          public class Outer {
+            public String toString() { return "outer"; }
+
+            static class Inner {
+              public String toString() { return "inner"; }
+            }
+
+            void run() {
+              Runnable a = new Runnable() { public void run() { int first = 1; } };
+              Runnable b = new Runnable() { public void run() { int second = 2; } };
+            }
+          }
+
+          class Helper {
+            public String toString() { return "helper"; }
+          }
+          """;
+
+      Map<String, String> actual = gitDiffAnalyzer.getMethodByContent(content);
+
+      // 主要型別 Outer 的方法維持原本的 key，既有專案 pull 後歷史才接得上
+      assertEquals(Set.of("toString(): String", "Inner.toString(): String",
+          "Helper.toString(): String", "run(): void", "run().new Runnable.run(): void",
+          "run().new Runnable.run(): void#2"), actual.keySet());
+      assertTrue(actual.get("toString(): String").contains("\"outer\""));
+      assertTrue(actual.get("Inner.toString(): String").contains("\"inner\""));
+      assertTrue(actual.get("Helper.toString(): String").contains("\"helper\""));
+      assertTrue(actual.get("run().new Runnable.run(): void").contains("first"));
+      assertTrue(actual.get("run().new Runnable.run(): void#2").contains("second"));
+    }
+
+    @Test
+    @DisplayName("沒有 public 型別時，第一個 top-level 型別不加前綴，後面新增型別也不影響")
+    void firstNonPublicTypeKeepsKeyTest() {
+      content = """
+          class Only {
+            void work() { }
+          }
+          """;
+      assertEquals(Set.of("work(): void"), gitDiffAnalyzer.getMethodByContent(content).keySet());
+
+      content = """
+          class Only {
+            void work() { }
+          }
+
+          class Added {
+            void extra() { }
+          }
+          """;
+      assertEquals(Set.of("work(): void", "Added.extra(): void"),
+          gitDiffAnalyzer.getMethodByContent(content).keySet());
     }
     // TODO : 新增更多測試
   }
