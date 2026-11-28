@@ -346,21 +346,20 @@ public class GitDiffAnalyzer {
     try {
       // 完整執行此次 commit 檔案有 diff 的
       for (DiffEntry diff : diffs) {
-        // 目前的檔案位址、名稱，省去後面存取 diff 的呼叫
-        String filePath = diff.getNewPath();
-        String fileName = new File(diff.getNewPath()).getName();
+        // 刪除的檔案 newPath 是 /dev/null，要改用 oldPath，否則刪除不會被記錄
+        boolean deleted = diff.getChangeType() == DiffEntry.ChangeType.DELETE;
+        String filePath = deleted ? diff.getOldPath() : diff.getNewPath();
+        String fileName = new File(filePath).getName();
 
         // 專注處理 java 檔案
-        if (diff.getNewPath()
-            .endsWith(".java")) {
+        if (filePath.endsWith(".java")) {
 
-          log.info("嘗試比較 {}", diff.getNewPath());
+          log.info("嘗試比較 {}", filePath);
 
-          // 以 String 抓出此次 commit 版與前一次的內容
+          // 以 String 抓出此次 commit 版與前一次的內容；刪除時新版內容為空，所有方法都會產生刪除 diff
           String oldContent =
-              previousCommit != null ? getContentByCommit(git, diff.getNewPath(), previousCommit)
-                  : "";
-          String newContent = getContentByCommit(git, diff.getNewPath(), commit);
+              previousCommit != null ? getContentByCommit(git, filePath, previousCommit) : "";
+          String newContent = deleted ? "" : getContentByCommit(git, filePath, commit);
 
           // 獲取本次 commit 的方法差異
           List<Pair<String, String>> result = compareTwoContent(oldContent, newContent);

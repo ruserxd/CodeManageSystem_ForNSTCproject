@@ -6,13 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -680,6 +684,46 @@ class GitDiffAnalyzerTest {
               any(Project.class));
 
       spyGitDiffAnalyzer.setCommitDiffToProject(mockDiffs, project, git, commit, previousCommit);
+    }
+
+    @Test
+    @DisplayName("刪除的 java 檔：用 oldPath 讀舊內容，每個方法都留下刪除 diff")
+    void deletedFileTest() throws IOException {
+      GitDiffAnalyzer spyGitDiffAnalyzer = spy(gitDiffAnalyzer);
+
+      // 刪除時 newPath 是 /dev/null，檔案路徑只在 oldPath
+      DiffEntry deletedEntry = mock(DiffEntry.class);
+      when(deletedEntry.getChangeType()).thenReturn(DiffEntry.ChangeType.DELETE);
+      when(deletedEntry.getOldPath()).thenReturn("src/Foo.java");
+
+      doReturn("""
+          public class Foo {
+            public void foo() {
+              return;
+            }
+          }
+          """).when(spyGitDiffAnalyzer).getContentByCommit(git, "src/Foo.java", previousCommit);
+      doAnswer(invocation -> DiffInfo.builder().build())
+          .when(spyGitDiffAnalyzer).takeCommitINFO(commit);
+
+      Project realProject = Project.builder().files(new ArrayList<>()).build();
+      spyGitDiffAnalyzer.setCommitDiffToProject(List.of(deletedEntry), realProject, git, commit,
+          previousCommit);
+
+      // 新版內容不該去讀（檔案已不存在）
+      verify(spyGitDiffAnalyzer, never()).getContentByCommit(any(), anyString(), eq(commit));
+
+      assertEquals(1, realProject.getFiles().size());
+      Files file = realProject.getFiles().get(0);
+      assertEquals("src/Foo.java", file.getFilePath());
+      assertEquals("Foo.java", file.getFileName());
+      assertEquals(1, file.getMethods().size());
+      Method method = file.getMethods().get(0);
+      assertEquals("foo(): void", method.getMethodName());
+      String diffCode = method.getDiffInfoList().get(0).getDiffCode();
+      // 舊版三行都變成刪除行（generateGitDiff 會把空字串當成一行空白，所以新版是 1 行）
+      assertTrue(diffCode.startsWith("@@ -1,3 +1,1 @@"), diffCode);
+      assertTrue(diffCode.contains("-public void foo() {"), diffCode);
     }
 
     @Test
