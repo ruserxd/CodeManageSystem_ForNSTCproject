@@ -1,10 +1,9 @@
 // 首頁範例：本專案 repo 中 UserService.checkUser()（早期在 MyUserService）的真實修改紀錄。
-// 從 21 次修改中節錄 4 次，diff 內容取自 git log -L / git show，只保留與該方法相關的區塊；
-// 第一筆較長，省略了幾行 log 與結尾（以 ... 表示）。
+// 節錄其中 4 次，diff 內容取自 git show，只保留與該方法相關的區塊；
+// 第一筆省略了成功時的 return 區塊（以 ... 表示），其餘行與原始 diff 相同。
 export const SAMPLE_METHOD = {
 	file: 'UserService.java',
-	signature: 'checkUser(LoginINFO userINFO)',
-	totalCommits: 21
+	signature: 'checkUser(LoginINFO userINFO)'
 };
 
 export const SAMPLE_HISTORY = [
@@ -21,12 +20,16 @@ export const SAMPLE_HISTORY = [
 +            logger.info("email have " + testCurrentHave);
 +
 +            if (!passwordBcrypt.decryptPasswordIsSameOrNot(testCurrentHave.get().getUserPassword(), UserINFO.getUserPassword())) {
++                logger.info("Has this email but the password wrong");
++
 +                return LoginResponse.builder()
 +                        .message("Password Wrong")
 +                        .success(false)
 +                        .build();
 +            }
 +        } else {
++            logger.info("No this email");
++
 +            return LoginResponse.builder()
 +                    .message("No this email")
 +                    .success(false)

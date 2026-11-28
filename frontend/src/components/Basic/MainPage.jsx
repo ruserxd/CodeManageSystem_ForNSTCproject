@@ -132,7 +132,7 @@ function SampleHistory() {
 				</div>
 			</div>
 			<Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
-				取自本專案 repo，共 {SAMPLE_METHOD.totalCommits} 次修改中的 {SAMPLE_HISTORY.length} 次。
+				節錄自本專案 repo 的真實修改紀錄。
 			</Text>
 		</>
 	);
