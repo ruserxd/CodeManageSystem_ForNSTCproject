@@ -14,6 +14,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
@@ -696,6 +697,8 @@ class GitDiffAnalyzerTest {
       DiffEntry deletedEntry = mock(DiffEntry.class);
       when(deletedEntry.getChangeType()).thenReturn(DiffEntry.ChangeType.DELETE);
       when(deletedEntry.getOldPath()).thenReturn("src/Foo.java");
+      // 修正後不會讀 newPath；保留真實的 /dev/null，修正被拿掉時才會停在下面的斷言
+      lenient().when(deletedEntry.getNewPath()).thenReturn(DiffEntry.DEV_NULL);
 
       doReturn("""
           public class Foo {
@@ -1105,15 +1108,26 @@ class GitDiffAnalyzerTest {
     }
 
     @Test
-    @DisplayName("檔案中唯一的 top-level 型別即使不是 public，也不加前綴")
-    void soleNonPublicTypeKeepsKeyTest() {
+    @DisplayName("沒有 public 型別時，第一個 top-level 型別不加前綴，後面新增型別也不影響")
+    void firstNonPublicTypeKeepsKeyTest() {
       content = """
           class Only {
             void work() { }
           }
           """;
-
       assertEquals(Set.of("work(): void"), gitDiffAnalyzer.getMethodByContent(content).keySet());
+
+      content = """
+          class Only {
+            void work() { }
+          }
+
+          class Added {
+            void extra() { }
+          }
+          """;
+      assertEquals(Set.of("work(): void", "Added.extra(): void"),
+          gitDiffAnalyzer.getMethodByContent(content).keySet());
     }
     // TODO : 新增更多測試
   }

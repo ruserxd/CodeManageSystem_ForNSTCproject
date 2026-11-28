@@ -556,7 +556,8 @@ public class GitDiffAnalyzer {
 
     String signature = createScopePrefix(declaration) + createMethodSignature(declaration);
 
-    // 加上型別路徑後仍可能重複（例如同一個方法裡有兩個 new Runnable），依原始碼順序加上 #2、#3，不要覆蓋
+    // 加上型別路徑後仍可能重複（例如同一個方法裡有兩個 new Runnable），依原始碼順序加上 #2、#3，不要覆蓋。
+    // 限制：在既有的匿名類別前面插入同類型的匿名類別時，編號會往後移，歷史會錯接
     String key = signature;
     int occurrence = 1;
     while (contentMethods.containsKey(key)) {
@@ -603,12 +604,20 @@ public class GitDiffAnalyzer {
     return prefix.toString();
   }
 
+  /*
+   * 主要型別：public 的 top-level 型別；沒有 public 時取第一個 top-level 型別。
+   * 用「第一個」而不是「唯一一個」，之後在檔案後面新增型別時，既有方法的 key 才不會改變
+   * */
   private boolean isPrimaryType(TypeDeclaration<?> typeDeclaration) {
     if (!typeDeclaration.isTopLevelType()) {
       return false;
     }
-    return typeDeclaration.isPublic() || typeDeclaration.findCompilationUnit()
-        .map(cu -> cu.getTypes().size() == 1)
+    if (typeDeclaration.isPublic()) {
+      return true;
+    }
+    return typeDeclaration.findCompilationUnit()
+        .map(cu -> cu.getTypes().stream().noneMatch(TypeDeclaration::isPublic)
+            && cu.getTypes().get(0) == typeDeclaration)
         .orElse(false);
   }
 
