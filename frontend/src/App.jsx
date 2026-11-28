@@ -60,7 +60,7 @@ function App() {
 					}}>
 					<Routes>
 						<Route path="/" element={<MainLayout user={cookies.user} />}>
-							<Route index element={<MainPage />} />
+							<Route index element={<MainPage onLogin={handleLogin} />} />
 							<Route path="/Login" element={<Login onLogin={handleLogin} />} />
 							<Route path="/Register" element={<Register />} />
 							<Route path="/About" element={<About />} />
