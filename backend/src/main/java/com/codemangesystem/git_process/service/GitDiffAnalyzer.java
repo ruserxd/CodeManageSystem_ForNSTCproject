@@ -606,7 +606,8 @@ public class GitDiffAnalyzer {
 
   /*
    * 主要型別：public 的 top-level 型別；沒有 public 時取第一個 top-level 型別。
-   * 用「第一個」而不是「唯一一個」，之後在檔案後面新增型別時，既有方法的 key 才不會改變
+   * 用「第一個」而不是「唯一一個」，之後在檔案後面新增型別時，既有方法的 key 才不會改變。
+   * 限制：在檔案最前面插入新型別，或在沒有 public 型別的檔案加入 public 型別時，原本主要型別的 key 仍會改變
    * */
   private boolean isPrimaryType(TypeDeclaration<?> typeDeclaration) {
     if (!typeDeclaration.isTopLevelType()) {
